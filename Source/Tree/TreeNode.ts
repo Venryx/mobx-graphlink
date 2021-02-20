@@ -94,7 +94,9 @@ export class QueryRequest {
 	}
 	ToQueryStr() {
 		const docSchemaName = collection_docSchemaName.get(this.collectionName);
+		Assert(docSchemaName, `No schema has been associated with collection "${this.collectionName}". Did you forget the \`@Col("DOC_SCHEMA_NAME")\` decorator?`);
 		const docSchema = Schema(docSchemaName);
+		Assert(docSchema, `Cannot find schema with name "${docSchemaName}".`);
 
 		let variablesStr_final = "";
 		if (this.variablesStr) {
@@ -128,8 +130,10 @@ export class TreeNode<DataShape> {
 		Assert(this.pathSegments.find(a=>a == null || a.trim().length == 0) == null, `Path segments cannot be null/empty. @pathSegments(${this.pathSegments})`);
 		this.type = GetTreeNodeTypeForPath(this.pathSegments);
 		this.query = queryStr ? QueryRequest.ParseString(queryStr) : new QueryRequest();
-		this.query.collectionName = CE(this.pathSegments_noQuery).Last();
-		this.query.CalculateDerivatives();
+		if (this.type != TreeNodeType.Root) {
+			this.query.collectionName = CE(this.pathSegments_noQuery).Last();
+			this.query.CalculateDerivatives();
+		}
 	}
 	graph: Graphlink<any, any>;
 	pathSegments: string[];
@@ -145,6 +149,7 @@ export class TreeNode<DataShape> {
 		}
 	}
 	Subscribe() {
+		Assert(this.type == TreeNodeType.Root, "Cannot subscribe to the tree root!");
 		Assert(this.subscription == null, "Cannot subscribe more than once!");
 
 		// old: wait till call-stack completes, so we don't violate "can't change observables from within computation" rule
@@ -156,7 +161,7 @@ export class TreeNode<DataShape> {
 		runInAction("TreeNode.Subscribe_prep", ()=>this.status = DataStatus.Waiting);
 
 		MaybeLog_Base(a=>a.subscriptions, ()=>`Subscribing to: ${this.path}`);
-		if (this.type == TreeNodeType.Root || this.type == TreeNodeType.Document) {
+		if (this.type == TreeNodeType.Document) {
 			this.observable = this.graph.subs.apollo.subscribe({
 				query: this.query.graphQLQuery,
 				variables: this.query.variables,
@@ -171,8 +176,6 @@ export class TreeNode<DataShape> {
 				},
 				error: err=>console.error("SubscriptionError:", err),
 			});
-
-
 		} else {
 			this.observable = this.graph.subs.apollo.subscribe({
 				query: this.query.graphQLQuery,
@@ -209,8 +212,6 @@ export class TreeNode<DataShape> {
 				},
 				error: err=>console.error("SubscriptionError:", err),
 			});
-
-
 		}
 	}
 	Unsubscribe() {

@@ -79,7 +79,9 @@ export class QueryRequest {
     }
     ToQueryStr() {
         const docSchemaName = collection_docSchemaName.get(this.collectionName);
+        Assert(docSchemaName, `No schema has been associated with collection "${this.collectionName}". Did you forget the \`@Col("DOC_SCHEMA_NAME")\` decorator?`);
         const docSchema = Schema(docSchemaName);
+        Assert(docSchema, `Cannot find schema with name "${docSchemaName}".`);
         let variablesStr_final = "";
         if (this.variablesStr) {
             variablesStr_final = `(${this.variablesStr})`;
@@ -116,8 +118,10 @@ export class TreeNode {
         Assert(this.pathSegments.find(a => a == null || a.trim().length == 0) == null, `Path segments cannot be null/empty. @pathSegments(${this.pathSegments})`);
         this.type = GetTreeNodeTypeForPath(this.pathSegments);
         this.query = queryStr ? QueryRequest.ParseString(queryStr) : new QueryRequest();
-        this.query.collectionName = CE(this.pathSegments_noQuery).Last();
-        this.query.CalculateDerivatives();
+        if (this.type != TreeNodeType.Root) {
+            this.query.collectionName = CE(this.pathSegments_noQuery).Last();
+            this.query.CalculateDerivatives();
+        }
     }
     Request() {
         this.graph.treeRequestWatchers.forEach(a => a.nodesRequested.add(this));
@@ -126,6 +130,7 @@ export class TreeNode {
         }
     }
     Subscribe() {
+        Assert(this.type == TreeNodeType.Root, "Cannot subscribe to the tree root!");
         Assert(this.subscription == null, "Cannot subscribe more than once!");
         // old: wait till call-stack completes, so we don't violate "can't change observables from within computation" rule
         // we can't change observables from within computed values/funcs/store-accessors, so do it in a moment (out of computation call-stack)
@@ -135,7 +140,7 @@ export class TreeNode {
         Assert(_getGlobalState().computationDepth == 0, "Cannot call TreeNode.Subscribe from within a computation.");
         runInAction("TreeNode.Subscribe_prep", () => this.status = DataStatus.Waiting);
         MaybeLog_Base(a => a.subscriptions, () => `Subscribing to: ${this.path}`);
-        if (this.type == TreeNodeType.Root || this.type == TreeNodeType.Document) {
+        if (this.type == TreeNodeType.Document) {
             this.observable = this.graph.subs.apollo.subscribe({
                 query: this.query.graphQLQuery,
                 variables: this.query.variables,
