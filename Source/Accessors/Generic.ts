@@ -38,6 +38,10 @@ export function GetDocs<DB = DBShape, DocT = any>(options: Partial<GraphOptions<
 		DoX_ComputationSafe(()=>runInAction("GetDocs_Request", ()=> {
 			opt.graph.tree.Get(pathSegments, opt.queryRequest, true)!.Request();
 		}));
+		// we need this function to re-run once new TreeNode is created+subscribed, so access/watch parent TreeNode's collections map
+		// edit: nevermind, works without -- since Get function already accesses the collectionNodes field
+		//opt.graph.tree.Get(pathSegments.slice(0, -1))?.collectionNodes.entries();
+		//opt.graph.tree.collectionNodes.entries();
 	}
 	
 	if (treeNode?.status != DataStatus.Received_Full) return opt.resultForLoading;

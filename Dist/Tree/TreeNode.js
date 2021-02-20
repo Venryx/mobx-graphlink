@@ -10,7 +10,7 @@ import { PathOrPathGetterToPath, PathOrPathGetterToPathSegments } from "../Utils
 import { _getGlobalState } from "mobx";
 import { MaybeLog_Base } from "../Utils/General";
 import { gql } from "@apollo/client/core";
-import { collection_docSchemaName, Schema } from "../Extensions/SchemaHelpers";
+import { collection_docSchemaName, GetSchemaJSON } from "../Extensions/SchemaHelpers";
 export var TreeNodeType;
 (function (TreeNodeType) {
     TreeNodeType[TreeNodeType["Root"] = 0] = "Root";
@@ -80,7 +80,7 @@ export class QueryRequest {
     ToQueryStr() {
         const docSchemaName = collection_docSchemaName.get(this.collectionName);
         Assert(docSchemaName, `No schema has been associated with collection "${this.collectionName}". Did you forget the \`@Col("DOC_SCHEMA_NAME")\` decorator?`);
-        const docSchema = Schema(docSchemaName);
+        const docSchema = GetSchemaJSON(docSchemaName);
         Assert(docSchema, `Cannot find schema with name "${docSchemaName}".`);
         let variablesStr_final = "";
         if (this.variablesStr) {
@@ -118,7 +118,7 @@ export class TreeNode {
         Assert(this.pathSegments.find(a => a == null || a.trim().length == 0) == null, `Path segments cannot be null/empty. @pathSegments(${this.pathSegments})`);
         this.type = GetTreeNodeTypeForPath(this.pathSegments);
         this.query = queryStr ? QueryRequest.ParseString(queryStr) : new QueryRequest();
-        if (this.type != TreeNodeType.Root) {
+        if (this.type == TreeNodeType.Collection) {
             this.query.collectionName = CE(this.pathSegments_noQuery).Last();
             this.query.CalculateDerivatives();
         }
@@ -130,7 +130,7 @@ export class TreeNode {
         }
     }
     Subscribe() {
-        Assert(this.type == TreeNodeType.Root, "Cannot subscribe to the tree root!");
+        Assert(this.type != TreeNodeType.Root, "Cannot subscribe to the tree root!");
         Assert(this.subscription == null, "Cannot subscribe more than once!");
         // old: wait till call-stack completes, so we don't violate "can't change observables from within computation" rule
         // we can't change observables from within computed values/funcs/store-accessors, so do it in a moment (out of computation call-stack)
@@ -164,24 +164,27 @@ export class TreeNode {
             this.subscription = this.observable.subscribe({
                 //start: ()=>{},
                 next: data => {
-                    const snapshot = data.data;
-                    MaybeLog_Base(a => a.subscriptions, l => l(`Got collection snapshot. @path(${this.path}) @snapshot:`, snapshot));
+                    const docs = data.data[CE(this.pathSegments_noQuery).Last()].nodes;
+                    Assert(docs != null && docs instanceof Array);
+                    const fromCache = false;
+                    MaybeLog_Base(a => a.subscriptions, l => l(`Got collection snapshot. @path(${this.path}) @docs:`, docs));
                     runInAction("TreeNode.Subscribe.onSnapshot_collection", () => {
-                        const deletedDocIDs = CE(Array.from(this.docNodes.keys())).Except(...snapshot.docs.map(a => a.id));
+                        const deletedDocIDs = CE(Array.from(this.docNodes.keys())).Except(...docs.map(a => a.id));
                         let dataChanged = false;
-                        for (const doc of snapshot.docs) {
+                        for (const doc of docs) {
                             if (!this.docNodes.has(doc.id)) {
                                 this.docNodes.set(doc.id, new TreeNode(this.graph, this.pathSegments.concat([doc.id])));
                             }
-                            dataChanged = this.docNodes.get(doc.id).SetData(doc.data(), snapshot.metadata.fromCache) || dataChanged;
+                            //dataChanged = this.docNodes.get(doc.id)!.SetData(doc.data(), fromCache) || dataChanged;
+                            dataChanged = this.docNodes.get(doc.id).SetData(doc, fromCache) || dataChanged;
                         }
                         for (const docID of deletedDocIDs) {
                             const docNode = this.docNodes.get(docID);
-                            dataChanged = (docNode === null || docNode === void 0 ? void 0 : docNode.SetData(null, snapshot.metadata.fromCache)) || dataChanged;
+                            dataChanged = (docNode === null || docNode === void 0 ? void 0 : docNode.SetData(null, fromCache)) || dataChanged;
                             //docNode?.Unsubscribe(); // if someone subscribed directly, I guess we let them keep the detached subscription?
                             this.docNodes.delete(docID);
                         }
-                        const newStatus = snapshot.metadata.fromCache ? DataStatus.Received_Cache : DataStatus.Received_Full;
+                        const newStatus = fromCache ? DataStatus.Received_Cache : DataStatus.Received_Full;
                         // see comment in SetData for why we ignore this case
                         const isIgnorableStatusChange = !dataChanged && newStatus == DataStatus.Received_Cache && this.status == DataStatus.Received_Full;
                         if (newStatus != this.status && !isIgnorableStatusChange) {
