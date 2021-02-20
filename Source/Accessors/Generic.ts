@@ -17,7 +17,7 @@ export class GetDocs_Options {
 	static default = new GetDocs_Options();
 	inLinkRoot? = true;
 	//queryOps?: QueryOp[];
-	queryRequest: QueryRequest;
+	queryRequest?: QueryRequest;
 	
 	resultForLoading? = emptyArray_forLoading;
 	//resultForEmpty? = emptyArray;
