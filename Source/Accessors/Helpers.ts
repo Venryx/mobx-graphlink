@@ -1,14 +1,14 @@
 import {Assert, E, StringCE, WaitXThenRun} from "js-vextensions";
 import {reaction} from "mobx";
-import {defaultFireOptions, FireOptions} from "../Graphlink";
+import {defaultGraphOptions, GraphOptions} from "../Graphlink";
 import {DataStatus} from "../Tree/TreeNode";
 import {TreeRequestWatcher} from "../Tree/TreeRequestWatcher";
 
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 // (one of the rare cases where opt is not the first argument; that's because GetWait may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
-export function GetWait<T>(dataGetterFunc: ()=>T, options?: Partial<FireOptions>): T {
-	const opt = E(defaultFireOptions, options) as FireOptions;
-	let watcher = new TreeRequestWatcher(opt.fire);
+export function GetWait<T>(dataGetterFunc: ()=>T, options?: Partial<GraphOptions>): T {
+	const opt = E(defaultGraphOptions, options) as GraphOptions;
+	let watcher = new TreeRequestWatcher(opt.graph);
 
 	// prep for getter-func
 	watcher.Start();
@@ -41,9 +41,9 @@ export class GetAsync_Options {
 
 // async helper
 // (one of the rare cases where opt is not the first argument; that's because GetAsync may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
-export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<FireOptions> & GetAsync_Options): Promise<T> {
-	const opt = E(defaultFireOptions, GetAsync_Options.default, options) as FireOptions & GetAsync_Options;
-	let watcher = new TreeRequestWatcher(opt.fire);
+export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<GraphOptions> & GetAsync_Options): Promise<T> {
+	const opt = E(defaultGraphOptions, GetAsync_Options.default, options) as GraphOptions & GetAsync_Options;
+	let watcher = new TreeRequestWatcher(opt.graph);
 
 	/*let lastResult;
 	let nodesRequested_obj_last;

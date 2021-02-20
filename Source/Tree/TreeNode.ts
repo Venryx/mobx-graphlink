@@ -1,13 +1,13 @@
 import {Assert, CE, ToJSON, WaitXThenRun, FromJSON, ObjectCE} from "js-vextensions";
 import {observable, ObservableMap, runInAction} from "mobx";
-import {QueryOp} from "../QueryOps";
-import {Firelink} from "../Graphlink";
+import {Graphlink} from "../Graphlink";
 import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "../Utils/PathHelpers";
-import {ProcessDBData} from "../Utils/DatabaseHelpers";
 import {_getGlobalState} from "mobx";
 import {nil} from "../Utils/Nil";
 import {MaybeLog_Base} from "../Utils/General";
-import firebase from "firebase";
+import {DocumentNode, FetchResult, gql} from "@apollo/client/core";
+import {Observable} from "@apollo/client/utilities";
+import {collection_docSchemaName, Schema} from "../Extensions/SchemaHelpers";
 
 export enum TreeNodeType {
 	Root,
@@ -30,7 +30,7 @@ export class PathSubscription {
 	unsubscribe: ()=>void;
 }
 
-export class QueryRequest {
+/*export class QueryRequest {
 	static ParseString(dataStr: string) {
 		return QueryRequest.ParseData(FromJSON(dataStr));
 	}
@@ -57,11 +57,69 @@ export class QueryRequest {
 	toString() {
 		return ToJSON(this);
 	}
+}*/
+/** Class specifies the filtering, sorting, etc. for a given TreeNode. */
+// (comments based on usage with Postgraphile and https://github.com/graphile-contrib/postgraphile-plugin-connection-filter)
+export class QueryRequest {
+	static ParseString(dataStr: string) {
+		return QueryRequest.ParseData(FromJSON(dataStr));
+	}
+	static ParseData(data: any) {
+		return new QueryRequest(data);
+	}
+	toString() {
+		return ToJSON(CE(this).Including("variablesStr", "filterStr", "variables"));
+	}
+
+	constructor(initialData?: Partial<QueryRequest>) {
+		CE(this).Extend(initialData);
+	}
+	
+	collectionName: string;
+
+	// user-specified
+	/** Example: "$limit: Int!, $maxValue: Int!" */
+	variablesStr: string;
+	/** Example: "first: $limit, filter: {someProp: {lessThan: $maxValue}}" */
+	filterStr: string;
+	/** Example: {limit: 10, maxValue: 100} */
+	variables: Object;
+
+	// derivatives
+	queryStr: string;
+	graphQLQuery: DocumentNode;
+	CalculateDerivatives() {
+		this.queryStr = this.ToQueryStr();
+		this.graphQLQuery = gql(this.queryStr);
+	}
+	ToQueryStr() {
+		const docSchemaName = collection_docSchemaName.get(this.collectionName);
+		const docSchema = Schema(docSchemaName);
+
+		let variablesStr_final = "";
+		if (this.variablesStr) {
+			variablesStr_final = `(${this.variablesStr})`;
+		}
+
+		let filterStr_final = "";
+		if (this.filterStr) {
+			filterStr_final = `(${this.filterStr})`;
+		}
+		
+		const str = `
+			subscription Collection_${this.collectionName}${variablesStr_final} {
+				${this.collectionName}${filterStr_final} {
+					nodes { ${CE(docSchema.properties).Pairs().map(a=>a.key).join(" ")} }
+				}
+			}
+		`;
+		return str;
+	}
 }
 
 export class TreeNode<DataShape> {
-	constructor(fire: Firelink<any, any>, pathOrSegments: string | string[]) {
-		this.fire = fire;
+	constructor(fire: Graphlink<any, any>, pathOrSegments: string | string[]) {
+		this.graph = fire;
 		this.pathSegments = PathOrPathGetterToPathSegments(pathOrSegments);
 		this.path = PathOrPathGetterToPath(pathOrSegments)!;
 		const queryStr = this.pathSegments.slice(-1)[0]?.startsWith("@query:") ? this.pathSegments.slice(-1)[0].substr("@query:".length) : null;
@@ -69,9 +127,11 @@ export class TreeNode<DataShape> {
 		this.path_noQuery = this.pathSegments_noQuery.join("/");
 		Assert(this.pathSegments.find(a=>a == null || a.trim().length == 0) == null, `Path segments cannot be null/empty. @pathSegments(${this.pathSegments})`);
 		this.type = GetTreeNodeTypeForPath(this.pathSegments);
-		this.query = queryStr ? QueryRequest.ParseString(queryStr) : nil;
+		this.query = queryStr ? QueryRequest.ParseString(queryStr) : new QueryRequest();
+		this.query.collectionName = CE(this.pathSegments_noQuery).Last();
+		this.query.CalculateDerivatives();
 	}
-	fire: Firelink<any, any>;
+	graph: Graphlink<any, any>;
 	pathSegments: string[];
 	pathSegments_noQuery: string[];
 	path: string;
@@ -79,7 +139,7 @@ export class TreeNode<DataShape> {
 	type: TreeNodeType;
 
 	Request() {
-		this.fire.treeRequestWatchers.forEach(a=>a.nodesRequested.add(this));
+		this.graph.treeRequestWatchers.forEach(a=>a.nodesRequested.add(this));
 		if (!this.subscription) {
 			this.Subscribe();
 		}
@@ -97,57 +157,69 @@ export class TreeNode<DataShape> {
 
 		MaybeLog_Base(a=>a.subscriptions, ()=>`Subscribing to: ${this.path}`);
 		if (this.type == TreeNodeType.Root || this.type == TreeNodeType.Document) {
-			let docRef = this.fire.subs.firestoreDB.doc(this.path_noQuery);
-			this.subscription = new PathSubscription(docRef.onSnapshot({includeMetadataChanges: true}, (snapshot)=> {
-				MaybeLog_Base(a=>a.subscriptions, l=>l(`Got doc snapshot. @path(${this.path}) @snapshot:`, snapshot));
-				runInAction("TreeNode.Subscribe.onSnapshot_doc", ()=> {
-					this.SetData(snapshot.data() as any, snapshot.metadata.fromCache);
-				});
-			}));
-		} else {
-			let collectionRef = this.fire.subs.firestoreDB.collection(this.path_noQuery);
-			if (this.query) {
-				collectionRef = this.query.Apply(collectionRef);
-			}
-			this.subscription = new PathSubscription(collectionRef.onSnapshot({includeMetadataChanges: true}, (snapshot)=> {
-				MaybeLog_Base(a=>a.subscriptions, l=>l(`Got collection snapshot. @path(${this.path}) @snapshot:`, snapshot));
-				/*let newData = {};
-				for (let doc of snapshot.docs) {
-					newData[doc.id] = doc.data();
-				}
-				this.data = observable(newData) as any;*/
-				runInAction("TreeNode.Subscribe.onSnapshot_collection", ()=> {
-					const deletedDocIDs = CE(Array.from(this.docNodes.keys())).Except(...snapshot.docs.map(a=>a.id));
-					let dataChanged = false;
-					for (const doc of snapshot.docs) {
-						if (!this.docNodes.has(doc.id)) {
-							this.docNodes.set(doc.id, new TreeNode(this.fire, this.pathSegments.concat([doc.id])));
-						}
-						dataChanged = this.docNodes.get(doc.id)!.SetData(doc.data(), snapshot.metadata.fromCache) || dataChanged;
-					}
-					for (const docID of deletedDocIDs) {
-						const docNode = this.docNodes.get(docID);
-						dataChanged = docNode?.SetData(null, snapshot.metadata.fromCache) || dataChanged;
-						//docNode?.Unsubscribe(); // if someone subscribed directly, I guess we let them keep the detached subscription?
-						this.docNodes.delete(docID);
-					}
+			this.observable = this.graph.subs.apollo.subscribe({
+				query: this.query.graphQLQuery,
+				variables: this.query.variables,
+			});
+			this.subscription = this.observable.subscribe({
+				//start: ()=>{},
+				next: data=>{
+					MaybeLog_Base(a=>a.subscriptions, l=>l(`Got doc snapshot. @path(${this.path}) @snapshot:`, data.data));
+					runInAction("TreeNode.Subscribe.onSnapshot_doc", ()=> {
+						this.SetData(data.data, false);
+					});
+				},
+				error: err=>console.error("SubscriptionError:", err),
+			});
 
-					const newStatus = snapshot.metadata.fromCache ? DataStatus.Received_Cache : DataStatus.Received_Full;
-					// see comment in SetData for why we ignore this case
-					const isIgnorableStatusChange = !dataChanged && newStatus == DataStatus.Received_Cache && this.status == DataStatus.Received_Full;
-					if (newStatus != this.status && !isIgnorableStatusChange) {
-						this.status = newStatus;
-					}
-				});
-			}));
+
+		} else {
+			this.observable = this.graph.subs.apollo.subscribe({
+				query: this.query.graphQLQuery,
+				variables: this.query.variables,
+			});
+			this.subscription = this.observable.subscribe({
+				//start: ()=>{},
+				next: data=>{
+					const snapshot = data.data;
+					MaybeLog_Base(a=>a.subscriptions, l=>l(`Got collection snapshot. @path(${this.path}) @snapshot:`, snapshot));
+					runInAction("TreeNode.Subscribe.onSnapshot_collection", ()=> {
+						const deletedDocIDs = CE(Array.from(this.docNodes.keys())).Except(...snapshot.docs.map(a=>a.id));
+						let dataChanged = false;
+						for (const doc of snapshot.docs) {
+							if (!this.docNodes.has(doc.id)) {
+								this.docNodes.set(doc.id, new TreeNode(this.graph, this.pathSegments.concat([doc.id])));
+							}
+							dataChanged = this.docNodes.get(doc.id)!.SetData(doc.data(), snapshot.metadata.fromCache) || dataChanged;
+						}
+						for (const docID of deletedDocIDs) {
+							const docNode = this.docNodes.get(docID);
+							dataChanged = docNode?.SetData(null, snapshot.metadata.fromCache) || dataChanged;
+							//docNode?.Unsubscribe(); // if someone subscribed directly, I guess we let them keep the detached subscription?
+							this.docNodes.delete(docID);
+						}
+	
+						const newStatus = snapshot.metadata.fromCache ? DataStatus.Received_Cache : DataStatus.Received_Full;
+						// see comment in SetData for why we ignore this case
+						const isIgnorableStatusChange = !dataChanged && newStatus == DataStatus.Received_Cache && this.status == DataStatus.Received_Full;
+						if (newStatus != this.status && !isIgnorableStatusChange) {
+							this.status = newStatus;
+						}
+					});
+				},
+				error: err=>console.error("SubscriptionError:", err),
+			});
+
+
 		}
 	}
 	Unsubscribe() {
-		if (this.subscription == null) return null;
-		let subscription = this.subscription;
+		if (this.observable == null || this.subscription == null) return null;
+		let {observable, subscription} = this;
+		this.observable = null;
 		this.subscription.unsubscribe();
 		this.subscription = null;
-		return subscription;
+		return {observable, subscription};
 	}
 	UnsubscribeAll() {
 		this.Unsubscribe();
@@ -157,7 +229,9 @@ export class TreeNode<DataShape> {
 	}
 
 	@observable status = DataStatus.Initial;
-	subscription: PathSubscription|null;
+	//subscription: PathSubscription|null;
+	observable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>>|null;
+	subscription: ZenObservable.Subscription|null;
 
 	// for doc (and root) nodes
 	@observable collectionNodes = observable.map<string, TreeNode<any>>();
@@ -179,7 +253,8 @@ export class TreeNode<DataShape> {
 		if (dataChanged) {
 			//console.log("Data changed from:", this.data, " to:", data, " @node:", this);
 			//data = data ? observable(data_raw) as any : null;
-			ProcessDBData(data, true, CE(this.pathSegments).Last()); // maybe rework
+			// for graphql system, not currently needed
+			//ProcessDBData(data, true, CE(this.pathSegments).Last());
 			this.data = data;
 			this.dataJSON = dataJSON;
 		}
@@ -202,7 +277,7 @@ export class TreeNode<DataShape> {
 	// for collection (and collection-query) nodes
 	@observable queryNodes = observable.map<string, TreeNode<any>>(); // for collection nodes
 	//queryNodes = new Map<string, TreeNode<any>>(); // for collection nodes
-	query?: QueryRequest; // for collection-query nodes
+	query: QueryRequest; // for collection-query nodes
 	@observable docNodes = observable.map<string, TreeNode<any>>();
 	//docNodes = new Map<string, TreeNode<any>>();
 	get docDatas() {
@@ -227,7 +302,7 @@ export class TreeNode<DataShape> {
 				if (!childNodesMap.has(segment) && createTreeNodesIfMissing) {
 					if (!inAction) return proceed_inAction(); // if not yet running in action, restart in one
 					//let pathToSegment = subpathSegments.slice(0, index).join("/");
-					childNodesMap.set(segment, new TreeNode(this.fire, this.pathSegments.concat(subpathSegmentsToHere)));
+					childNodesMap.set(segment, new TreeNode(this.graph, this.pathSegments.concat(subpathSegmentsToHere)));
 				}
 				currentNode = childNodesMap.get(segment)!;
 				if (currentNode == null) break;
@@ -235,7 +310,7 @@ export class TreeNode<DataShape> {
 			if (query && currentNode) {
 				if (!currentNode.queryNodes.has(query.toString()) && createTreeNodesIfMissing) {
 					if (!inAction) return proceed_inAction(); // if not yet running in action, restart in one
-					currentNode.queryNodes.set(query.toString(), new TreeNode(this.fire, this.pathSegments.concat(subpathSegments).concat("@query:" + query)))
+					currentNode.queryNodes.set(query.toString(), new TreeNode(this.graph, this.pathSegments.concat(subpathSegments).concat("@query:" + query)))
 				}
 				currentNode = currentNode.queryNodes.get(query.toString())!;
 			}

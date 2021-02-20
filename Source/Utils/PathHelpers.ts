@@ -1,5 +1,5 @@
 import {Assert, IsString, E, CE, IsArray, IsFunction} from "js-vextensions";
-import {defaultFireOptions, FireOptions} from "../Graphlink";
+import {defaultGraphOptions, GraphOptions} from "../Graphlink";
 import {SplitStringBySlash_Cached} from "./StringSplitCache";
 import {DBShape} from "../UserTypes";
 
@@ -34,25 +34,25 @@ export function GetPathParts(path: string, asFBPath = false): [string, string|nu
 	return [colOrDocPath, fieldPathInDoc];
 }
 
-export function DBPath(options: Partial<FireOptions>, path = "", inLinkRoot = true) {
-	const opt = E(defaultFireOptions, options) as FireOptions;
+/*export function DBPath(options: Partial<GraphOptions>, path = "", inLinkRoot = true) {
+	const opt = E(defaultGraphOptions, options) as GraphOptions;
 	Assert(path != null, "Path cannot be null.");
 	Assert(typeof path == "string", "Path must be a string.");
 	/*let versionPrefix = path.match(/^v[0-9]+/);
-	if (versionPrefix == null) // if no version prefix already, add one (referencing the current version)*/
+	if (versionPrefix == null) // if no version prefix already, add one (referencing the current version)*#/
 	if (inLinkRoot) {
-		path = `${opt.fire.rootPath}${path ? `/${path}` : ""}`;
+		path = `${opt.graph.rootPath}${path ? `/${path}` : ""}`;
 	}
 	return path;
 }
-export function DBPathSegments(options: Partial<FireOptions>, pathSegments: (string | number)[], inLinkRoot = true) {
-	const opt = E(defaultFireOptions, options) as FireOptions;
+export function DBPathSegments(options: Partial<GraphOptions>, pathSegments: (string | number)[], inLinkRoot = true) {
+	const opt = E(defaultGraphOptions, options) as GraphOptions;
 	let result = pathSegments.map(a=>a?.toString());
 	if (inLinkRoot) {
-		result = opt.fire.rootPathSegments.concat(result);
+		result = opt.graph.rootPathSegments.concat(result);
 	}
 	return result;
-}
+}*/
 
 export function SlicePath(path: string, removeFromEndCount: number, ...itemsToAdd: string[]) {
 	//let parts = path.split("/");

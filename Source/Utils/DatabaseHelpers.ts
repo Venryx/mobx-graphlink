@@ -1,11 +1,9 @@
-import {DeepSet, IsNumberString, Assert, StringCE, Clone, ObjectCE, ArrayCE, GetTreeNodesInObjTree, E, CE, StartDownload, IsObject} from "js-vextensions";
+/*import {DeepSet, IsNumberString, Assert, StringCE, Clone, ObjectCE, ArrayCE, GetTreeNodesInObjTree, E, CE, StartDownload, IsObject} from "js-vextensions";
 import u from "updeep";
 import {MaybeLog_Base} from "./General";
-import {FireOptions, SplitStringBySlash_Cached} from "..";
-import {defaultFireOptions} from "../Graphlink";
-import firebase from "firebase";
+import {GraphOptions, SplitStringBySlash_Cached} from "..";
+import {defaultGraphOptions} from "../Graphlink";
 import {GetPathParts} from "./PathHelpers";
-import {nil} from "./Nil";
 
 export function IsAuthValid(auth) {
 	return auth && !auth.isEmpty;
@@ -15,7 +13,7 @@ export function IsAuthValid(auth) {
 Applies normalization of an object-tree to match how it would be stored (and thus returned) by Firestore.
 
 Currently, this consists of: sorting keys in alphabetical order.
-*/
+*#/
 export function WithFirestoreNormalization(obj: any) {
 	if (obj == null) return obj;
 	const result = Clone(obj);
@@ -34,90 +32,26 @@ export function WithFirestoreNormalization(obj: any) {
 	return result;
 }
 
-/* Object.prototype._AddFunction_Inline = function DBRef(path = "", inVersionRoot = true) {
-	const finalPath = DBPath(path, inVersionRoot);
-	return this.ref(finalPath);
-}; */
-
 export function ProcessDBData(data, addHelpers: boolean, rootKey = "_root") {
 	if (data == null) return;
 	var treeNodes = GetTreeNodesInObjTree(data, true);
 	for (const treeNode of treeNodes) {
 		if (treeNode.Value == null) continue;
 
-		// turn the should-not-have-been-array arrays (the ones without a "0" property) into objects
-		//if (standardizeForm && treeNode.Value instanceof Array && treeNode.Value[0] === undefined) {
-
-		// turn the should-not-have-been-array arrays (the ones with non-number property) into objects
-		/*if (standardizeForm && treeNode.Value instanceof Array && ArrayCE(ObjectCE(treeNode.Value).VKeys(true)).Any(a=>!IsNumberString(a))) {
-			// if changing root, we have to actually modify the prototype of the passed-in "data" object
-			/*if (treeNode.Value == data) {
-				Object.setPrototypeOf(data, Object.getPrototypeOf({}));
-				for (var key of Object.keys(data)) {
-					if (data[key] === undefined)
-						delete data[key];
-				}
-				continue;
-			}*#/
-
-			const valueAsObject = Object.assign({}, treeNode.Value) as any;
-			for (const key in valueAsObject) {
-				// if fake array-item added by Firebase/js (just so the array would have no holes), remove it
-				//if (valueAsObject[key] == null)
-				if (valueAsObject[key] === nil) { delete valueAsObject[key]; }
-			}
-
-			if (treeNode.Value == data) treeNode.obj[treeNode.prop] = valueAsObject; // if changing root, we need to modify wrapper.data
-			else DeepSet(data, treeNode.PathStr, valueAsObject); // else, we need to use deep-set, because ancestors may have already changed during this transform/processing
-		}
-
-		// turn the should-have-been-array objects (the ones with a "0" property) into arrays
-		if (standardizeForm && typeof treeNode.Value == "object" && !(treeNode.Value instanceof Array) && treeNode.Value[0] !== nil) {
-			// if changing root, we have to actually modify the prototype of the passed-in "data" object
-			/*if (treeNode.Value == data) {
-				Object.setPrototypeOf(data, Object.getPrototypeOf([]));
-				data.length = data.VKeys(true).filter(a=>IsNumberString(a));
-				continue;
-			}*#/
-
-			const valueAsArray = Object.assign([], treeNode.Value) as any;
-
-			if (treeNode.Value == data) treeNode.obj[treeNode.prop] = valueAsArray; // if changing root, we need to modify wrapper.data
-			else DeepSet(data, treeNode.PathStr, valueAsArray); // else, we need to use deep-set, because ancestors may have already changed during this transform/processing
-		}*/
-
 		// add special _key or _id prop
 		if (addHelpers && typeof treeNode.Value == "object") {
 			const key = treeNode.prop == "_root" ? rootKey : treeNode.prop;
 			if (IsNumberString(key)) {
-				//treeNode.Value._id = parseInt(key);
-				//treeNode.Value._Set("_id", parseInt(key));
 				Object.defineProperty(treeNode.Value, "_id", {enumerable: false, value: parseInt(key)});
 			}
 
 			// actually, always set "_key" (in case it's a "_key" that also happens to look like an "_id"/integer)
 			//else {
-			//treeNode.Value._key = key;
-			//treeNode.Value._Set("_key", key);
 			Object.defineProperty(treeNode.Value, "_key", {enumerable: false, value: key});
 		}
 	}
 	return treeNodes[0].Value; // get possibly-modified wrapper.data
 }
-
-// these shouldn't be needed anymore, since _key and _id are stored as non-enumerable props now
-/* const helperProps = ["_key", "_id"];
-/** Note: this mutates the original object. *#/
-export function RemoveHelpers(data) {
-	var treeNodes = GetTreeNodesInObjTree(data, true);
-	for (const treeNode of treeNodes) {
-		if (helperProps.Contains(treeNode.prop)) { delete treeNode.obj[treeNode.prop]; }
-	}
-	return data;
-}
-export function WithoutHelpers(data) {
-	return RemoveHelpers(Clone(data));
-} */
 
 export function AssertValidatePath(path: string) {
 	Assert(!path.endsWith("/"), "Path cannot end with a slash. (This may mean a path parameter is missing)");
@@ -142,16 +76,10 @@ export function ConvertDataToValidDBUpdates(versionPath: string, versionData: an
 	return result;
 }
 
-//export const DBValueWrapper_classSymbol = Symbol("DBValueWrapper_classSymbol");
 export class DBValueWrapper {
-	//[DBValueWrapper_classSymbol] = true;
 	value: any;
 	merge = false;
 }
-/*export function IsDBValueWrapper(val: any) {
-	//return val[DBValueWrapper_classSymbol] === true;
-	return val instanceof DBValueWrapper;
-}*/
 export function WrapDBValue(value: any, otherFlags: Partial<Omit<DBValueWrapper, "value">>) {
 	let result = new DBValueWrapper();
 	result.value = value;
@@ -159,12 +87,12 @@ export function WrapDBValue(value: any, otherFlags: Partial<Omit<DBValueWrapper,
 	return result;
 }
 
-export function ConvertDBUpdatesToBatch(options: Partial<FireOptions>, dbUpdates: Object) {
-	const opt = E(defaultFireOptions, options) as FireOptions;
+export function ConvertDBUpdatesToBatch(options: Partial<GraphOptions>, dbUpdates: Object) {
+	const opt = E(defaultGraphOptions, options) as GraphOptions;
 	const updateEntries = Object.entries(dbUpdates);
 	Assert(updateEntries.length <= maxDBUpdatesPerBatch, `Cannot have more than ${maxDBUpdatesPerBatch} db-updates per batch.`);
 
-	const batch = opt.fire.subs.firestoreDB.batch();
+	const batch = opt.graph.subs.firestoreDB.batch();
 	for (let [path, value] of updateEntries) {
 		let [docPath, fieldPathInDoc] = GetPathParts(path, true);
 
@@ -178,7 +106,7 @@ export function ConvertDBUpdatesToBatch(options: Partial<FireOptions>, dbUpdates
 
 		// [fieldPathInDoc, value] = FixSettingPrimitiveValueDirectly(fieldPathInDoc, value);
 
-		const docRef = opt.fire.subs.firestoreDB.doc(docPath);
+		const docRef = opt.graph.subs.firestoreDB.doc(docPath);
 		if (fieldPathInDoc) {
 			value = value != null ? value : firebase.firestore.FieldValue.delete();
 
@@ -203,7 +131,7 @@ export function ConvertDBUpdatesToBatch(options: Partial<FireOptions>, dbUpdates
 		/* let path_final = DBPath(path);
 		let dbRef_parent = firestoreDB.doc(path_final.split("/").slice(0, -1).join("/"));
 		let value_final = Clone(value); // clone value, since update() rejects values with a prototype/type
-		batch.update(dbRef_parent, {[path_final.split("/").Last()]: value_final}); */
+		batch.update(dbRef_parent, {[path_final.split("/").Last()]: value_final}); *#/
 	}
 	return batch;
 }
@@ -214,12 +142,12 @@ export class ApplyDBUpdates_Options {
 	updatesPerChunk = maxDBUpdatesPerBatch;
 }
 
-export function FinalizeDBUpdates(options: Partial<FireOptions & ApplyDBUpdates_Options>, dbUpdates: Object, rootPath_override?: string) {
-	const opt = E(defaultFireOptions, ApplyDBUpdates_Options.default, options) as FireOptions & ApplyDBUpdates_Options;
+export function FinalizeDBUpdates(options: Partial<GraphOptions & ApplyDBUpdates_Options>, dbUpdates: Object, rootPath_override?: string) {
+	const opt = E(defaultGraphOptions, ApplyDBUpdates_Options.default, options) as GraphOptions & ApplyDBUpdates_Options;
 	//dbUpdates = WithoutHelpers(Clone(dbUpdates));
 	//dbUpdates = Clone(dbUpdates);
 	dbUpdates = {...dbUpdates}; // shallow clone, so we preserve DBValueWrappers in entries
-	let rootPath = rootPath_override ?? opt.fire.rootPath;
+	let rootPath = rootPath_override ?? opt.graph.rootPath;
 	if (rootPath != null && rootPath != "") {
 		//for (const {key: localPath, value} of ObjectCE.Pairs(dbUpdates)) {
 		for (const {key: localPath, value} of ObjectCE(dbUpdates).Pairs()) {
@@ -230,8 +158,8 @@ export function FinalizeDBUpdates(options: Partial<FireOptions & ApplyDBUpdates_
 	return dbUpdates;
 }
 
-export async function ApplyDBUpdates(options: Partial<FireOptions & ApplyDBUpdates_Options>, dbUpdates: Object, rootPath_override?: string) {
-	const opt = E(defaultFireOptions, ApplyDBUpdates_Options.default, options) as FireOptions & ApplyDBUpdates_Options;
+export async function ApplyDBUpdates(options: Partial<GraphOptions & ApplyDBUpdates_Options>, dbUpdates: Object, rootPath_override?: string) {
+	const opt = E(defaultGraphOptions, ApplyDBUpdates_Options.default, options) as GraphOptions & ApplyDBUpdates_Options;
 	dbUpdates = FinalizeDBUpdates(options, dbUpdates, rootPath_override);
 
 	// await firestoreDB.runTransaction(async batch=> {
@@ -279,14 +207,14 @@ export function ApplyDBUpdates_Local(dbData: any, dbUpdates: Object) {
 
 // if performing db-changes from console, call this just before ApplyDBUpdates, to back-up/download data at the given paths first
 export type QuickBackup = {[key: string]: {oldData: any, newData: any}};
-export async function MakeQuickBackupForDBUpdates(options: Partial<FireOptions & ApplyDBUpdates_Options>, dbUpdates: Object, rootPath_override?: string, log = true, download = true) {
-	const opt = E(defaultFireOptions, ApplyDBUpdates_Options.default, options) as FireOptions & ApplyDBUpdates_Options;
+export async function MakeQuickBackupForDBUpdates(options: Partial<GraphOptions & ApplyDBUpdates_Options>, dbUpdates: Object, rootPath_override?: string, log = true, download = true) {
+	const opt = E(defaultGraphOptions, ApplyDBUpdates_Options.default, options) as GraphOptions & ApplyDBUpdates_Options;
 	dbUpdates = FinalizeDBUpdates(options, dbUpdates, rootPath_override);
 	
 	const newDocValues_pairs = CE(dbUpdates).Pairs();
 	const oldDocValues = await Promise.all(newDocValues_pairs.map(pair=> {
 		let [docPath, fieldPathInDoc] = GetPathParts(pair.key, true);
-		let docRef = opt.fire.subs.firestoreDB.doc(docPath) as firebase.firestore.DocumentReference;
+		let docRef = opt.graph.subs.firestoreDB.doc(docPath) as firebase.firestore.DocumentReference;
 		return docRef.get().then(data=>data.data());
 	}));
 
@@ -294,7 +222,7 @@ export async function MakeQuickBackupForDBUpdates(options: Partial<FireOptions &
 	const backupData = {
 		oldValues: docValues_map,
 		newValues: docValues_map,
-	};*/
+	};*#/
 
 	const quickBackup: QuickBackup = CE(newDocValues_pairs).ToMap(pair=>pair.key, pair=>({
 		oldData: oldDocValues[pair.index],
@@ -313,11 +241,11 @@ export async function MakeQuickBackupForDBUpdates(options: Partial<FireOptions &
 /**
 Restores the old-values for the paths listed in the quick-backup.
 Note: Uses the *absolute paths* listed; to restore to a different version-root, transform the quick-backup data.
-*/
-export async function RestoreQuickBackup(options: Partial<FireOptions & ApplyDBUpdates_Options>, quickBackup: QuickBackup) {
+*#/
+export async function RestoreQuickBackup(options: Partial<GraphOptions & ApplyDBUpdates_Options>, quickBackup: QuickBackup) {
 	const oldDataAsDBUpdates = CE(CE(quickBackup).Pairs()).ToMap(a=>a.key, a=>a.value.oldData);
 	console.log("OldDataAsDBUpdates:", oldDataAsDBUpdates);
 	//await ApplyDBUpdates(options, oldDataAsDBUpdates, rootPath_override);
 	await ApplyDBUpdates(options, oldDataAsDBUpdates, "");
 	console.log("Restored quick-backup. (Note: Used the *absolute paths* listed; to restore to a different version-root, transform the quick-backup data.)");
-}
+}*/

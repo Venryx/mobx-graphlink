@@ -1,6 +1,5 @@
-import {ObjectCE, CE, Assert} from "js-vextensions";
+/*import {ObjectCE, CE, Assert} from "js-vextensions";
 import u from "updeep";
-import {Command_Old} from "../Server/Command_Old";
 import {Command} from "../Server/Command";
 
 /*
@@ -23,7 +22,7 @@ dbUpdates = {
 ...*unless* the application type is "merge".
 */
 
-/* type Update = {path: string, data: any};
+/*type Update = {path: string, data: any};
 function FixDBUpdates(updatesMap) {
 	let updates = updatesMap.Props().map(prop=>({path: prop.name, data: prop.value}));
 	for (let update of updates) {
@@ -37,14 +36,15 @@ function FixDBUpdates(updatesMap) {
 			update.data = u.updateIn(updateToMerge_relativePath, constant(updateToMerge.data), update.data)
 		}
 	}
-} */
+}*#/
 type Update = {path: string, data: any};
 export function MergeDBUpdates(baseUpdatesMap: Object, updatesToMergeMap: Object) {
 	const baseUpdates = ObjectCE(baseUpdatesMap).Pairs().map(pair=>({path: pair.key, data: pair.value})) as Update[];
 	const updatesToMerge = ObjectCE(updatesToMergeMap).Pairs().map(pair=>({path: pair.key, data: pair.value})) as Update[];
 
 	for (const update of updatesToMerge) {
-		Assert(!(update.data instanceof Command_Old) && !(update.data instanceof Command), "You forgot to add the GetDBUpdates() method-call, ie: sub.GetDBUpdates().");
+		//Assert(!(update.data instanceof Command_Old) && !(update.data instanceof Command), "You forgot to add the GetDBUpdates() method-call, ie: sub.GetDBUpdates().");
+		Assert(!(update.data instanceof Command), "You forgot to add the GetDBUpdates() method-call, ie: sub.GetDBUpdates().");
 		// if an update-to-merge exists for a path, remove any base-updates starting with that path (since the to-merge ones have priority)
 		if (update.data == null) {
 			for (const update2 of baseUpdates.slice()) { // make copy, since Remove() seems to break iteration otherwise
@@ -65,9 +65,9 @@ export function MergeDBUpdates(baseUpdatesMap: Object, updatesToMergeMap: Object
 			// if (updateToMerge.data) {
 			// assume that the update-to-merge has priority, so have it completely overwrite the data at its path
 			update.data = u.updateIn(updateToMerge_relativePath.replace(/\//g, "."), u.constant(updateToMerge.data), update.data);
-			/* } else {
+			/*} else {
 				update.data = null;
-			} */
+			}*#/
 
 			// remove from updates-to-merge list (since we just merged it)
 			CE(updatesToMerge).Remove(updateToMerge);
@@ -90,4 +90,4 @@ export function MergeDBUpdates_Multi(...dbUpdateMaps: Object[]) {
 		result = MergeDBUpdates(result, dbUpdateMap);
 	}
 	return result;
-}
+}*/

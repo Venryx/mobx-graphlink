@@ -6,6 +6,29 @@ import {AssertV} from "../Accessors/Helpers";
 
 export const ajv = AJVKeywords(new AJV({allErrors: true})) as AJV_Extended;
 
+export const collection_docSchemaName = new Map<string, string>();
+export function Col(docSchemaName: string) {
+	return ApplyToClass;
+	function ApplyToClass<T>(targetClass: T, propertyKey: string) {
+		collection_docSchemaName.set(propertyKey, docSchemaName);
+	}
+}
+// needed so that apollo knows postgraphile get-single-doc queries can be found in cache simply by typename and id (eg. as cached from collection-based query results)
+export function GetTypePolicyFieldsMappingSingleDocQueriesToCache() {
+	const result = {};
+	for (const [collectionName, docSchemaName] of collection_docSchemaName.entries()) {
+		//const singularName = collectionName.replace(/s$/, "");
+		const singularName = docSchemaName.toLowerCase();
+		result[singularName] = (_, {args, toReference})=>{
+			return toReference({
+				__typename: docSchemaName,
+				id: args.id,
+			});
+		};
+	}
+	return result;
+}
+
 export function Schema(schema) {
 	schema = E({additionalProperties: false}, schema);
 	return schema;
@@ -67,7 +90,7 @@ export function WaitTillSchemaAdded(schemaName: string): Promise<void> {
 	});
 }
 
-export type SchemaObject = {
+/*export type SchemaObject = {
 	[key: string]: any;
 	// this has the effect of excluding an array as a valid SchemaObject, which is what we want
 	[key: number]: never;
@@ -92,7 +115,7 @@ export function DeriveSchema(baseSchemaNameOrJSON: string | Object, schemaPropsT
 		}
 	}
 	return newSchema;
-}
+}*/
 
 type AJV_Extended = AJV.Ajv & {
 	// AddSchema(schema, name: string): void;
@@ -162,7 +185,7 @@ export function AssertValidate_Full(schemaObject: Object, schemaName: string|nul
 		schemaObject = Schema_WithOptionalPropsAllowedNull(schemaObject);
 	}
 
-	const errorsText = Validate_Full(schemaObject, schemaName, data)?.trimRight();
+	const errorsText = Validate_Full(schemaObject, schemaName, data)?.replace(/\s+$/, ""); //.trimEnd();
 
 	let failureMessage = IsString(failureMessageOrGetter) ? failureMessageOrGetter : failureMessageOrGetter(errorsText);
 	if (opt.addErrorsText) {

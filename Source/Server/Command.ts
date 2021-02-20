@@ -1,8 +1,7 @@
-import {Clone, Assert, E, ObjectCE, ArrayCE, CE, OmitIfFalsy} from "js-vextensions";
+/*import {Clone, Assert, E, ObjectCE, ArrayCE, CE, OmitIfFalsy} from "js-vextensions";
 import {maxDBUpdatesPerBatch, ApplyDBUpdates, ApplyDBUpdates_Local} from "../Utils/DatabaseHelpers";
 import {MaybeLog_Base} from "../Utils/General";
-import {FireOptions, defaultFireOptions, FireUserInfo} from "../Graphlink";
-import {DBPath} from "../Utils/PathHelpers";
+import {GraphOptions, defaultGraphOptions} from "../Graphlink";
 import {GetAsync, GetAsync_Options} from "../Accessors/Helpers";
 
 export const commandsWaitingToComplete_new = [] as Command<any, any>[];
@@ -24,25 +23,21 @@ function NotifyListenersThatCurrentCommandFinished() {
 export abstract class Command<Payload, ReturnData = void> {
 	static defaultPayload = {};
 	constructor(payload: Payload);
-	constructor(options: Partial<FireOptions>, payload: Payload);
+	constructor(options: Partial<GraphOptions>, payload: Payload);
 	constructor(...args) {
-		let options: Partial<FireOptions>, payload: Payload;
+		let options: Partial<GraphOptions>, payload: Payload;
 		if (args.length == 1) [payload] = args;
 		else [options, payload] = args;
-		const opt = E(defaultFireOptions, options!) as FireOptions;
+		const opt = E(defaultGraphOptions, options!) as GraphOptions;
 
-		//this.userInfo = {id: opt.fire.userID}; // temp
-		//this.userInfo = opt.fire.userInfo; // temp (needs rework to be server-compatible in future)
 		this.type = this.constructor.name;
 		this.options = opt;
 		//this.payload = E(this.constructor["defaultPayload"], payload);
 		// use Clone on the payload, so that behavior is consistent whether called locally or over the network
 		this.payload = E(Clone(this.constructor["defaultPayload"]), Clone(payload));
 	}
-	//userInfo: FireUserInfo;
-	get userInfo() { return this.options.fire.userInfo; }
 	type: string;
-	options: FireOptions;
+	options: GraphOptions;
 	payload: Payload;
 
 	//prepareStartTime: number;
@@ -60,9 +55,9 @@ export abstract class Command<Payload, ReturnData = void> {
 		return this;
 	}
 
-	/** Transforms the payload data (eg. combining it with existing db-data) in preparation for constructing the db-updates-map, while also validating user permissions and such along the way. */
+	/** Transforms the payload data (eg. combining it with existing db-data) in preparation for constructing the db-updates-map, while also validating user permissions and such along the way. *#/
 	abstract Validate(): void;
-	/** Last validation error, from calling Validate_Safe(). */
+	/** Last validation error, from calling Validate_Safe(). *#/
 	validateError: string|null;
 	Validate_Safe() {
 		try {
@@ -74,12 +69,12 @@ export abstract class Command<Payload, ReturnData = void> {
 			return ex;
 		}
 	}
-	async Validate_Async(options?: Partial<FireOptions> & GetAsync_Options) {
+	async Validate_Async(options?: Partial<GraphOptions> & GetAsync_Options) {
 		//await GetAsync(()=>this.Validate(), E({errorHandling: "ignore"}, IsNumber(maxIterations) && {maxIterations}));
 		//await GetAsync(()=>this.Validate(), {errorHandling: "ignore", maxIterations: OmitIfFalsy(maxIterations)});
 		await GetAsync(()=>this.Validate(), E({errorHandling: "ignore"}, options));
 	}
-	/** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
+	/** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) *#/
 	abstract GetDBUpdates(): {}
 
 	async PreRun() {
@@ -87,7 +82,7 @@ export abstract class Command<Payload, ReturnData = void> {
 		await this.Validate_Async();
 	}
 
-	/** [async] Validates the data, prepares it, and executes it -- thus applying it into the database. */
+	/** [async] Validates the data, prepares it, and executes it -- thus applying it into the database. *#/
 	async Run(maxUpdatesPerChunk = maxDBUpdatesPerBatch): Promise<ReturnData> {
 		if (commandsWaitingToComplete_new.length > 0) {
 			MaybeLog_Base(a=>a.commands, l=>l(`Queing command, since ${commandsWaitingToComplete_new.length} ${commandsWaitingToComplete_new.length == 1 ? "is" : "are"} already waiting for completion.${""
@@ -106,7 +101,7 @@ export abstract class Command<Payload, ReturnData = void> {
 			await this.PreRun();
 
 			const dbUpdates = this.GetDBUpdates();
-			if (this.options.fire.ValidateDBData) {
+			if (this.options.graph.ValidateDBData) {
 				await this.Validate_LateHeavy(dbUpdates);
 			}
 			// FixDBUpdates(dbUpdates);
@@ -128,7 +123,7 @@ export abstract class Command<Payload, ReturnData = void> {
 	// standard validation of common paths/object-types; perhaps disable in production
 	async Validate_LateHeavy(dbUpdates: any) {
 		// validate "nodes/X"
-		/* let nodesBeingUpdated = (dbUpdates.VKeys() as string[]).map(a=> {
+		/*let nodesBeingUpdated = (dbUpdates.VKeys() as string[]).map(a=> {
 			let match = a.match(/^nodes\/([0-9]+).*#/);
 			return match ? match[1].ToInt() : null;
 		}).filter(a=>a).Distinct();
@@ -143,11 +138,11 @@ export abstract class Command<Payload, ReturnData = void> {
 			if (newNodeData != null) { // (if null, means we're deleting it, which is fine)
 				AssertValidate("MapNode", newNodeData, `New node-data is invalid.`);
 			}
-		} */
+		}*#/
 
 		// locally-apply db-updates, then validate the result (for now, only works for already-loaded data paths)
-		const oldData = Clone(this.options.fire.tree.AsRawData());
+		const oldData = Clone(this.options.graph.tree.AsRawData());
 		const newData = ApplyDBUpdates_Local(oldData, dbUpdates);
-		this.options.fire.ValidateDBData!(newData);
+		this.options.graph.ValidateDBData!(newData);
 	}
-}
+}*/

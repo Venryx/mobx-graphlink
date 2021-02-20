@@ -1,6 +1,6 @@
 import {computedFn} from "mobx-utils";
 import {CE, ObjectCE, E, Assert} from "js-vextensions";
-import {FireOptions, defaultFireOptions} from "../Graphlink";
+import {GraphOptions, defaultGraphOptions} from "../Graphlink";
 import {RootStoreShape} from "../UserTypes";
 import {storeAccessorCachingTempDisabled, GetWait} from "./Helpers";
 
@@ -28,13 +28,13 @@ export function LogStoreAccessorRunTimes() {
 	console.table(accessorRunTimes_ordered);
 }
 
-export function WithStore<T>(options: Partial<FireOptions>, store: any, accessorFunc: ()=>T): T {
-	const opt = E(defaultFireOptions, options) as FireOptions;
-	opt.fire.storeOverridesStack.push(store);
+export function WithStore<T>(options: Partial<GraphOptions>, store: any, accessorFunc: ()=>T): T {
+	const opt = E(defaultGraphOptions, options) as GraphOptions;
+	opt.graph.storeOverridesStack.push(store);
 	try {
 		var result = accessorFunc();
 	} finally {
-		opt.fire.storeOverridesStack.pop();
+		opt.graph.storeOverridesStack.pop();
 	}
 	return result;
 }
@@ -59,9 +59,9 @@ export type CallArgToDependencyConvertorFunc = (callArgs: any[])=>any[];
 }*/
 interface StoreAccessorFunc<RootState_PreSet = RootStoreShape> {
 	<Func extends Function, RootState = RootState_PreSet>(accessor: (s: RootState)=>Func): Func & {Wait: Func};
-	<Func extends Function, RootState = RootState_PreSet>(options: Partial<FireOptions<RootState> & StoreAccessorOptions>, accessor: (s: RootState)=>Func): Func & {Wait: Func};
+	<Func extends Function, RootState = RootState_PreSet>(options: Partial<GraphOptions<RootState> & StoreAccessorOptions>, accessor: (s: RootState)=>Func): Func & {Wait: Func};
 	<Func extends Function, RootState = RootState_PreSet>(name: string, accessor: (s: RootState)=>Func): Func & {Wait: Func};
-	<Func extends Function, RootState = RootState_PreSet>(name: string, options: Partial<FireOptions<RootState> & StoreAccessorOptions>, accessor: (s: RootState)=>Func): Func & {Wait: Func};
+	<Func extends Function, RootState = RootState_PreSet>(name: string, options: Partial<GraphOptions<RootState> & StoreAccessorOptions>, accessor: (s: RootState)=>Func): Func & {Wait: Func};
 }
 
 /**
@@ -82,7 +82,7 @@ Wrap a function with StoreAccessor if it's under the "Store/" path, and one of t
 3) It involves a transformation of data into a new wrapper (ie. breaking reference equality), such that it's worth caching the processing. (to not trigger unnecessary child-ui re-renders)
 */
 export const StoreAccessor: StoreAccessorFunc = (...args)=> {
-	let name: string, options: Partial<FireOptions & StoreAccessorOptions>|null, accessorGetter: Function;
+	let name: string, options: Partial<GraphOptions & StoreAccessorOptions>|null, accessorGetter: Function;
 	if (typeof args[0] == "function" && args.length == 1) [accessorGetter] = args;
 	else if (typeof args[0] == "object" && args.length == 2) [options, accessorGetter] = args;
 	else if (args.length == 2) [name, accessorGetter] = args;
@@ -97,8 +97,8 @@ export const StoreAccessor: StoreAccessorFunc = (...args)=> {
 	let accessor_forMainStore_cacherProxy: (...callArgs)=>any;
 	const wrapperAccessor = (...callArgs)=>{
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
-		const opt = E(StoreAccessorOptions.default, options!) as Partial<FireOptions> & StoreAccessorOptions;
-		let fireOpt = E(defaultFireOptions, CE(opt).Including("fire"));
+		const opt = E(StoreAccessorOptions.default, options!) as Partial<GraphOptions> & StoreAccessorOptions;
+		let graphOpt = E(defaultGraphOptions, CE(opt).Including("graph"));
 
 		if (addProfiling) {
 			accessorStack.push(name ?? "n/a");
@@ -108,15 +108,15 @@ export const StoreAccessor: StoreAccessorFunc = (...args)=> {
 		}
 
 		let accessor: Function;
-		const usingMainStore = fireOpt.fire.storeOverridesStack.length == 0; // || storeOverridesStack[storeOverridesStack.length - 1] == fire.rootStore;
+		const usingMainStore = graphOpt.graph.storeOverridesStack.length == 0; // || storeOverridesStack[storeOverridesStack.length - 1] == fire.rootStore;
 		if (usingMainStore) {
 			if (accessor_forMainStore == null) {
-				Assert(fireOpt.fire.rootStore != null, "A store-accessor cannot be called before its associated Firelink instance has been set.");
-				accessor_forMainStore = accessorGetter(fireOpt.fire.rootStore);
+				Assert(graphOpt.graph.rootStore != null, "A store-accessor cannot be called before its associated Graphlink instance has been set.");
+				accessor_forMainStore = accessorGetter(graphOpt.graph.rootStore);
 			}
 			accessor = accessor_forMainStore;
 		} else {
-			accessor = accessorGetter(fireOpt.fire.storeOverridesStack.slice(-1)[0]);
+			accessor = accessorGetter(graphOpt.graph.storeOverridesStack.slice(-1)[0]);
 		}
 		if (name) CE(accessor).SetName(name);
 
@@ -199,10 +199,10 @@ export const StoreAccessor: StoreAccessorFunc = (...args)=> {
 	// Func.Wait(thing) is shortcut for GetWait(()=>Func(thing))
 	wrapperAccessor.Wait = (...callArgs)=>{
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
-		const opt = E(StoreAccessorOptions.default, options!) as Partial<FireOptions> & StoreAccessorOptions;
-		let fireOpt = E(defaultFireOptions, CE(opt).Including("fire"));
+		const opt = E(StoreAccessorOptions.default, options!) as Partial<GraphOptions> & StoreAccessorOptions;
+		let graphOpt = E(defaultGraphOptions, CE(opt).Including("graph"));
 
-		return GetWait(()=>wrapperAccessor(...callArgs), fireOpt);
+		return GetWait(()=>wrapperAccessor(...callArgs), graphOpt);
 	};
 
 	//if (name) wrapperAccessor["displayName"] = name;

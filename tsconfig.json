@@ -14,6 +14,9 @@
 		"declaration": true,
 		"declarationDir": "Dist",
 
+		// fixes AsyncIterator type-missing issue
+		"lib": ["es6", "dom", "esnext"],
+
 		//"strict": true, // enables all of the below (other than noImplicitReturns)
 		//"noImplicitAny": true,
 		//"noImplicitThis": true,

@@ -24,10 +24,12 @@
   },
   "peerDependencies": {
     "@apollo/client": "^3.3.11",
+    "graphql": "^15.5.0",
     "mobx": "^5.0.0"
   },
   "devDependencies": {
     "@apollo/client": "^3.3.11",
+    "graphql": "^15.5.0",
     "mobx": "^5.15.4",
     "typescript": "^4.1.3"
   },

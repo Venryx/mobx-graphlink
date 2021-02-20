@@ -1,7 +1,6 @@
 import {CE, E, emptyArray, emptyArray_forLoading} from "js-vextensions";
 import {ObservableMap, runInAction} from "mobx";
-import {defaultFireOptions, FireOptions} from "../Graphlink";
-import {QueryOp} from "../QueryOps";
+import {defaultGraphOptions, GraphOptions} from "../Graphlink";
 import {DataStatus, QueryRequest} from "../Tree/TreeNode";
 import {DBShape} from "../UserTypes";
 import {DoX_ComputationSafe} from "../Utils/MobX";
@@ -17,26 +16,27 @@ Why use explicit GetDocs, GetDoc, etc. calls instead of just Proxy's in mobx sto
 export class GetDocs_Options {
 	static default = new GetDocs_Options();
 	inLinkRoot? = true;
-	queryOps?: QueryOp[];
+	//queryOps?: QueryOp[];
+	queryRequest: QueryRequest;
+	
 	resultForLoading? = emptyArray_forLoading;
 	//resultForEmpty? = emptyArray;
 }
-export function GetDocs<DB = DBShape, DocT = any>(options: Partial<FireOptions<any, DB>> & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>ObservableMap<any, DocT>)): DocT[]|undefined {
-	const opt = E(defaultFireOptions, GetDocs_Options.default, options) as FireOptions & GetDocs_Options;
+export function GetDocs<DB = DBShape, DocT = any>(options: Partial<GraphOptions<any, DB>> & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>ObservableMap<any, DocT>)): DocT[]|undefined {
+	const opt = E(defaultGraphOptions, GetDocs_Options.default, options) as GraphOptions & GetDocs_Options;
 	let subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
-	let pathSegments = opt.inLinkRoot ? opt.fire.rootPathSegments.concat(subpathSegments) : subpathSegments;
+	//let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
+	let pathSegments = subpathSegments;
 	if (CE(pathSegments).Any(a=>a == null)) return emptyArray;
 
-	let queryRequest = opt.queryOps ? new QueryRequest({queryOps: opt.queryOps}) : nil;
-
-	const treeNode = opt.fire.tree.Get(pathSegments, queryRequest);
+	const treeNode = opt.graph.tree.Get(pathSegments, opt.queryRequest);
 	// if already subscribed, just mark requested (reduces action-spam of GetDocs_Request)
 	if (treeNode && treeNode.subscription) {
 		treeNode.Request();
 	} else {
 		// we can't change observables from within computations, so do it in a moment (out of computation call-stack)
 		DoX_ComputationSafe(()=>runInAction("GetDocs_Request", ()=> {
-			opt.fire.tree.Get(pathSegments, queryRequest, true)!.Request();
+			opt.graph.tree.Get(pathSegments, opt.queryRequest, true)!.Request();
 		}));
 	}
 	
@@ -60,20 +60,21 @@ export class GetDoc_Options {
 	//undefinedForLoading? = false;
 	resultForLoading? = undefined;
 }
-export function GetDoc<DB = DBShape, DocT = any>(options: Partial<FireOptions<any, DB>> & GetDoc_Options, docPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>DocT)): DocT|null|undefined {
-	const opt = E(defaultFireOptions, GetDoc_Options.default, options) as FireOptions & GetDoc_Options;
+export function GetDoc<DB = DBShape, DocT = any>(options: Partial<GraphOptions<any, DB>> & GetDoc_Options, docPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>DocT)): DocT|null|undefined {
+	const opt = E(defaultGraphOptions, GetDoc_Options.default, options) as GraphOptions & GetDoc_Options;
 	let subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
-	let pathSegments = opt.inLinkRoot ? opt.fire.rootPathSegments.concat(subpathSegments) : subpathSegments;
+	//let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
+	let pathSegments = subpathSegments;
 	if (CE(pathSegments).Any(a=>a == null)) return null;
 
-	let treeNode = opt.fire.tree.Get(pathSegments);
+	let treeNode = opt.graph.tree.Get(pathSegments);
 	// if already subscribed, just mark requested (reduces action-spam of GetDoc_Request)
 	if (treeNode && treeNode.subscription) {
 		treeNode.Request();
 	} else {
 		// we can't change observables from within computations, so do it in a moment (out of computation call-stack)
 		DoX_ComputationSafe(()=>runInAction("GetDoc_Request", ()=> {
-			opt.fire.tree.Get(pathSegments, nil, true)!.Request();
+			opt.graph.tree.Get(pathSegments, nil, true)!.Request();
 		}));
 	}
 

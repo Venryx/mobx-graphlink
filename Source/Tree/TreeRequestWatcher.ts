@@ -1,17 +1,17 @@
-import {Firelink, FireOptions} from "../Graphlink";
+import {Graphlink, GraphOptions} from "../Graphlink";
 import {TreeNode} from "./TreeNode";
 
 export class TreeRequestWatcher {
-	constructor(fire: Firelink<any ,any>) {
-		this.fire = fire;
+	constructor(graph: Graphlink<any ,any>) {
+		this.graph = graph;
 	}
-	fire: Firelink<any ,any>;
+	graph: Graphlink<any ,any>;
 	Start() {
 		this.nodesRequested.clear();
-		this.fire.treeRequestWatchers.add(this);
+		this.graph.treeRequestWatchers.add(this);
 	}
 	Stop() {
-		this.fire.treeRequestWatchers.delete(this);
+		this.graph.treeRequestWatchers.delete(this);
 	}
 
 	nodesRequested = new Set<TreeNode<any>>();
