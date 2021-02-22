@@ -1,11 +1,11 @@
 import { ObservableMap } from "mobx";
 import { GraphOptions } from "../Graphlink";
-import { QueryRequest } from "../Tree/TreeNode";
+import { QueryParams } from "../Tree/TreeNode";
 import { DBShape } from "../UserTypes";
 export declare class GetDocs_Options {
     static default: GetDocs_Options;
     inLinkRoot?: boolean | undefined;
-    queryRequest?: QueryRequest;
+    params?: QueryParams;
     resultForLoading?: never[] | undefined;
 }
 export declare function GetDocs<DB = DBShape, DocT = any>(options: Partial<GraphOptions<any, DB>> & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DB) => ObservableMap<any, DocT>)): DocT[] | undefined;

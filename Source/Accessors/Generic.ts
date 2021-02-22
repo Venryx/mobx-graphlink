@@ -1,7 +1,7 @@
 import {CE, E, emptyArray, emptyArray_forLoading} from "js-vextensions";
 import {ObservableMap, runInAction} from "mobx";
 import {defaultGraphOptions, GraphOptions} from "../Graphlink";
-import {DataStatus, QueryRequest} from "../Tree/TreeNode";
+import {DataStatus, QueryParams} from "../Tree/TreeNode";
 import {DBShape} from "../UserTypes";
 import {DoX_ComputationSafe} from "../Utils/MobX";
 import {nil} from "../Utils/Nil";
@@ -17,7 +17,7 @@ export class GetDocs_Options {
 	static default = new GetDocs_Options();
 	inLinkRoot? = true;
 	//queryOps?: QueryOp[];
-	queryRequest?: QueryRequest;
+	params?: QueryParams;
 	
 	resultForLoading? = emptyArray_forLoading;
 	//resultForEmpty? = emptyArray;
@@ -29,14 +29,14 @@ export function GetDocs<DB = DBShape, DocT = any>(options: Partial<GraphOptions<
 	let pathSegments = subpathSegments;
 	if (CE(pathSegments).Any(a=>a == null)) return emptyArray;
 
-	const treeNode = opt.graph.tree.Get(pathSegments, opt.queryRequest);
+	const treeNode = opt.graph.tree.Get(pathSegments, opt.params);
 	// if already subscribed, just mark requested (reduces action-spam of GetDocs_Request)
 	if (treeNode && treeNode.subscription) {
 		treeNode.Request();
 	} else {
 		// we can't change observables from within computations, so do it in a moment (out of computation call-stack)
 		DoX_ComputationSafe(()=>runInAction("GetDocs_Request", ()=> {
-			opt.graph.tree.Get(pathSegments, opt.queryRequest, true)!.Request();
+			opt.graph.tree.Get(pathSegments, opt.params, true)!.Request();
 		}));
 		// we need this function to re-run once new TreeNode is created+subscribed, so access/watch parent TreeNode's collections map
 		// edit: nevermind, works without -- since Get function already accesses the collectionNodes field

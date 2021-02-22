@@ -20,12 +20,14 @@ export declare class PathSubscription {
     unsubscribe: () => void;
 }
 /** Class specifies the filtering, sorting, etc. for a given TreeNode. */
-export declare class QueryRequest {
-    static ParseString(dataStr: string): QueryRequest;
-    static ParseData(data: any): QueryRequest;
+export declare class QueryParams {
+    static ParseString(dataStr: string): QueryParams;
+    static ParseData(data: any): QueryParams;
     toString(): any;
-    constructor(initialData?: Partial<QueryRequest>);
-    collectionName: string;
+    constructor(initialData?: Partial<QueryParams>);
+    treeNode: TreeNode<any>;
+    get CollectionName(): string;
+    get DocShemaName(): string;
     /** Example: "$limit: Int!, $maxValue: Int!" */
     variablesStr: string;
     /** Example: "first: $limit, filter: {someProp: {lessThan: $maxValue}}" */
@@ -60,10 +62,10 @@ export declare class TreeNode<DataShape> {
     dataJSON: string;
     SetData(data: DataShape, fromCache: boolean): boolean;
     queryNodes: ObservableMap<string, TreeNode<any>>;
-    query: QueryRequest;
+    query: QueryParams;
     docNodes: ObservableMap<string, TreeNode<any>>;
     get docDatas(): any[];
-    Get(subpathOrGetterFunc: string | string[] | ((data: DataShape) => any), query?: QueryRequest, createTreeNodesIfMissing?: boolean): TreeNode<any> | null;
+    Get(subpathOrGetterFunc: string | string[] | ((data: DataShape) => any), query?: QueryParams, createTreeNodesIfMissing?: boolean): TreeNode<any> | null;
     get raw(): DataShape;
     AsRawData(addTreeLink?: boolean): DataShape;
     UploadRawData(rawData: DataShape): void;

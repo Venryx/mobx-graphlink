@@ -26,7 +26,7 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
     let pathSegments = subpathSegments;
     if (CE(pathSegments).Any(a => a == null))
         return emptyArray;
-    const treeNode = opt.graph.tree.Get(pathSegments, opt.queryRequest);
+    const treeNode = opt.graph.tree.Get(pathSegments, opt.params);
     // if already subscribed, just mark requested (reduces action-spam of GetDocs_Request)
     if (treeNode && treeNode.subscription) {
         treeNode.Request();
@@ -34,7 +34,7 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
     else {
         // we can't change observables from within computations, so do it in a moment (out of computation call-stack)
         DoX_ComputationSafe(() => runInAction("GetDocs_Request", () => {
-            opt.graph.tree.Get(pathSegments, opt.queryRequest, true).Request();
+            opt.graph.tree.Get(pathSegments, opt.params, true).Request();
         }));
         // we need this function to re-run once new TreeNode is created+subscribed, so access/watch parent TreeNode's collections map
         // edit: nevermind, works without -- since Get function already accesses the collectionNodes field

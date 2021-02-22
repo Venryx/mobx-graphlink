@@ -30,52 +30,36 @@ export class PathSubscription {
 	unsubscribe: ()=>void;
 }
 
-/*export class QueryRequest {
-	static ParseString(dataStr: string) {
-		return QueryRequest.ParseData(FromJSON(dataStr));
-	}
-	static ParseData(data: any) {
-		let result = new QueryRequest({});
-		for (let opData of data.queryOps) {
-			result.queryOps.push(QueryOp.ParseData(opData));
-		}
-		return result
-	}
-
-	constructor(initialData?: Partial<QueryRequest>) {
-		CE(this).Extend(initialData);
-	}
-	queryOps = [] as QueryOp[];
-	Apply(collection: firebase.firestore.CollectionReference) {
-		let result = collection;
-		for (let op of this.queryOps) {
-			result = op.Apply(result);
-		}
-		return result;
-	}
-
-	toString() {
-		return ToJSON(this);
-	}
-}*/
 /** Class specifies the filtering, sorting, etc. for a given TreeNode. */
 // (comments based on usage with Postgraphile and https://github.com/graphile-contrib/postgraphile-plugin-connection-filter)
-export class QueryRequest {
+export class QueryParams {
 	static ParseString(dataStr: string) {
-		return QueryRequest.ParseData(FromJSON(dataStr));
+		return QueryParams.ParseData(FromJSON(dataStr));
 	}
 	static ParseData(data: any) {
-		return new QueryRequest(data);
+		return new QueryParams(data);
 	}
 	toString() {
 		return ToJSON(CE(this).Including("variablesStr", "filterStr", "variables"));
 	}
 
-	constructor(initialData?: Partial<QueryRequest>) {
+	constructor(initialData?: Partial<QueryParams>) {
 		CE(this).Extend(initialData);
 	}
 	
-	collectionName: string;
+	treeNode: TreeNode<any>;
+	get CollectionName() {
+		return CE(this.treeNode.pathSegments_noQuery).XFromLast(this.treeNode.type == TreeNodeType.Document ? 1 : 0);
+	}
+	get DocShemaName() {
+		//if (ObjectCE(this.treeNode.type).IsOneOf(TreeNodeType.Collection, TreeNodeType.CollectionQuery)) {
+		const docSchemaName = collection_docSchemaName.get(this.CollectionName);
+		Assert(docSchemaName, `No schema has been associated with collection "${this.CollectionName}". Did you forget the \`@Col("DOC_SCHEMA_NAME")\` decorator?`);
+		return docSchemaName!;
+	}
+
+	// old way; dropped for now, since there are two many filters-and-such possible with the connection-filter plugin
+	//queryOps = [] as QueryOp[];
 
 	// user-specified
 	/** Example: "$limit: Int!, $maxValue: Int!" */
@@ -93,10 +77,9 @@ export class QueryRequest {
 		this.graphQLQuery = gql(this.queryStr);
 	}
 	ToQueryStr() {
-		const docSchemaName = collection_docSchemaName.get(this.collectionName)!;
-		Assert(docSchemaName, `No schema has been associated with collection "${this.collectionName}". Did you forget the \`@Col("DOC_SCHEMA_NAME")\` decorator?`);
-		const docSchema = GetSchemaJSON(docSchemaName);
-		Assert(docSchema, `Cannot find schema with name "${docSchemaName}".`);
+		Assert(this.treeNode.type != TreeNodeType.Root, "Cannot create QueryParams for the root TreeNode.");
+		const docSchema = GetSchemaJSON(this.DocShemaName);
+		Assert(docSchema, `Cannot find schema with name "${this.DocShemaName}".`);
 
 		let variablesStr_final = "";
 		if (this.variablesStr) {
@@ -108,14 +91,23 @@ export class QueryRequest {
 			filterStr_final = `(${this.filterStr})`;
 		}
 		
-		const str = `
-			subscription Collection_${this.collectionName}${variablesStr_final} {
-				${this.collectionName}${filterStr_final} {
-					nodes { ${CE(docSchema.properties).Pairs().map(a=>a.key).join(" ")} }
+		if (this.treeNode.type == TreeNodeType.Document) {
+			return `
+				subscription DocInCollection_${this.CollectionName}${variablesStr_final} {
+					${this.DocShemaName.toLowerCase()}${filterStr_final} {
+						${CE(docSchema.properties).Pairs().map(a=>a.key).join(" ")}
+					}
 				}
-			}
-		`;
-		return str;
+			`;
+		} else {
+			return `
+				subscription Collection_${this.CollectionName}${variablesStr_final} {
+					${this.CollectionName}${filterStr_final} {
+						nodes { ${CE(docSchema.properties).Pairs().map(a=>a.key).join(" ")} }
+					}
+				}
+			`;
+		}
 	}
 }
 
@@ -129,9 +121,9 @@ export class TreeNode<DataShape> {
 		this.path_noQuery = this.pathSegments_noQuery.join("/");
 		Assert(this.pathSegments.find(a=>a == null || a.trim().length == 0) == null, `Path segments cannot be null/empty. @pathSegments(${this.pathSegments})`);
 		this.type = GetTreeNodeTypeForPath(this.pathSegments);
-		this.query = queryStr ? QueryRequest.ParseString(queryStr) : new QueryRequest();
-		if (this.type == TreeNodeType.Collection) {
-			this.query.collectionName = CE(this.pathSegments_noQuery).Last();
+		this.query = queryStr ? QueryParams.ParseString(queryStr) : new QueryParams();
+		if (this.type != TreeNodeType.Root) {
+			this.query.treeNode = this;
 			this.query.CalculateDerivatives();
 		}
 	}
@@ -282,7 +274,7 @@ export class TreeNode<DataShape> {
 	// for collection (and collection-query) nodes
 	@observable queryNodes = observable.map<string, TreeNode<any>>(); // for collection nodes
 	//queryNodes = new Map<string, TreeNode<any>>(); // for collection nodes
-	query: QueryRequest; // for collection-query nodes
+	query: QueryParams; // for collection-query nodes
 	@observable docNodes = observable.map<string, TreeNode<any>>();
 	//docNodes = new Map<string, TreeNode<any>>();
 	get docDatas() {
@@ -294,7 +286,7 @@ export class TreeNode<DataShape> {
 	}
 
 	// default createTreeNodesIfMissing to false, so that it's safe to call this from a computation (which includes store-accessors)
-	Get(subpathOrGetterFunc: string | string[] | ((data: DataShape)=>any), query?: QueryRequest, createTreeNodesIfMissing = false): TreeNode<any>|null {
+	Get(subpathOrGetterFunc: string | string[] | ((data: DataShape)=>any), query?: QueryParams, createTreeNodesIfMissing = false): TreeNode<any>|null {
 		let subpathSegments = PathOrPathGetterToPathSegments(subpathOrGetterFunc);
 		let currentNode: TreeNode<any> = this;
 
@@ -345,7 +337,7 @@ export function GetTreeNodeTypeForPath(pathOrSegments: string | string[]) {
 	opt = E(defaultFireOptions, opt);
 	let treeNode = opt.fire.tree.Get(path);
 	if (treeNode.subscriptions.length) return;
-	treeNode.Subscribe(filters ? new QueryRequest({filters}) : null);
+	treeNode.Subscribe(filters ? new QueryParams({filters}) : null);
 }*/
 
 export function TreeNodeToRawData<DataShape>(treeNode: TreeNode<DataShape>, addTreeLink = true) {
