@@ -5,8 +5,8 @@ import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "../Utils/P
 import {_getGlobalState} from "mobx";
 import {nil} from "../Utils/Nil.js";
 import {MaybeLog_Base} from "../Utils/General.js";
-import {DocumentNode, FetchResult, gql} from "@apollo/client/core";
-import {Observable} from "@apollo/client/utilities";
+import {DocumentNode, FetchResult, gql} from "@apollo/client/core/index.js";
+import {Observable} from "@apollo/client/utilities/index.js";
 import {collection_docSchemaName, GetSchemaJSON, Schema} from "../Extensions/SchemaHelpers.js";
 
 export enum TreeNodeType {

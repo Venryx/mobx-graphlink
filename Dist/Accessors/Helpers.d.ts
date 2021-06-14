@@ -4,7 +4,7 @@ export declare function GetWait<T>(dataGetterFunc: () => T, options?: Partial<Gr
 export declare class GetAsync_Options {
     static default: GetAsync_Options;
     maxIterations?: number | undefined;
-    errorHandling?: "ignore" | "log" | "none" | undefined;
+    errorHandling?: "none" | "log" | "ignore" | undefined;
 }
 export declare function GetAsync<T>(dataGetterFunc: () => T, options?: Partial<GraphOptions> & GetAsync_Options): Promise<T>;
 export declare let AssertV_triggerDebugger: boolean;

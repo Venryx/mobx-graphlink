@@ -9,7 +9,7 @@ import { observable, runInAction } from "mobx";
 import { PathOrPathGetterToPath, PathOrPathGetterToPathSegments } from "../Utils/PathHelpers.js";
 import { _getGlobalState } from "mobx";
 import { MaybeLog_Base } from "../Utils/General.js";
-import { gql } from "@apollo/client/core";
+import { gql } from "@apollo/client/core/index.js";
 import { collection_docSchemaName, GetSchemaJSON } from "../Extensions/SchemaHelpers.js";
 export var TreeNodeType;
 (function (TreeNodeType) {
