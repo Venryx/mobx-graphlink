@@ -1,11 +1,11 @@
 import {CE, E, emptyArray, emptyArray_forLoading} from "js-vextensions";
 import {ObservableMap, runInAction} from "mobx";
-import {defaultGraphOptions, GraphOptions} from "../Graphlink";
-import {DataStatus, QueryParams} from "../Tree/TreeNode";
-import {DBShape} from "../UserTypes";
-import {DoX_ComputationSafe} from "../Utils/MobX";
-import {nil} from "../Utils/Nil";
-import {PathOrPathGetterToPathSegments} from "../Utils/PathHelpers";
+import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
+import {DataStatus, QueryParams} from "../Tree/TreeNode.js";
+import {DBShape} from "../UserTypes.js";
+import {DoX_ComputationSafe} from "../Utils/MobX.js";
+import {nil} from "../Utils/Nil.js";
+import {PathOrPathGetterToPathSegments} from "../Utils/PathHelpers.js";
 
 /*
 Why use explicit GetDocs, GetDoc, etc. calls instead of just Proxy's in mobx store fields?

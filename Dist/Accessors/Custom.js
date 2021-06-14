@@ -1,7 +1,7 @@
 import { computedFn } from "mobx-utils";
 import { CE, E, Assert } from "js-vextensions";
-import { defaultGraphOptions } from "../Graphlink";
-import { storeAccessorCachingTempDisabled, GetWait } from "./Helpers";
+import { defaultGraphOptions } from "../Graphlink.js";
+import { storeAccessorCachingTempDisabled, GetWait } from "./Helpers.js";
 // for profiling
 class StoreAccessorProfileData {
     constructor(name) {

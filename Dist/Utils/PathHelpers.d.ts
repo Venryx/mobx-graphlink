@@ -1,4 +1,4 @@
-import { DBShape } from "../UserTypes";
+import { DBShape } from "../UserTypes.js";
 export declare function VPathToFBPath(vPath: string): string;
 export declare function FBPathToVPath(fbPath: string): string;
 export declare function VFieldPathToFBFieldPath(vFieldPath: string): string;

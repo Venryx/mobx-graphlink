@@ -1,4 +1,4 @@
-import { TreeNode } from "./Tree/TreeNode";
+import { TreeNode } from "./Tree/TreeNode.js";
 export let defaultGraphOptions;
 export function SetDefaultGraphOptions(opt) {
     defaultGraphOptions = opt;

@@ -1,6 +1,6 @@
 // import uuidV4 from 'uuid/v4';
 import slugid from "slugid";
-import { AddSchema } from "./SchemaHelpers";
+import { AddSchema } from "./SchemaHelpers.js";
 import { CE } from "js-vextensions";
 export const UUID_regex_partial = "[A-Za-z0-9_-]{22}";
 export const UUID_regex = `^${UUID_regex_partial}$`;

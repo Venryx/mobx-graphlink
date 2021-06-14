@@ -1,5 +1,5 @@
 import { Assert, IsString, CE, IsArray, IsFunction } from "js-vextensions";
-import { SplitStringBySlash_Cached } from "./StringSplitCache";
+import { SplitStringBySlash_Cached } from "./StringSplitCache.js";
 export function VPathToFBPath(vPath) {
     return vPath.replace(/\/\./g, ".");
 }

@@ -1,5 +1,5 @@
-import { TreeNode } from "./Tree/TreeNode";
-import { TreeRequestWatcher } from "./Tree/TreeRequestWatcher";
+import { TreeNode } from "./Tree/TreeNode.js";
+import { TreeRequestWatcher } from "./Tree/TreeRequestWatcher.js";
 import { ApolloClient, NormalizedCacheObject } from "@apollo/client/core";
 export declare let defaultGraphOptions: GraphOptions;
 export declare function SetDefaultGraphOptions(opt: GraphOptions): void;

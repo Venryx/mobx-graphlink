@@ -9,9 +9,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import { Assert, E, StringCE, WaitXThenRun } from "js-vextensions";
 import { reaction } from "mobx";
-import { defaultGraphOptions } from "../Graphlink";
-import { DataStatus } from "../Tree/TreeNode";
-import { TreeRequestWatcher } from "../Tree/TreeRequestWatcher";
+import { defaultGraphOptions } from "../Graphlink.js";
+import { DataStatus } from "../Tree/TreeNode.js";
+import { TreeRequestWatcher } from "../Tree/TreeRequestWatcher.js";
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 // (one of the rare cases where opt is not the first argument; that's because GetWait may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
 export function GetWait(dataGetterFunc, options) {

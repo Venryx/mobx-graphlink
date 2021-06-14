@@ -10,8 +10,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import AJV from "ajv";
 import AJVKeywords from "ajv-keywords";
 import { Clone, ToJSON, IsString, Assert, E, CE } from "js-vextensions";
-import { AssertV } from "../Accessors/Helpers";
-//import {RemoveHelpers, WithoutHelpers} from "./DatabaseHelpers";
+import { AssertV } from "../Accessors/Helpers.js";
+//import {RemoveHelpers, WithoutHelpers} from "./DatabaseHelpers.js";
 export const ajv = AJVKeywords(new AJV({ allErrors: true }));
 export const collection_docSchemaName = new Map();
 export function Col(docSchemaName) {

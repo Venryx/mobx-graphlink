@@ -1,5 +1,5 @@
-import {Graphlink, GraphOptions} from "../Graphlink";
-import {TreeNode} from "./TreeNode";
+import {Graphlink, GraphOptions} from "../Graphlink.js";
+import {TreeNode} from "./TreeNode.js";
 
 export class TreeRequestWatcher {
 	constructor(graph: Graphlink<any ,any>) {

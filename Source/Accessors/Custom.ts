@@ -1,8 +1,8 @@
 import {computedFn} from "mobx-utils";
 import {CE, ObjectCE, E, Assert} from "js-vextensions";
-import {GraphOptions, defaultGraphOptions} from "../Graphlink";
-import {RootStoreShape} from "../UserTypes";
-import {storeAccessorCachingTempDisabled, GetWait} from "./Helpers";
+import {GraphOptions, defaultGraphOptions} from "../Graphlink.js";
+import {RootStoreShape} from "../UserTypes.js";
+import {storeAccessorCachingTempDisabled, GetWait} from "./Helpers.js";
 
 // for profiling
 class StoreAccessorProfileData {

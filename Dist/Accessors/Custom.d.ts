@@ -1,5 +1,5 @@
-import { GraphOptions } from "../Graphlink";
-import { RootStoreShape } from "../UserTypes";
+import { GraphOptions } from "../Graphlink.js";
+import { RootStoreShape } from "../UserTypes.js";
 declare class StoreAccessorProfileData {
     constructor(name: string);
     name: string;

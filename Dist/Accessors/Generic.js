@@ -1,10 +1,10 @@
 import { CE, E, emptyArray, emptyArray_forLoading } from "js-vextensions";
 import { runInAction } from "mobx";
-import { defaultGraphOptions } from "../Graphlink";
-import { DataStatus } from "../Tree/TreeNode";
-import { DoX_ComputationSafe } from "../Utils/MobX";
-import { nil } from "../Utils/Nil";
-import { PathOrPathGetterToPathSegments } from "../Utils/PathHelpers";
+import { defaultGraphOptions } from "../Graphlink.js";
+import { DataStatus } from "../Tree/TreeNode.js";
+import { DoX_ComputationSafe } from "../Utils/MobX.js";
+import { nil } from "../Utils/Nil.js";
+import { PathOrPathGetterToPathSegments } from "../Utils/PathHelpers.js";
 /*
 Why use explicit GetDocs, GetDoc, etc. calls instead of just Proxy's in mobx store fields?
 1) It lets you add options (like filters) in a consistent way. (consistent among sync db-accesses, and, old: consistent with async db-accesses, eg. GetDocAsync)

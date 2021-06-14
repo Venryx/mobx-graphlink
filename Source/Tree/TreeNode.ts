@@ -1,13 +1,13 @@
 import {Assert, CE, ToJSON, WaitXThenRun, FromJSON, ObjectCE} from "js-vextensions";
 import {observable, ObservableMap, runInAction} from "mobx";
-import {Graphlink} from "../Graphlink";
-import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "../Utils/PathHelpers";
+import {Graphlink} from "../Graphlink.js";
+import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "../Utils/PathHelpers.js";
 import {_getGlobalState} from "mobx";
-import {nil} from "../Utils/Nil";
-import {MaybeLog_Base} from "../Utils/General";
+import {nil} from "../Utils/Nil.js";
+import {MaybeLog_Base} from "../Utils/General.js";
 import {DocumentNode, FetchResult, gql} from "@apollo/client/core";
 import {Observable} from "@apollo/client/utilities";
-import {collection_docSchemaName, GetSchemaJSON, Schema} from "../Extensions/SchemaHelpers";
+import {collection_docSchemaName, GetSchemaJSON, Schema} from "../Extensions/SchemaHelpers.js";
 
 export enum TreeNodeType {
 	Root,

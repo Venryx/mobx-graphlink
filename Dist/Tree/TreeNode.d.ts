@@ -1,6 +1,6 @@
 /// <reference types="zen-observable" />
 import { ObservableMap } from "mobx";
-import { Graphlink } from "../Graphlink";
+import { Graphlink } from "../Graphlink.js";
 import { DocumentNode, FetchResult } from "@apollo/client/core";
 import { Observable } from "@apollo/client/utilities";
 export declare enum TreeNodeType {

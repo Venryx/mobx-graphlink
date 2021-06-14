@@ -1,6 +1,6 @@
-import {TreeNode} from "./Tree/TreeNode";
-import {TreeRequestWatcher} from "./Tree/TreeRequestWatcher";
-import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "./Utils/PathHelpers";
+import {TreeNode} from "./Tree/TreeNode.js";
+import {TreeRequestWatcher} from "./Tree/TreeRequestWatcher.js";
+import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "./Utils/PathHelpers.js";
 import {observable, runInAction} from "mobx";
 import {ApolloClient, NormalizedCacheObject} from "@apollo/client/core";
 

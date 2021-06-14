@@ -6,11 +6,11 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 import { Assert, CE, ToJSON, FromJSON } from "js-vextensions";
 import { observable, runInAction } from "mobx";
-import { PathOrPathGetterToPath, PathOrPathGetterToPathSegments } from "../Utils/PathHelpers";
+import { PathOrPathGetterToPath, PathOrPathGetterToPathSegments } from "../Utils/PathHelpers.js";
 import { _getGlobalState } from "mobx";
-import { MaybeLog_Base } from "../Utils/General";
+import { MaybeLog_Base } from "../Utils/General.js";
 import { gql } from "@apollo/client/core";
-import { collection_docSchemaName, GetSchemaJSON } from "../Extensions/SchemaHelpers";
+import { collection_docSchemaName, GetSchemaJSON } from "../Extensions/SchemaHelpers.js";
 export var TreeNodeType;
 (function (TreeNodeType) {
     TreeNodeType[TreeNodeType["Root"] = 0] = "Root";

@@ -1,6 +1,6 @@
 // import uuidV4 from 'uuid/v4';
 import slugid from "slugid";
-import {AddSchema} from "./SchemaHelpers";
+import {AddSchema} from "./SchemaHelpers.js";
 import {CE} from "js-vextensions";
 
 export type UUID = string; // just an alias
