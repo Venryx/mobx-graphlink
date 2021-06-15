@@ -1,7 +1,7 @@
 {
   "name": "mobx-graphlink",
   "description": "Integrate data from a GraphQL backend into MobX and React with declarative path requests. (built on Apollo)",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "author": "Venryx (https://venryx.com)",
   "main": "Dist/index.js",
   "typings": "Dist/index.d.ts",
