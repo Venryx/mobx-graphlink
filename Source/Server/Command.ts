@@ -1,8 +1,8 @@
 import {Clone, Assert, E, ObjectCE, ArrayCE, CE, OmitIfFalsy} from "js-vextensions";
-import {ApplyDBUpdates, ApplyDBUpdates_Local} from "../Utils/DatabaseHelpers";
-import {MaybeLog_Base} from "../Utils/General";
-import {GraphOptions, defaultGraphOptions} from "../Graphlink";
-import {GetAsync, GetAsync_Options} from "../Accessors/Helpers";
+import {ApplyDBUpdates, ApplyDBUpdates_Local} from "../Utils/DatabaseHelpers.js";
+import {MaybeLog_Base} from "../Utils/General.js";
+import {GraphOptions, defaultGraphOptions} from "../Graphlink.js";
+import {GetAsync, GetAsync_Options} from "../Accessors/Helpers.js";
 
 export const commandsWaitingToComplete_new = [] as Command<any, any>[];
 

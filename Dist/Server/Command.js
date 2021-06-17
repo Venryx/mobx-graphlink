@@ -8,10 +8,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { Clone, E, ArrayCE } from "js-vextensions";
-import { ApplyDBUpdates, ApplyDBUpdates_Local } from "../Utils/DatabaseHelpers";
-import { MaybeLog_Base } from "../Utils/General";
-import { defaultGraphOptions } from "../Graphlink";
-import { GetAsync } from "../Accessors/Helpers";
+import { ApplyDBUpdates, ApplyDBUpdates_Local } from "../Utils/DatabaseHelpers.js";
+import { MaybeLog_Base } from "../Utils/General.js";
+import { defaultGraphOptions } from "../Graphlink.js";
+import { GetAsync } from "../Accessors/Helpers.js";
 export const commandsWaitingToComplete_new = [];
 let currentCommandRun_listeners = [];
 function WaitTillCurrentCommandFinishes() {

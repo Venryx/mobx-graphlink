@@ -1,6 +1,6 @@
 import { ObjectCE, CE, Assert } from "js-vextensions";
 import u from "updeep";
-import { Command } from "../Server/Command";
+import { Command } from "../Server/Command.js";
 export function MergeDBUpdates(baseUpdatesMap, updatesToMergeMap) {
     const baseUpdates = ObjectCE(baseUpdatesMap).Pairs().map(pair => ({ path: pair.key, data: pair.value }));
     const updatesToMerge = ObjectCE(updatesToMergeMap).Pairs().map(pair => ({ path: pair.key, data: pair.value }));

@@ -1,11 +1,11 @@
-import { GraphOptions } from "../Graphlink";
-import { GetAsync_Options } from "../Accessors/Helpers";
+import { GraphOptions } from "../Graphlink.js";
+import { GetAsync_Options } from "../Accessors/Helpers.js";
 export declare const commandsWaitingToComplete_new: Command<any, any>[];
 export declare abstract class Command<Payload, ReturnData = void> {
     static defaultPayload: {};
     constructor(payload: Payload);
     constructor(options: Partial<GraphOptions>, payload: Payload);
-    get userInfo(): import("../Graphlink").UserInfo | null;
+    get userInfo(): import("../Graphlink.js").UserInfo | null;
     type: string;
     options: GraphOptions;
     payload: Payload;

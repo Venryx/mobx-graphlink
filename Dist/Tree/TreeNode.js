@@ -51,8 +51,10 @@ export class QueryParams_Linked extends QueryParams {
     constructor(initialData) {
         super();
         CE(this).Extend(initialData);
-        this.queryStr = this.ToQueryStr();
-        this.graphQLQuery = gql(this.queryStr);
+        if (this.treeNode.type != TreeNodeType.Root) {
+            this.queryStr = this.ToQueryStr();
+            this.graphQLQuery = gql(this.queryStr);
+        }
     }
     get CollectionName() {
         return CE(this.treeNode.pathSegments_noQuery).XFromLast(this.treeNode.type == TreeNodeType.Document ? 1 : 0);

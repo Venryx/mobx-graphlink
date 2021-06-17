@@ -1,9 +1,8 @@
 import {DeepSet, IsNumberString, Assert, StringCE, Clone, ObjectCE, ArrayCE, GetTreeNodesInObjTree, E, CE, StartDownload, IsObject} from "js-vextensions";
 import u from "updeep";
-import {MaybeLog_Base} from "./General";
-import {GraphOptions, SplitStringBySlash_Cached} from "..";
-import {defaultGraphOptions} from "../Graphlink";
-import {GetPathParts} from "./PathHelpers";
+import {MaybeLog_Base} from "./General.js";
+import {GraphOptions, SplitStringBySlash_Cached} from "../index.js";
+import {defaultGraphOptions} from "../Graphlink.js";
 
 export function IsAuthValid(auth) {
 	return auth && !auth.isEmpty;
@@ -84,7 +83,7 @@ export function FinalizeDBUpdates(options: Partial<GraphOptions & ApplyDBUpdates
 			delete dbUpdates[localPath];
 		}
 	}*/
-	
+
 	return dbUpdates;
 }
 

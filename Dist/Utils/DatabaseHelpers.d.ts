@@ -1,4 +1,4 @@
-import { GraphOptions } from "..";
+import { GraphOptions } from "../index.js";
 export declare function IsAuthValid(auth: any): any;
 export declare function ProcessDBData(data: any, addHelpers: boolean, rootKey?: string): any;
 export declare function AssertValidatePath(path: string): void;

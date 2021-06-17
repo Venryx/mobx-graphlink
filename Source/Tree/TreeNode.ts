@@ -78,8 +78,10 @@ export class QueryParams_Linked extends QueryParams {
 	constructor(initialData?: {treeNode: TreeNode<any>} & Partial<QueryParams_Linked>) {
 		super();
 		CE(this).Extend(initialData);
-		this.queryStr = this.ToQueryStr();
-		this.graphQLQuery = gql(this.queryStr);
+		if (this.treeNode.type != TreeNodeType.Root) {
+			this.queryStr = this.ToQueryStr();
+			this.graphQLQuery = gql(this.queryStr);
+		}
 	}
 	
 	treeNode: TreeNode<any>;

@@ -9,9 +9,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import { IsNumberString, Assert, Clone, ObjectCE, GetTreeNodesInObjTree, E, CE } from "js-vextensions";
 import u from "updeep";
-import { MaybeLog_Base } from "./General";
-import { SplitStringBySlash_Cached } from "..";
-import { defaultGraphOptions } from "../Graphlink";
+import { MaybeLog_Base } from "./General.js";
+import { SplitStringBySlash_Cached } from "../index.js";
+import { defaultGraphOptions } from "../Graphlink.js";
 export function IsAuthValid(auth) {
     return auth && !auth.isEmpty;
 }
