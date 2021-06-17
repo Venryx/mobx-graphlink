@@ -20,8 +20,16 @@ export declare class Graphlink<RootStoreShape, DBShape> {
     subs: {
         apollo: ApolloClient<NormalizedCacheObject>;
     };
+    userInfo: UserInfo | null;
+    LogIn(): Promise<null>;
+    LogIn_WithCredential(): Promise<null>;
+    LogOut(): Promise<void>;
     tree: TreeNode<DBShape>;
     treeRequestWatchers: Set<TreeRequestWatcher>;
     UnsubscribeAll(): void;
     ValidateDBData?: (dbData: DBShape) => void;
+}
+export declare class UserInfo {
+    id: string;
+    displayName: string;
 }

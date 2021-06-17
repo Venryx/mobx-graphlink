@@ -23,12 +23,12 @@ export * from "./DBShape/Constructs.js";
 export * from "./Extensions/KeyGenerator.js";
 export * from "./Extensions/SchemaHelpers.js";
 
-//export * from "./Server/Command.js";
+export * from "./Server/Command.js";
 
 export * from "./Tree/TreeNode.js";
 
-//export * from "./Utils/DatabaseHelpers.js";
-//export * from "./Utils/DBUpdateMerging.js";
+export * from "./Utils/DatabaseHelpers.js";
+export * from "./Utils/DBUpdateMerging.js";
 export * from "./Utils/General.js";
 export * from "./Utils/PathHelpers.js";
 export * from "./Utils/StringSplitCache.js";

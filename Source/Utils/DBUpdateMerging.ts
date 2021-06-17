@@ -1,4 +1,4 @@
-/*import {ObjectCE, CE, Assert} from "js-vextensions";
+import {ObjectCE, CE, Assert} from "js-vextensions";
 import u from "updeep";
 import {Command} from "../Server/Command";
 
@@ -36,7 +36,7 @@ function FixDBUpdates(updatesMap) {
 			update.data = u.updateIn(updateToMerge_relativePath, constant(updateToMerge.data), update.data)
 		}
 	}
-}*#/
+}*/
 type Update = {path: string, data: any};
 export function MergeDBUpdates(baseUpdatesMap: Object, updatesToMergeMap: Object) {
 	const baseUpdates = ObjectCE(baseUpdatesMap).Pairs().map(pair=>({path: pair.key, data: pair.value})) as Update[];
@@ -67,7 +67,7 @@ export function MergeDBUpdates(baseUpdatesMap: Object, updatesToMergeMap: Object
 			update.data = u.updateIn(updateToMerge_relativePath.replace(/\//g, "."), u.constant(updateToMerge.data), update.data);
 			/*} else {
 				update.data = null;
-			}*#/
+			}*/
 
 			// remove from updates-to-merge list (since we just merged it)
 			CE(updatesToMerge).Remove(updateToMerge);
@@ -90,4 +90,4 @@ export function MergeDBUpdates_Multi(...dbUpdateMaps: Object[]) {
 		result = MergeDBUpdates(result, dbUpdateMap);
 	}
 	return result;
-}*/
+}

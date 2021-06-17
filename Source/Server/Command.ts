@@ -36,6 +36,8 @@ export abstract class Command<Payload, ReturnData = void> {
 		// use Clone on the payload, so that behavior is consistent whether called locally or over the network
 		this.payload = E(Clone(this.constructor["defaultPayload"]), Clone(payload));
 	}
+	//userInfo: FireUserInfo;
+	get userInfo() { return this.options.graph.userInfo; }
 	type: string;
 	options: GraphOptions;
 	payload: Payload;

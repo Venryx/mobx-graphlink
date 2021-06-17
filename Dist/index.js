@@ -16,10 +16,10 @@ export * from "./DBShape/Constructs.js";
 // these "extensions" are separable from mobx-graphlink, but are included for convenience, since I use them everywhere I use mobx-graphlink
 export * from "./Extensions/KeyGenerator.js";
 export * from "./Extensions/SchemaHelpers.js";
-//export * from "./Server/Command.js";
+export * from "./Server/Command.js";
 export * from "./Tree/TreeNode.js";
-//export * from "./Utils/DatabaseHelpers.js";
-//export * from "./Utils/DBUpdateMerging.js";
+export * from "./Utils/DatabaseHelpers.js";
+export * from "./Utils/DBUpdateMerging.js";
 export * from "./Utils/General.js";
 export * from "./Utils/PathHelpers.js";
 export * from "./Utils/StringSplitCache.js";

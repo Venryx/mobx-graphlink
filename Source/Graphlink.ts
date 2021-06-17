@@ -52,6 +52,19 @@ export class Graphlink<RootStoreShape, DBShape> {
 		apollo: ApolloClient<NormalizedCacheObject>;
 	};
 
+	@observable userInfo: UserInfo|null;
+	async LogIn() {
+		// todo
+		return null;
+	}
+	async LogIn_WithCredential() {
+		// todo
+		return null;
+	}
+	async LogOut() {
+		// todo
+	}
+
 	tree: TreeNode<DBShape>;
 	treeRequestWatchers = new Set<TreeRequestWatcher>();
 	//pathSubscriptions: Map<string, PathSubscription>;
@@ -60,4 +73,9 @@ export class Graphlink<RootStoreShape, DBShape> {
 	}
 
 	ValidateDBData?: (dbData: DBShape)=>void;
+}
+
+export class UserInfo {
+	id: string;
+	displayName: string;
 }
