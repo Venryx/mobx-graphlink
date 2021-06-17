@@ -30,8 +30,6 @@ export class PathSubscription {
 	unsubscribe: ()=>void;
 }
 
-/** Class specifies the filtering, sorting, etc. for a given TreeNode. */
-// (comments based on usage with Postgraphile and https://github.com/graphile-contrib/postgraphile-plugin-connection-filter)
 export class QueryParams {
 	static ParseString(dataStr: string) {
 		return QueryParams.ParseData(FromJSON(dataStr));
@@ -40,11 +38,48 @@ export class QueryParams {
 		return new QueryParams(data);
 	}
 	toString() {
-		return ToJSON(CE(this).Including("variablesStr", "filterStr", "variables"));
+		//return ToJSON(CE(this).Including("variablesStr", "variables"));
+		return ToJSON(this);
 	}
 
-	constructor(initialData?: Partial<QueryParams>) {
+	constructor(initialData?: Partial<QueryParams_Linked>) {
 		CE(this).Extend(initialData);
+	}
+
+	/** Example: "$limit: Int!, $maxValue: Int!" */
+	varsDefine?: string;
+	/** Example: {limit: 10, maxValue: 100} */
+	vars?: Object;
+
+	// arguments (definition: https://stackoverflow.com/a/55474252)
+	// ==========
+
+	// old way 1; dropped for now, since there are two many filters-and-such possible with the connection-filter plugin
+	//queryOps = [] as QueryOp[];
+
+	// old way 2; dropped, since safer to use JSON stringification
+	/** Example: "first: $limit, filter: {someProp: {lessThan: $maxValue}}" */
+	//argsStr?: string;
+
+	// filtering
+	/** Example: {someProp: {lessThan: $maxValue}}*/
+	filter?: Object;
+
+	// pagination
+	first?: number;
+	after?: string;
+	last?: number;
+	before?: string;
+}
+
+/** Class specifies the filtering, sorting, etc. for a given TreeNode. */
+// (comments based on usage with Postgraphile and https://github.com/graphile-contrib/postgraphile-plugin-connection-filter)
+export class QueryParams_Linked extends QueryParams {
+	constructor(initialData?: {treeNode: TreeNode<any>} & Partial<QueryParams_Linked>) {
+		super();
+		CE(this).Extend(initialData);
+		this.queryStr = this.ToQueryStr();
+		this.graphQLQuery = gql(this.queryStr);
 	}
 	
 	treeNode: TreeNode<any>;
@@ -58,51 +93,47 @@ export class QueryParams {
 		return docSchemaName!;
 	}
 
-	// old way; dropped for now, since there are two many filters-and-such possible with the connection-filter plugin
-	//queryOps = [] as QueryOp[];
-
-	// user-specified
-	/** Example: "$limit: Int!, $maxValue: Int!" */
-	variablesStr: string;
-	/** Example: "first: $limit, filter: {someProp: {lessThan: $maxValue}}" */
-	filterStr: string;
-	/** Example: {limit: 10, maxValue: 100} */
-	variables: Object;
-
 	// derivatives
-	queryStr: string;
-	graphQLQuery: DocumentNode;
-	CalculateDerivatives() {
-		this.queryStr = this.ToQueryStr();
-		this.graphQLQuery = gql(this.queryStr);
-	}
+	readonly queryStr: string;
+	readonly graphQLQuery: DocumentNode;
 	ToQueryStr() {
 		Assert(this.treeNode.type != TreeNodeType.Root, "Cannot create QueryParams for the root TreeNode.");
 		const docSchema = GetSchemaJSON(this.DocShemaName);
 		Assert(docSchema, `Cannot find schema with name "${this.DocShemaName}".`);
 
-		let variablesStr_final = "";
-		if (this.variablesStr) {
-			variablesStr_final = `(${this.variablesStr})`;
+		let varsDefineAsStr = "";
+		if (this.varsDefine) {
+			varsDefineAsStr = `(${this.varsDefine})`;
 		}
 
-		let filterStr_final = "";
-		if (this.filterStr) {
-			filterStr_final = `(${this.filterStr})`;
+		let argsAsStr = "";
+		const firstNonNullArg = this.first ?? this.after ?? this.last ?? this.before ?? this.filter;
+		if (firstNonNullArg != null) {
+			const argsObj = CE(this).Including("first", "after", "last", "before", "filter");
+			if (argsObj.filter) {
+				for (const [key, value] of Object.entries(argsObj.filter as any)) {
+					// if filter entry's value is falsy, remove (so user can use pattern type: `{prop: shouldRequire3 && {equalTo: 3}}`)
+					if (!value) {
+						delete argsObj[key];
+					}
+				}
+			}
+			const argsAsStr_json = JSON.stringify(argsObj);
+			argsAsStr = `(${argsAsStr_json.slice(1, -1)})`; // remove "{}", then wrap with "()"
 		}
 		
 		if (this.treeNode.type == TreeNodeType.Document) {
 			return `
-				subscription DocInCollection_${this.CollectionName}${variablesStr_final} {
-					${this.DocShemaName.toLowerCase()}${filterStr_final} {
+				subscription DocInCollection_${this.CollectionName}${varsDefineAsStr} {
+					${this.DocShemaName.toLowerCase()}${argsAsStr} {
 						${CE(docSchema.properties).Pairs().map(a=>a.key).join(" ")}
 					}
 				}
 			`;
 		} else {
 			return `
-				subscription Collection_${this.CollectionName}${variablesStr_final} {
-					${this.CollectionName}${filterStr_final} {
+				subscription Collection_${this.CollectionName}${varsDefineAsStr} {
+					${this.CollectionName}${argsAsStr} {
 						nodes { ${CE(docSchema.properties).Pairs().map(a=>a.key).join(" ")} }
 					}
 				}
@@ -121,11 +152,12 @@ export class TreeNode<DataShape> {
 		this.path_noQuery = this.pathSegments_noQuery.join("/");
 		Assert(this.pathSegments.find(a=>a == null || a.trim().length == 0) == null, `Path segments cannot be null/empty. @pathSegments(${this.pathSegments})`);
 		this.type = GetTreeNodeTypeForPath(this.pathSegments);
-		this.query = queryStr ? QueryParams.ParseString(queryStr) : new QueryParams();
-		if (this.type != TreeNodeType.Root) {
+		const query_raw = queryStr ? QueryParams.ParseString(queryStr) : new QueryParams();
+		this.query = new QueryParams_Linked({...query_raw, treeNode: this});
+		/*if (this.type != TreeNodeType.Root) {
 			this.query.treeNode = this;
 			this.query.CalculateDerivatives();
-		}
+		}*/
 	}
 	graph: Graphlink<any, any>;
 	pathSegments: string[];
@@ -156,7 +188,7 @@ export class TreeNode<DataShape> {
 		if (this.type == TreeNodeType.Document) {
 			this.observable = this.graph.subs.apollo.subscribe({
 				query: this.query.graphQLQuery,
-				variables: this.query.variables,
+				variables: this.query.vars,
 			});
 			this.subscription = this.observable.subscribe({
 				//start: ()=>{},
@@ -171,7 +203,7 @@ export class TreeNode<DataShape> {
 		} else {
 			this.observable = this.graph.subs.apollo.subscribe({
 				query: this.query.graphQLQuery,
-				variables: this.query.variables,
+				variables: this.query.vars,
 			});
 			this.subscription = this.observable.subscribe({
 				//start: ()=>{},
@@ -274,7 +306,7 @@ export class TreeNode<DataShape> {
 	// for collection (and collection-query) nodes
 	@observable queryNodes = observable.map<string, TreeNode<any>>(); // for collection nodes
 	//queryNodes = new Map<string, TreeNode<any>>(); // for collection nodes
-	query: QueryParams; // for collection-query nodes
+	query: QueryParams_Linked; // for collection-query nodes
 	@observable docNodes = observable.map<string, TreeNode<any>>();
 	//docNodes = new Map<string, TreeNode<any>>();
 	get docDatas() {

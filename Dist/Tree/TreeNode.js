@@ -30,8 +30,6 @@ export class PathSubscription {
         this.unsubscribe = unsubscribe;
     }
 }
-/** Class specifies the filtering, sorting, etc. for a given TreeNode. */
-// (comments based on usage with Postgraphile and https://github.com/graphile-contrib/postgraphile-plugin-connection-filter)
 export class QueryParams {
     constructor(initialData) {
         CE(this).Extend(initialData);
@@ -43,7 +41,18 @@ export class QueryParams {
         return new QueryParams(data);
     }
     toString() {
-        return ToJSON(CE(this).Including("variablesStr", "filterStr", "variables"));
+        //return ToJSON(CE(this).Including("variablesStr", "variables"));
+        return ToJSON(this);
+    }
+}
+/** Class specifies the filtering, sorting, etc. for a given TreeNode. */
+// (comments based on usage with Postgraphile and https://github.com/graphile-contrib/postgraphile-plugin-connection-filter)
+export class QueryParams_Linked extends QueryParams {
+    constructor(initialData) {
+        super();
+        CE(this).Extend(initialData);
+        this.queryStr = this.ToQueryStr();
+        this.graphQLQuery = gql(this.queryStr);
     }
     get CollectionName() {
         return CE(this.treeNode.pathSegments_noQuery).XFromLast(this.treeNode.type == TreeNodeType.Document ? 1 : 0);
@@ -54,26 +63,34 @@ export class QueryParams {
         Assert(docSchemaName, `No schema has been associated with collection "${this.CollectionName}". Did you forget the \`@Col("DOC_SCHEMA_NAME")\` decorator?`);
         return docSchemaName;
     }
-    CalculateDerivatives() {
-        this.queryStr = this.ToQueryStr();
-        this.graphQLQuery = gql(this.queryStr);
-    }
     ToQueryStr() {
+        var _a, _b, _c, _d;
         Assert(this.treeNode.type != TreeNodeType.Root, "Cannot create QueryParams for the root TreeNode.");
         const docSchema = GetSchemaJSON(this.DocShemaName);
         Assert(docSchema, `Cannot find schema with name "${this.DocShemaName}".`);
-        let variablesStr_final = "";
-        if (this.variablesStr) {
-            variablesStr_final = `(${this.variablesStr})`;
+        let varsDefineAsStr = "";
+        if (this.varsDefine) {
+            varsDefineAsStr = `(${this.varsDefine})`;
         }
-        let filterStr_final = "";
-        if (this.filterStr) {
-            filterStr_final = `(${this.filterStr})`;
+        let argsAsStr = "";
+        const firstNonNullArg = (_d = (_c = (_b = (_a = this.first) !== null && _a !== void 0 ? _a : this.after) !== null && _b !== void 0 ? _b : this.last) !== null && _c !== void 0 ? _c : this.before) !== null && _d !== void 0 ? _d : this.filter;
+        if (firstNonNullArg != null) {
+            const argsObj = CE(this).Including("first", "after", "last", "before", "filter");
+            if (argsObj.filter) {
+                for (const [key, value] of Object.entries(argsObj.filter)) {
+                    // if filter entry's value is falsy, remove (so user can use pattern type: `{prop: shouldRequire3 && {equalTo: 3}}`)
+                    if (!value) {
+                        delete argsObj[key];
+                    }
+                }
+            }
+            const argsAsStr_json = JSON.stringify(argsObj);
+            argsAsStr = `(${argsAsStr_json.slice(1, -1)})`; // remove "{}", then wrap with "()"
         }
         if (this.treeNode.type == TreeNodeType.Document) {
             return `
-				subscription DocInCollection_${this.CollectionName}${variablesStr_final} {
-					${this.DocShemaName.toLowerCase()}${filterStr_final} {
+				subscription DocInCollection_${this.CollectionName}${varsDefineAsStr} {
+					${this.DocShemaName.toLowerCase()}${argsAsStr} {
 						${CE(docSchema.properties).Pairs().map(a => a.key).join(" ")}
 					}
 				}
@@ -81,8 +98,8 @@ export class QueryParams {
         }
         else {
             return `
-				subscription Collection_${this.CollectionName}${variablesStr_final} {
-					${this.CollectionName}${filterStr_final} {
+				subscription Collection_${this.CollectionName}${varsDefineAsStr} {
+					${this.CollectionName}${argsAsStr} {
 						nodes { ${CE(docSchema.properties).Pairs().map(a => a.key).join(" ")} }
 					}
 				}
@@ -107,11 +124,12 @@ export class TreeNode {
         this.path_noQuery = this.pathSegments_noQuery.join("/");
         Assert(this.pathSegments.find(a => a == null || a.trim().length == 0) == null, `Path segments cannot be null/empty. @pathSegments(${this.pathSegments})`);
         this.type = GetTreeNodeTypeForPath(this.pathSegments);
-        this.query = queryStr ? QueryParams.ParseString(queryStr) : new QueryParams();
-        if (this.type != TreeNodeType.Root) {
+        const query_raw = queryStr ? QueryParams.ParseString(queryStr) : new QueryParams();
+        this.query = new QueryParams_Linked(Object.assign(Object.assign({}, query_raw), { treeNode: this }));
+        /*if (this.type != TreeNodeType.Root) {
             this.query.treeNode = this;
             this.query.CalculateDerivatives();
-        }
+        }*/
     }
     Request() {
         this.graph.treeRequestWatchers.forEach(a => a.nodesRequested.add(this));
@@ -133,7 +151,7 @@ export class TreeNode {
         if (this.type == TreeNodeType.Document) {
             this.observable = this.graph.subs.apollo.subscribe({
                 query: this.query.graphQLQuery,
-                variables: this.query.variables,
+                variables: this.query.vars,
             });
             this.subscription = this.observable.subscribe({
                 //start: ()=>{},
@@ -149,7 +167,7 @@ export class TreeNode {
         else {
             this.observable = this.graph.subs.apollo.subscribe({
                 query: this.query.graphQLQuery,
-                variables: this.query.variables,
+                variables: this.query.vars,
             });
             this.subscription = this.observable.subscribe({
                 //start: ()=>{},

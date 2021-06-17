@@ -19,24 +19,33 @@ export declare class PathSubscription {
     constructor(unsubscribe: () => void);
     unsubscribe: () => void;
 }
-/** Class specifies the filtering, sorting, etc. for a given TreeNode. */
 export declare class QueryParams {
     static ParseString(dataStr: string): QueryParams;
     static ParseData(data: any): QueryParams;
-    toString(): any;
-    constructor(initialData?: Partial<QueryParams>);
+    toString(): string;
+    constructor(initialData?: Partial<QueryParams_Linked>);
+    /** Example: "$limit: Int!, $maxValue: Int!" */
+    varsDefine?: string;
+    /** Example: {limit: 10, maxValue: 100} */
+    vars?: Object;
+    /** Example: "first: $limit, filter: {someProp: {lessThan: $maxValue}}" */
+    /** Example: {someProp: {lessThan: $maxValue}}*/
+    filter?: Object;
+    first?: number;
+    after?: string;
+    last?: number;
+    before?: string;
+}
+/** Class specifies the filtering, sorting, etc. for a given TreeNode. */
+export declare class QueryParams_Linked extends QueryParams {
+    constructor(initialData?: {
+        treeNode: TreeNode<any>;
+    } & Partial<QueryParams_Linked>);
     treeNode: TreeNode<any>;
     get CollectionName(): string;
     get DocShemaName(): string;
-    /** Example: "$limit: Int!, $maxValue: Int!" */
-    variablesStr: string;
-    /** Example: "first: $limit, filter: {someProp: {lessThan: $maxValue}}" */
-    filterStr: string;
-    /** Example: {limit: 10, maxValue: 100} */
-    variables: Object;
-    queryStr: string;
-    graphQLQuery: DocumentNode;
-    CalculateDerivatives(): void;
+    readonly queryStr: string;
+    readonly graphQLQuery: DocumentNode;
     ToQueryStr(): string;
 }
 export declare class TreeNode<DataShape> {
@@ -62,7 +71,7 @@ export declare class TreeNode<DataShape> {
     dataJSON: string;
     SetData(data: DataShape, fromCache: boolean): boolean;
     queryNodes: ObservableMap<string, TreeNode<any>>;
-    query: QueryParams;
+    query: QueryParams_Linked;
     docNodes: ObservableMap<string, TreeNode<any>>;
     get docDatas(): any[];
     Get(subpathOrGetterFunc: string | string[] | ((data: DataShape) => any), query?: QueryParams, createTreeNodesIfMissing?: boolean): TreeNode<any> | null;
