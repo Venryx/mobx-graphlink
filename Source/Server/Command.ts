@@ -1,5 +1,5 @@
-/*import {Clone, Assert, E, ObjectCE, ArrayCE, CE, OmitIfFalsy} from "js-vextensions";
-import {maxDBUpdatesPerBatch, ApplyDBUpdates, ApplyDBUpdates_Local} from "../Utils/DatabaseHelpers";
+import {Clone, Assert, E, ObjectCE, ArrayCE, CE, OmitIfFalsy} from "js-vextensions";
+import {ApplyDBUpdates, ApplyDBUpdates_Local} from "../Utils/DatabaseHelpers";
 import {MaybeLog_Base} from "../Utils/General";
 import {GraphOptions, defaultGraphOptions} from "../Graphlink";
 import {GetAsync, GetAsync_Options} from "../Accessors/Helpers";
@@ -55,9 +55,9 @@ export abstract class Command<Payload, ReturnData = void> {
 		return this;
 	}
 
-	/** Transforms the payload data (eg. combining it with existing db-data) in preparation for constructing the db-updates-map, while also validating user permissions and such along the way. *#/
+	/** Transforms the payload data (eg. combining it with existing db-data) in preparation for constructing the db-updates-map, while also validating user permissions and such along the way. */
 	abstract Validate(): void;
-	/** Last validation error, from calling Validate_Safe(). *#/
+	/** Last validation error, from calling Validate_Safe(). */
 	validateError: string|null;
 	Validate_Safe() {
 		try {
@@ -74,7 +74,7 @@ export abstract class Command<Payload, ReturnData = void> {
 		//await GetAsync(()=>this.Validate(), {errorHandling: "ignore", maxIterations: OmitIfFalsy(maxIterations)});
 		await GetAsync(()=>this.Validate(), E({errorHandling: "ignore"}, options));
 	}
-	/** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) *#/
+	/** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
 	abstract GetDBUpdates(): {}
 
 	async PreRun() {
@@ -82,8 +82,8 @@ export abstract class Command<Payload, ReturnData = void> {
 		await this.Validate_Async();
 	}
 
-	/** [async] Validates the data, prepares it, and executes it -- thus applying it into the database. *#/
-	async Run(maxUpdatesPerChunk = maxDBUpdatesPerBatch): Promise<ReturnData> {
+	/** [async] Validates the data, prepares it, and executes it -- thus applying it into the database. */
+	async Run(): Promise<ReturnData> {
 		if (commandsWaitingToComplete_new.length > 0) {
 			MaybeLog_Base(a=>a.commands, l=>l(`Queing command, since ${commandsWaitingToComplete_new.length} ${commandsWaitingToComplete_new.length == 1 ? "is" : "are"} already waiting for completion.${""
 				}@type:`, this.constructor.name, " @payload(", this.payload, ")"));
@@ -138,11 +138,11 @@ export abstract class Command<Payload, ReturnData = void> {
 			if (newNodeData != null) { // (if null, means we're deleting it, which is fine)
 				AssertValidate("MapNode", newNodeData, `New node-data is invalid.`);
 			}
-		}*#/
+		}*/
 
 		// locally-apply db-updates, then validate the result (for now, only works for already-loaded data paths)
 		const oldData = Clone(this.options.graph.tree.AsRawData());
 		const newData = ApplyDBUpdates_Local(oldData, dbUpdates);
 		this.options.graph.ValidateDBData!(newData);
 	}
-}*/
+}
