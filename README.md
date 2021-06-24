@@ -17,25 +17,29 @@ For `FeatureOrFix` version-extending (recommended for libraries), prepend "`~`" 
 1) TODO
 2) Create classes and json-schemas for row/document types. Example:
 ```
+@DBClass({table: "todoItems"})
 export class TodoItem {
+	@DB((t,n)=>t.text(n))
+	@Field({type: "string"})
 	id: string;
+
+	@DB((t,n)=>t.text(n))
+	@Field({type: "string"}, {req: true})
 	text: string;
+
+	@DB((t,n)=>t.boolean(n))
+	@Field({type: "string"})
 	completed: boolean;
+
+	@DB((t,n)=>t.specificType(n, "text[]"))
+	@Field({items: {type: "string"}})
 	tags: string[];
 }
-AddSchema("TodoItem", {
-	properties: {
-		id: {type: "string"},
-		text: {type: "string"},
-		completed: {type: "boolean"},
-		tags: {items: {type: "string"}},
-	},
-});
 ```
 3) Create class containing DB structure information. Example:
 ```
 export class GraphDBShape {
-	@Col("TodoItem") todoItems: Collection<TodoItem>;
+	todoItems: Collection<TodoItem>;
 }
 ```
 4) Create Graphlink instance:

@@ -13,7 +13,13 @@ import { Clone, ToJSON, IsString, Assert, E, CE } from "js-vextensions";
 import { AssertV } from "../Accessors/Helpers.js";
 //import {RemoveHelpers, WithoutHelpers} from "./DatabaseHelpers.js";
 export const ajv = AJVKeywords(new AJV({ allErrors: true }));
-export const collection_docSchemaName = new Map(); // populated by funcs in Decorators.ts
+export const collection_docSchemaName = new Map();
+export function Col(docSchemaName) {
+    return ApplyToClass;
+    function ApplyToClass(targetClass, propertyKey) {
+        collection_docSchemaName.set(propertyKey, docSchemaName);
+    }
+}
 // needed so that apollo knows postgraphile get-single-doc queries can be found in cache simply by typename and id (eg. as cached from collection-based query results)
 export function GetTypePolicyFieldsMappingSingleDocQueriesToCache() {
     const result = {};
@@ -36,13 +42,13 @@ export function Schema(schema) {
 export const schemaEntryJSONs = {};
 export function AddSchema(...args) {
     return __awaiter(this, void 0, void 0, function* () {
-        let name, schemaDeps, schemaOrGetter;
+        let name, dependencySchemas, schemaOrGetter;
         if (args.length == 2)
             [name, schemaOrGetter] = args;
         else
-            [name, schemaDeps, schemaOrGetter] = args;
-        if (schemaDeps != null)
-            yield Promise.all(schemaDeps.map(schemaName => WaitTillSchemaAdded(schemaName)));
+            [name, dependencySchemas, schemaOrGetter] = args;
+        if (dependencySchemas != null)
+            yield Promise.all(dependencySchemas.map(schemaName => WaitTillSchemaAdded(schemaName)));
         let schema = schemaOrGetter instanceof Function ? schemaOrGetter() : schemaOrGetter;
         schema = Schema(schema);
         schemaEntryJSONs[name] = schema;
@@ -213,4 +219,11 @@ export function GetInvalidPropPaths(data, schemaObject) {
         }
         return { propPath, error };
     });
+}
+// decorator-based approach
+// ==========
+export function ClassSchema(schemaName) {
+    return (constructor) => {
+        // todo
+    };
 }

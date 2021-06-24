@@ -62,7 +62,7 @@ export class QueryParams_Linked extends QueryParams {
     get DocShemaName() {
         //if (ObjectCE(this.treeNode.type).IsOneOf(TreeNodeType.Collection, TreeNodeType.CollectionQuery)) {
         const docSchemaName = collection_docSchemaName.get(this.CollectionName);
-        Assert(docSchemaName, `No schema has been associated with collection "${this.CollectionName}". Did you forget the \`@Col("DOC_SCHEMA_NAME")\` decorator?`);
+        Assert(docSchemaName, `No schema has been associated with collection "${this.CollectionName}". Did you forget the \`@Table("DOC_SCHEMA_NAME")\` decorator?`);
         return docSchemaName;
     }
     ToQueryStr() {

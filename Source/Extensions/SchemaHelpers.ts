@@ -6,13 +6,8 @@ import {AssertV} from "../Accessors/Helpers.js";
 
 export const ajv = AJVKeywords(new AJV({allErrors: true})) as AJV_Extended;
 
-export const collection_docSchemaName = new Map<string, string>();
-export function Col(docSchemaName: string) {
-	return ApplyToClass;
-	function ApplyToClass<T>(targetClass: T, propertyKey: string) {
-		collection_docSchemaName.set(propertyKey, docSchemaName);
-	}
-}
+export const collection_docSchemaName = new Map<string, string>(); // populated by funcs in Decorators.ts
+
 // needed so that apollo knows postgraphile get-single-doc queries can be found in cache simply by typename and id (eg. as cached from collection-based query results)
 export function GetTypePolicyFieldsMappingSingleDocQueriesToCache() {
 	const result = {};
@@ -36,13 +31,13 @@ export function Schema(schema) {
 
 export const schemaEntryJSONs = {};
 export async function AddSchema(name: string, schemaOrGetter: Object | (()=>Object));
-export async function AddSchema(name: string, dependencySchemas: string[], schemaGetter: ()=>Object); // only accept schema-getter, since otherwise there's no point to adding the dependency-schemas
+export async function AddSchema(name: string, schemaDeps: string[] | undefined, schemaGetter: ()=>Object); // only accept schema-getter, since otherwise there's no point to adding the dependency-schemas
 export async function AddSchema(...args: any[]) {
-	let name: string, dependencySchemas: string[], schemaOrGetter: any;
+	let name: string, schemaDeps: string[], schemaOrGetter: any;
 	if (args.length == 2) [name, schemaOrGetter] = args;
-	else [name, dependencySchemas, schemaOrGetter] = args;
+	else [name, schemaDeps, schemaOrGetter] = args;
 
-	if (dependencySchemas! != null) await Promise.all(dependencySchemas.map(schemaName=>WaitTillSchemaAdded(schemaName)));
+	if (schemaDeps! != null) await Promise.all(schemaDeps.map(schemaName=>WaitTillSchemaAdded(schemaName)));
 	let schema = schemaOrGetter instanceof Function ? schemaOrGetter() : schemaOrGetter;
 
 	schema = Schema(schema);

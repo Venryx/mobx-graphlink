@@ -5,6 +5,7 @@ export * from "./Accessors/Helpers.js";
 export * from "./DBShape/Constructs.js";
 export * from "./Extensions/KeyGenerator.js";
 export * from "./Extensions/SchemaHelpers.js";
+export * from "./Extensions/Decorators.js";
 export * from "./Server/Command.js";
 export * from "./Tree/TreeNode.js";
 export * from "./Utils/DatabaseHelpers.js";

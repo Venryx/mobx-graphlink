@@ -1,11 +1,12 @@
 import AJV from "ajv";
 export declare const ajv: AJV_Extended;
 export declare const collection_docSchemaName: Map<string, string>;
+export declare function Col(docSchemaName: string): <T>(targetClass: T, propertyKey: string) => void;
 export declare function GetTypePolicyFieldsMappingSingleDocQueriesToCache(): {};
 export declare function Schema(schema: any): any;
 export declare const schemaEntryJSONs: {};
 export declare function AddSchema(name: string, schemaOrGetter: Object | (() => Object)): any;
-export declare function AddSchema(name: string, schemaDeps: string[] | undefined, schemaGetter: () => Object): any;
+export declare function AddSchema(name: string, dependencySchemas: string[], schemaGetter: () => Object): any;
 export declare function GetSchemaJSON(name: string): any;
 export declare function WaitTillSchemaAdded(schemaName: string): Promise<void>;
 declare type AJV_Extended = AJV.Ajv & {
