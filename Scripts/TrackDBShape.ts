@@ -39,7 +39,12 @@ chokidar.watch([classesFolderPath, templateFilePath]).on("all", (event, path) =>
 });
 console.log(`Watching: "${classesFolderPath}", "${templateFilePath}"`);
 
-interface FieldInfo {
+class TableInfo {
+	name: string;
+	earlyInitFuncCode: string;
+	fields = [] as FieldInfo[];
+}
+class FieldInfo {
 	name: string;
 	initFuncCode: string;
 }
@@ -48,15 +53,53 @@ BuildDBShapeFile();
 async function BuildDBShapeFile() {
 	const mglClassFiles = await glob("**/@*.ts", {cwd: classesFolderPath, absolute: true});
 
-	const tableFieldInfos = new Map<string, FieldInfo[]>();
+	const tableInfos = new Map<string, TableInfo>();
 	for (const filePath of mglClassFiles) {
 		const code = fs.readFileSync(filePath).toString();
 		const code_noComments = strip(code) as string;
 
 		const tableNameMatches = code_noComments.Matches(/table: "(.+?)"/);
+		const tablePreInitFuncMatches = code_noComments.Matches(/\st=>/);
 		const fieldDecoratorMatches = code_noComments.Matches(/@DB\(/);
 		const fieldNameMatches = code_noComments.Matches(/\t+(\w+)\??(: | = )/); // eg. "	id: string;"
-		console.log(`In file "${paths.basename(filePath)}", found matches: tableNames(${tableNameMatches.length}), fieldDecorators:${fieldDecoratorMatches.length}, fieldNames:${fieldNameMatches.length}`);
+		console.log(`In file "${paths.basename(filePath)}", found matches:${""
+			} tableNames(${tableNameMatches.length}),${""
+			} tablePreInitFuncs(${tablePreInitFuncMatches.length}),${""
+			} fieldDecorators(${fieldDecoratorMatches.length}), ${""
+			} fieldNames(${fieldNameMatches.length})`);
+
+		for (const match of tableNameMatches) {
+			const tableName = match[1];
+			if (tableInfos.has(tableName)) throw new Error(`Found multiple classes claiming to be the source for the "${tableName}" table.`);
+			tableInfos.set(tableName, {
+				name: tableName,
+				fields: [],
+			} as TableInfo);
+		}
+
+		for (const match of tablePreInitFuncMatches) {
+			// find first "@MGLClass({table: "XXX"})" line prior to table's pre-init-func, and extract table-name from it
+			const tableName = tableNameMatches.find(a=>a.index < match.index)?.[1];
+			const tableInfo = tableInfos.get(tableName);
+
+			let earlyInitFuncCode: string;
+			let bracketDepth = 0;
+			let startBracketIndex: number;
+			for (let i = match.index; i < code_noComments.length; i++) {
+				if (code_noComments[i] == "{") {
+					bracketDepth++;
+					startBracketIndex = startBracketIndex ?? i;
+				} else if (code_noComments[i] == "}") {
+					bracketDepth--;
+				}
+				// if we found start bracket, and now we"re back to depth 0, we"ve reached the end of the decorator code
+				if (startBracketIndex != null && bracketDepth == 0) {
+					earlyInitFuncCode = code_noComments.slice(startBracketIndex + 1, i);
+					break;
+				}
+			}
+			tableInfo.earlyInitFuncCode = earlyInitFuncCode;
+		}
 
 		for (const match of fieldDecoratorMatches) {
 			let decoratorCode: string;
@@ -85,26 +128,27 @@ async function BuildDBShapeFile() {
 			const fieldName = fieldNameMatches.find(a=>a.index > match.index)?.[1];
 			if (fieldName == null) throw new Error(`Could not find field-name line in "${paths.basename(filePath)}", after @DB decorator line: ${decoratorCode}`);
 
-			if (!tableFieldInfos.has(tableName)) tableFieldInfos.set(tableName, []);
-			tableFieldInfos.get(tableName).push({name: fieldName, initFuncCode: decoratorFuncCode});
+			//if (!tableFieldInfos.has(tableName)) tableFieldInfos.set(tableName, []);
+			tableInfos.get(tableName).fields.push({name: fieldName, initFuncCode: decoratorFuncCode});
 		}
 	}
 
 	const dynamicCodeOutputLines = [];
-		for (const tableName of tableFieldInfos.keys()) {
-			dynamicCodeOutputLines.push(`
-await knex.schema.createTable(\`\${v}${tableName}\`, t=>{
-${tableFieldInfos.get(tableName).map(field=>{
+	for (const tableInfo of tableInfos.values()) {
+		dynamicCodeOutputLines.push(`
+await knex.schema.createTable(\`\${v}${tableInfo.name}\`, t=>{${""
+}${tableInfo.earlyInitFuncCode ? "\n" + tableInfo.earlyInitFuncCode.AsMultiline(1) : ""}
+${tableInfo.fields.map(field=>{
 	//const initFuncCode_final = field.initFuncCode.replace(/([^$])\{v\}/g, (str, p1)=>(p1 + "${v}"));
 	const initFuncCode_final = field.initFuncCode.replace(/inTable\(/g, "inTable(v + ");
 	return `\tRunFieldInit(t, "${field.name}", ${initFuncCode_final});`;
 }).join("\n")}
 });
-			`.AsMultiline(1));
-		}
-		const dynamicCodeOutput = dynamicCodeOutputLines.join("\n\n");
+		`.AsMultiline(1));
+	}
+	const dynamicCodeOutput = dynamicCodeOutputLines.join("\n\n");
 
-		const templateCode = fs.readFileSync(templateFilePath).toString();
-		const finalDBInitScript = templateCode.replace(/\t+\/\/ PLACEHOLDER_FOR_DYNAMIC_CODE/, dynamicCodeOutput);
-		fs.writeFileSync(outFilePath, finalDBInitScript);
+	const templateCode = fs.readFileSync(templateFilePath).toString();
+	const finalDBInitScript = templateCode.replace(/\t+\/\/ PLACEHOLDER_FOR_DYNAMIC_CODE/, dynamicCodeOutput);
+	fs.writeFileSync(outFilePath, finalDBInitScript);
 }
