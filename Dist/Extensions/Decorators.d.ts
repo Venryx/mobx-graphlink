@@ -9,11 +9,4 @@ export declare type Field_Extras = {
     req?: boolean;
 };
 export declare function Field(schemaOrGetter: Object | (() => Object), extras?: Field_Extras): (target: any, propertyKey: string) => void;
-declare module "knex" {
-    namespace Knex {
-        interface ColumnBuilder {
-            DeferRef: (this: Knex.ColumnBuilder) => Knex.ColumnBuilder;
-        }
-    }
-}
 export declare function DB(initFunc: (t: Knex.TableBuilder, n: string) => any): (target: any, propertyKey: string) => void;

@@ -52,6 +52,16 @@ export function Field(schemaOrGetter, extras) {
         }
     };
 }
+/*interface Object {
+    DeferRef: (this: Knex.ColumnBuilder)=>Knex.ColumnBuilder;
+}*/
+/*declare module "knex" {
+    namespace Knex {
+        interface ColumnBuilder {
+            DeferRef: (this: Knex.ColumnBuilder)=>Knex.ColumnBuilder;
+        }
+    }
+}*/
 export function DB(initFunc) {
     //return function(target: Function, propertyKey: string, descriptor: PropertyDescriptor) {
     return function (target, propertyKey) {
