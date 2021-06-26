@@ -59,13 +59,14 @@ export function Field(schemaOrGetter: Object | (()=>Object), extras?: Field_Extr
 /*interface Object {
 	DeferRef: (this: Knex.ColumnBuilder)=>Knex.ColumnBuilder;
 }*/
-/*declare module "knex" {
+// this is needed so DeferRef() can be called in the "@DB(...)" decorators, in user-project code, without TS complaining
+declare module "knex" {
 	namespace Knex {
 		interface ColumnBuilder {
 			DeferRef: (this: Knex.ColumnBuilder)=>Knex.ColumnBuilder; 
 		}
 	}
-}*/
+}
 export function DB(initFunc: (t: Knex.TableBuilder, n: string)=>any) {
 	//return function(target: Function, propertyKey: string, descriptor: PropertyDescriptor) {
 	return function(target: any, propertyKey: string) {
