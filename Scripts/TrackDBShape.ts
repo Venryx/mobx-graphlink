@@ -135,6 +135,9 @@ async function BuildDBShapeFile() {
 
 	const dynamicCodeOutputLines = [];
 	for (const tableInfo of tableInfos.values()) {
+		// if table has no fields defined, don't create it (else postgraphile errors)
+		if (tableInfo.fields.length == 0) continue;
+		
 		dynamicCodeOutputLines.push(`
 await knex.schema.createTable(\`\${v}${tableInfo.name}\`, t=>{${""
 }${tableInfo.earlyInitFuncCode ? "\n" + tableInfo.earlyInitFuncCode.AsMultiline(1) : ""}
