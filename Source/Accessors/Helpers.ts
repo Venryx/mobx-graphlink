@@ -3,6 +3,7 @@ import {reaction} from "mobx";
 import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
 import {DataStatus, TreeNode} from "../Tree/TreeNode.js";
 import {TreeRequestWatcher} from "../Tree/TreeRequestWatcher.js";
+import {MobXPathGetterToPath} from "../Utils/PathHelpers.js";
 
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 // (one of the rare cases where opt is not the first argument; that's because GetWait may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
@@ -161,19 +162,43 @@ export function AssertV(condition, messageOrMessageFunc?: string | Function): co
 	return true;
 }
 
-export const AV = ((propName: string)=> {
-	return new AVWrapper(propName);
-}) as ((propName: string)=>AVWrapper) & {
+/*export function AV(propNameOrGetter: string | ((..._)=>any)) {
+	return new AVWrapper(propNameOrGetter);
+} /*as ((propNameOrGetter: string | ((..._)=>any))=>AVWrapper) & {
 	NonNull_<T>(value: T): T,
 	NonNull: any,
-};
+};*#/
+// this doesn't work; type isn't known to left of our entry
+/*export function AV<T>(propNameOrGetter: string | ((..._)=>T)) {
+	return new AVWrapper<T>(propNameOrGetter);
+}*#/
 Object.defineProperty(AV, "NonNull_", {value: (value)=>AVWrapper.generic.NonNull_(value)});
-Object.defineProperty(AV, "NonNull", {set: (value)=>AVWrapper.generic.NonNull = value});
+Object.defineProperty(AV, "NonNull", {set: (value)=>AVWrapper.generic.NonNull = value});*/
 
+declare global {
+	interface Function {
+		/** Helper object for making in-line assertions. */
+		get AV(): AVWrapper;
+	}
+}
+Object.defineProperty(Function.prototype, "AV", {
+	value: function(this: Function) {
+		//this.propName = propNameOrGetter instanceof Function ? MobXPathGetterToPath(propNameOrGetter) : propNameOrGetter;
+		return new AVWrapper(this as ((..._)=>any));
+	},
+})
+
+/** Helper class for making in-line assertions. */
 class AVWrapper {
 	static generic = new AVWrapper("");
 
-	constructor(public propName: string) {}
+	constructor(propNameOrGetter: string | ((..._)=>any)) {
+		//this.propName = propNameOrGetter instanceof Function ? MobXPathGetterToPath(propNameOrGetter) : propNameOrGetter;
+		this.propName = propNameOrGetter instanceof Function ? propNameOrGetter.toString().match(/=>.+?([a-zA-Z_]+)/)![1] : propNameOrGetter;
+	}
+
+	private propName: string;
+
 	NonNull_<T>(value: T) {
 		AssertV(value != null, ()=>`Value${this.propName ? ` of prop "${this.propName}"` : ""} cannot be null. (provided value: ${value})`);
 		return value;
@@ -182,5 +207,7 @@ class AVWrapper {
 		this.NonNull_(value);
 	}
 }
+/** Helper object for making in-line assertions. */
+export const AV = AVWrapper.generic;
 
 export let storeAccessorCachingTempDisabled = false;

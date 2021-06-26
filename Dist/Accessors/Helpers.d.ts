@@ -15,16 +15,21 @@ export declare function GetAsync<T>(dataGetterFunc: () => T, options?: Partial<G
 export declare let AssertV_triggerDebugger: boolean;
 /** Variant of Assert, which does not trigger the debugger. (to be used in mobx-graphlink Command.Validate functions, since it's okay/expected for those to fail asserts) */
 export declare function AssertV(condition: any, messageOrMessageFunc?: string | Function): condition is true;
-export declare const AV: ((propName: string) => AVWrapper) & {
-    NonNull_<T>(value: T): T;
-    NonNull: any;
-};
+declare global {
+    interface Function {
+        /** Helper object for making in-line assertions. */
+        get AV(): AVWrapper;
+    }
+}
+/** Helper class for making in-line assertions. */
 declare class AVWrapper {
-    propName: string;
     static generic: AVWrapper;
-    constructor(propName: string);
+    constructor(propNameOrGetter: string | ((..._: any[]) => any));
+    private propName;
     NonNull_<T>(value: T): T;
     set NonNull(value: any);
 }
+/** Helper object for making in-line assertions. */
+export declare const AV: AVWrapper;
 export declare let storeAccessorCachingTempDisabled: boolean;
 export {};

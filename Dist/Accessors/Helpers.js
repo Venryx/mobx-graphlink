@@ -158,14 +158,17 @@ export function AssertV(condition, messageOrMessageFunc) {
     Assert(condition, messageOrMessageFunc, AssertV_triggerDebugger);
     return true;
 }
-export const AV = ((propName) => {
-    return new AVWrapper(propName);
+Object.defineProperty(Function.prototype, "AV", {
+    value: function () {
+        //this.propName = propNameOrGetter instanceof Function ? MobXPathGetterToPath(propNameOrGetter) : propNameOrGetter;
+        return new AVWrapper(this);
+    },
 });
-Object.defineProperty(AV, "NonNull_", { value: (value) => AVWrapper.generic.NonNull_(value) });
-Object.defineProperty(AV, "NonNull", { set: (value) => AVWrapper.generic.NonNull = value });
+/** Helper class for making in-line assertions. */
 class AVWrapper {
-    constructor(propName) {
-        this.propName = propName;
+    constructor(propNameOrGetter) {
+        //this.propName = propNameOrGetter instanceof Function ? MobXPathGetterToPath(propNameOrGetter) : propNameOrGetter;
+        this.propName = propNameOrGetter instanceof Function ? propNameOrGetter.toString().match(/=>.+?([a-zA-Z_]+)/)[1] : propNameOrGetter;
     }
     NonNull_(value) {
         AssertV(value != null, () => `Value${this.propName ? ` of prop "${this.propName}"` : ""} cannot be null. (provided value: ${value})`);
@@ -176,4 +179,6 @@ class AVWrapper {
     }
 }
 AVWrapper.generic = new AVWrapper("");
+/** Helper object for making in-line assertions. */
+export const AV = AVWrapper.generic;
 export let storeAccessorCachingTempDisabled = false;
