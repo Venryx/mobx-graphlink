@@ -5,6 +5,7 @@ import { DataStatus } from "../Tree/TreeNode.js";
 import { DoX_ComputationSafe } from "../Utils/MobX.js";
 import { nil } from "../Utils/Nil.js";
 import { PathOrPathGetterToPathSegments } from "../Utils/PathHelpers.js";
+import { NotifyWaitingForDB } from "./Helpers.js";
 /*
 Why use explicit GetDocs, GetDoc, etc. calls instead of just Proxy's in mobx store fields?
 1) It lets you add options (like filters) in a consistent way. (consistent among sync db-accesses, and, old: consistent with async db-accesses, eg. GetDocAsync)
@@ -41,8 +42,10 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
         //opt.graph.tree.Get(pathSegments.slice(0, -1))?.collectionNodes.entries();
         //opt.graph.tree.collectionNodes.entries();
     }
-    if ((treeNode === null || treeNode === void 0 ? void 0 : treeNode.status) != DataStatus.Received_Full)
+    if ((treeNode === null || treeNode === void 0 ? void 0 : treeNode.status) != DataStatus.Received_Full) {
+        NotifyWaitingForDB(pathSegments.join("/"));
         return opt.resultForLoading;
+    }
     /*let docNodes = Array.from(treeNode.docNodes.values());
     let docDatas = docNodes.map(docNode=>docNode.data);
     return docDatas;*/
@@ -82,8 +85,10 @@ export function GetDoc(options, docPathOrGetterFunc) {
         }));
     }
     //if (opt.undefinedForLoading && treeNode?.status != DataStatus.Received_Full) return undefined;
-    if ((treeNode === null || treeNode === void 0 ? void 0 : treeNode.status) != DataStatus.Received_Full)
+    if ((treeNode === null || treeNode === void 0 ? void 0 : treeNode.status) != DataStatus.Received_Full) {
+        NotifyWaitingForDB(pathSegments.join("/"));
         return opt.resultForLoading;
+    }
     return treeNode === null || treeNode === void 0 ? void 0 : treeNode.data;
 }
 /*export async function GetDoc_Async<DocT>(opt: FireOptions & GetDoc_Options, docPathOrGetterFunc: string | string[] | ((dbRoot: DBShape)=>DocT)): Promise<DocT> {

@@ -14,7 +14,10 @@ import { DataStatus } from "../Tree/TreeNode.js";
 import { TreeRequestWatcher } from "../Tree/TreeRequestWatcher.js";
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 // (one of the rare cases where opt is not the first argument; that's because GetWait may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
-export function GetWait(dataGetterFunc, options) {
+export function GetWait(dataGetterFunc, options, funcName) {
+    // Alt approach 1) Use checks like "=== null", "=== undefined", and "=== emptyArray_forLoading" [con: hard to ensure these magic values are propogated through every level properly]
+    // Alt approach 2) Find main tree-node, and just checks its single node.status value [con: doesn't work for freeform/multi-tree-node store-accessors]
+    // Alt approach 3) For places where you'd need this func, just call "GetAsync(()=>...)" instead; it will keep re-calling the store-accessor until all accessors within it "fully resolve" [choice atm]
     const opt = E(defaultGraphOptions, options);
     let watcher = new TreeRequestWatcher(opt.graph);
     // prep for getter-func
@@ -31,17 +34,26 @@ export function GetWait(dataGetterFunc, options) {
     let requestsBeingWaitedFor = nodesRequested_array.filter(node => node.status != DataStatus.Received_Full);
     let done = requestsBeingWaitedFor.length == 0;
     if (!done) {
-        throw new Error("Store-accessor not yet resolved. (ie. one of its db-requests is still loading)");
+        throw new Error(`Store-accessor "${funcName !== null && funcName !== void 0 ? funcName : "n/a"}" not yet resolved. (it still has ${requestsBeingWaitedFor.length} requests being waited for)`);
     }
     return result;
 }
 export class GetAsync_Options {
     constructor() {
-        this.maxIterations = 50; // pretty arbitrary; just meant to alert us for infinite-loop-like calls/getter-funcs
+        /** Just meant to alert us for infinite-loop-like calls/getter-funcs. Default: 50 [pretty arbitrary] */
+        this.maxIterations = 50; // todo: maybe replace this with system that tracks the list of paths accessed, and which halts if it "senses no progression" [eg. max-iterations-without-change-to-access-paths]
         this.errorHandling = "none";
+        /** If true, db requests within dataGetterFunc that find themselves waiting for remote db-data, with throw an error immediately. (avoiding higher-level processing) */
+        this.throwImmediatelyOnDBWait = true;
     }
 }
 GetAsync_Options.default = new GetAsync_Options();
+export let GetAsync_throwImmediatelyOnDBWait_activeDepth = 0;
+export function NotifyWaitingForDB(dbPath) {
+    if (GetAsync_throwImmediatelyOnDBWait_activeDepth > 0) {
+        throw new Error(`DB tree-node for "${dbPath}" is waiting for database data that isn't ready yet. Throwing error now (to avoid higher-level processing) until data is ready.`);
+    }
+}
 // async helper
 // (one of the rare cases where opt is not the first argument; that's because GetAsync may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
 export function GetAsync(dataGetterFunc, options) {
@@ -77,6 +89,7 @@ export function GetAsync(dataGetterFunc, options) {
                 iterationIndex++;
                 // prep for getter-func
                 watcher.Start();
+                GetAsync_throwImmediatelyOnDBWait_activeDepth++;
                 // flip some flag here to say, "don't use cached data -- re-request!"
                 storeAccessorCachingTempDisabled = true;
                 let result;
@@ -99,6 +112,7 @@ export function GetAsync(dataGetterFunc, options) {
                 }
                 // cleanup for getter-func
                 storeAccessorCachingTempDisabled = false;
+                GetAsync_throwImmediatelyOnDBWait_activeDepth--;
                 watcher.Stop();
                 let nodesRequested_array = Array.from(watcher.nodesRequested);
                 //let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status == DataStatus.Waiting);
