@@ -24,3 +24,4 @@ export * from "./Utils/DBUpdateMerging.js";
 export * from "./Utils/General.js";
 export * from "./Utils/PathHelpers.js";
 export * from "./Utils/StringSplitCache.js";
+export * from "./Utils/TypeHelpers.js";

@@ -1,0 +1,1 @@
+export type NoID<T> = Omit<T, "id"> & {id?: string};

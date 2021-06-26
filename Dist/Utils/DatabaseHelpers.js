@@ -86,11 +86,22 @@ export function FinalizeDBUpdates(options, dbUpdates, rootPath_override) {
     }*/
     return dbUpdates;
 }
+export function ConfirmDBUpdatesAreValid(dbUpdates) {
+    // confirm that all db-updates' paths were constructed correctly (using dbp), then remove the marker/prefix (before actual application)
+    const dbUpdates_pairs = ObjectCE(dbUpdates).Pairs();
+    for (const pair of dbUpdates_pairs) {
+        Assert(pair.key.startsWith(dbpPrefix), `A db-path was apparently not constructed using the dbp template-literal function: ${pair.key}`);
+        delete dbUpdates[pair.key];
+        dbUpdates[pair.key.slice(dbpPrefix.length)] = pair.value;
+        /*pair.key = pair.key.slice(dbpPrefix.length);
+        dbUpdates[pair.key] = pair.value;*/
+    }
+}
 export function ApplyDBUpdates(options, dbUpdates, rootPath_override) {
     return __awaiter(this, void 0, void 0, function* () {
         const opt = E(defaultGraphOptions, ApplyDBUpdates_Options.default, options);
         dbUpdates = FinalizeDBUpdates(options, dbUpdates, rootPath_override);
-        // await firestoreDB.runTransaction(async batch=> {
+        ConfirmDBUpdatesAreValid(dbUpdates);
         const dbUpdates_pairs = ObjectCE(dbUpdates).Pairs();
         MaybeLog_Base(a => a.commands, l => l(`Applying db-updates...`));
         //await ApplyDBUpdates_Base(opt, dbUpdates_chunk, rootPath_override);
@@ -98,6 +109,7 @@ export function ApplyDBUpdates(options, dbUpdates, rootPath_override) {
     });
 }
 export function ApplyDBUpdates_Local(dbData, dbUpdates) {
+    ConfirmDBUpdatesAreValid(dbUpdates);
     let result = dbData;
     for (const { key: path, value } of CE(Clone(dbUpdates)).Pairs()) {
         if (value != null) {
@@ -116,5 +128,21 @@ export function ApplyDBUpdates_Local(dbData, dbUpdates) {
             delete node.obj[node.prop];
         }
     } while (emptyNodes.length);
+    return result;
+}
+export const dbpPrefix = "[@dbp:]";
+/** When creating db-path strings, always create it using this function to construct the template-literal.
+ * It protects from typos like: dbp(\`...\`) (do this instead: dbp\`...\`) */
+export function dbp(strings, ...vars) {
+    Assert(`The "dbp" template-literal function requires at least one variable, to protect from typos like: dbp(\`...\`) (do this instead: dbp\`...\`)`);
+    for (const expression of vars) {
+        Assert(typeof expression == "string", "DB-path-segment variables must be strings.");
+        Assert(/^([A-Za-z0-9_-]+)$/.test(expression), `DB-path-segment variables must only contain alphanumeric, "_", or "-" characters.`);
+    }
+    // now just default template literal functionality
+    let result = dbpPrefix;
+    strings.forEach((str, i) => {
+        result += `${str}${i == strings.length - 1 ? "" : vars[i]}`;
+    });
     return result;
 }
