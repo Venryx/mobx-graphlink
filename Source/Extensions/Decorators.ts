@@ -13,30 +13,36 @@ export function MGLClass(
 	schemaExtrasOrGetter?: Object | (()=>Object),
 	initFunc_pre?: (t: Knex.TableBuilder)=>any,
 ) {
-	return (async(constructor: Function)=>{
+	return (constructor: Function)=>{
 		const typeName = opts?.name ?? constructor.name;
 		const schemaDeps = opts?.schemaDeps;
-		
-		if (schemaDeps! != null) await Promise.all(schemaDeps.map(schemaName=>WaitTillSchemaAdded(schemaName)));
-
-		let schema = schemaExtrasOrGetter instanceof Function ? schemaExtrasOrGetter() : (schemaExtrasOrGetter ?? {} as any);
-		schema.properties = schema.properties ?? {};
-		for (const [key, fieldSchema] of Object.entries(constructor["_fields"] ?? [])) {
-			schema.properties[key] = fieldSchema;
-			const extras = constructor["_fieldExtras"]?.[key];
-			if (extras?.required) {
-				schema.required = schema.required ?? [];
-				schema.required.push(key);
-			}
-		}
 
 		if (opts?.table) {
 			collection_docSchemaName.set(opts.table, typeName);
 			constructor["_table"] = opts.table;
 			if (initFunc_pre) constructor["_initFunc_pre"] = initFunc_pre;
 		}
-		AddSchema(typeName, schemaDeps, schema);
-	}) as any;
+
+		// schema-adding logic (do at end, so rest can complete synchronously)
+		// ==========
+		
+		(async()=>{
+			if (schemaDeps! != null) await Promise.all(schemaDeps.map(schemaName=>WaitTillSchemaAdded(schemaName)));
+
+			let schema = schemaExtrasOrGetter instanceof Function ? schemaExtrasOrGetter() : (schemaExtrasOrGetter ?? {} as any);
+			schema.properties = schema.properties ?? {};
+			for (const [key, fieldSchemaOrGetter] of Object.entries(constructor["_fields"] ?? [])) {
+				schema.properties[key] = fieldSchemaOrGetter instanceof Function ? fieldSchemaOrGetter() : fieldSchemaOrGetter;
+				const extras = constructor["_fieldExtras"]?.[key];
+				if (extras?.required) {
+					schema.required = schema.required ?? [];
+					schema.required.push(key);
+				}
+			}
+	
+			AddSchema(typeName, schemaDeps, schema);
+		})();
+	};
 }
 
 export type Field_Extras = {
@@ -46,12 +52,13 @@ export type Field_Extras = {
 export function Field(schemaOrGetter: Object | (()=>Object), extras?: Field_Extras) {
 	//return function(target: Function, propertyKey: string, descriptor: PropertyDescriptor) {
 	return function(target: any, propertyKey: string) {
-		target["_fields"] = target["_fields"] ?? {};
-		target["_fields"][propertyKey] = schemaOrGetter;
+		const constructor = target.constructor;
+		constructor["_fields"] = constructor["_fields"] ?? {};
+		constructor["_fields"][propertyKey] = schemaOrGetter;
 
 		if (extras) {
-			target["_fieldExtras"] = target["_fields"] ?? {};
-			target["_fieldExtras"][propertyKey] = extras;
+			constructor["_fieldExtras"] = constructor["_fields"] ?? {};
+			constructor["_fieldExtras"][propertyKey] = extras;
 		}
 	};
 }
@@ -70,7 +77,8 @@ declare module "knex" {
 export function DB(initFunc: (t: Knex.TableBuilder, n: string)=>any) {
 	//return function(target: Function, propertyKey: string, descriptor: PropertyDescriptor) {
 	return function(target: any, propertyKey: string) {
-		target["_fieldDBInits"] = target["_fieldDBInits"] ?? {};
-		target["_fieldDBInits"][propertyKey] = initFunc;
+		const constructor = target.constructor;
+		constructor["_fieldDBInits"] = constructor["_fieldDBInits"] ?? {};
+		constructor["_fieldDBInits"][propertyKey] = initFunc;
 	};
 }

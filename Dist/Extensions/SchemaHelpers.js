@@ -41,8 +41,13 @@ export function AddSchema(...args) {
             [name, schemaOrGetter] = args;
         else
             [name, schemaDeps, schemaOrGetter] = args;
-        if (schemaDeps != null)
-            yield Promise.all(schemaDeps.map(schemaName => WaitTillSchemaAdded(schemaName)));
+        if (schemaDeps != null) {
+            const schemaDep_waitPromises = schemaDeps.map(schemaName => WaitTillSchemaAdded(schemaName));
+            // only await promises if there actually are schema-deps that need waiting for (avoid promises if possible, so AddSchema has chance to synchronously complete)
+            if (schemaDep_waitPromises.find(a => a != null)) {
+                yield Promise.all(schemaDep_waitPromises);
+            }
+        }
         let schema = schemaOrGetter instanceof Function ? schemaOrGetter() : schemaOrGetter;
         schema = Schema(schema);
         schemaEntryJSONs[name] = schema;
@@ -74,6 +79,9 @@ export function WrapData<T>(data: T) {
 }*/
 var schemaAddListeners = {};
 export function WaitTillSchemaAdded(schemaName) {
+    // if schema is already added, return right away (avoid promises if possible, so AddSchema has chance to synchronously complete)
+    if (schemaEntryJSONs[schemaName] != null)
+        return null;
     return new Promise((resolve, reject) => {
         // if schema is already added, run right away (avoid ajv.getSchema, since it errors on not-yet-resolvable refs)
         //if (ajv.getSchema(schemaName)) {

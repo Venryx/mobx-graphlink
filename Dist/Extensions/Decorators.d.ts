@@ -3,7 +3,7 @@ export declare function MGLClass(opts?: {
     name?: string;
     table?: string;
     schemaDeps?: string[];
-}, schemaExtrasOrGetter?: Object | (() => Object), initFunc_pre?: (t: Knex.TableBuilder) => any): any;
+}, schemaExtrasOrGetter?: Object | (() => Object), initFunc_pre?: (t: Knex.TableBuilder) => any): (constructor: Function) => void;
 export declare type Field_Extras = {
     /** If true, field will be added to the list of required properties. */
     req?: boolean;

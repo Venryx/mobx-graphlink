@@ -90,19 +90,23 @@ export class QueryParams_Linked extends QueryParams {
             argsAsStr = `(${argsAsStr_json.slice(1, -1)})`; // remove "{}", then wrap with "()"
         }
         if (this.treeNode.type == TreeNodeType.Document) {
+            const pairs = CE(docSchema.properties).Pairs();
+            Assert(pairs.length > 0, `Cannot create GraphQL type for "${this.DocShemaName}" without at least 1 property.`);
             return `
 				subscription DocInCollection_${this.CollectionName}${varsDefineAsStr} {
 					${this.DocShemaName.toLowerCase()}${argsAsStr} {
-						${CE(docSchema.properties).Pairs().map(a => a.key).join(" ")}
+						${pairs.map(a => a.key).join(" ")}
 					}
 				}
 			`;
         }
         else {
+            const pairs = CE(docSchema.properties).Pairs();
+            Assert(pairs.length > 0, `Cannot create GraphQL type for "${this.CollectionName}" without at least 1 property.`);
             return `
 				subscription Collection_${this.CollectionName}${varsDefineAsStr} {
 					${this.CollectionName}${argsAsStr} {
-						nodes { ${CE(docSchema.properties).Pairs().map(a => a.key).join(" ")} }
+						nodes { ${pairs.map(a => a.key).join(" ")} }
 					}
 				}
 			`;

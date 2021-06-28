@@ -7,7 +7,7 @@ export declare const schemaEntryJSONs: {};
 export declare function AddSchema(name: string, schemaOrGetter: Object | (() => Object)): any;
 export declare function AddSchema(name: string, schemaDeps: string[] | undefined, schemaGetter: () => Object): any;
 export declare function GetSchemaJSON(name: string): any;
-export declare function WaitTillSchemaAdded(schemaName: string): Promise<void>;
+export declare function WaitTillSchemaAdded(schemaName: string): Promise<void> | null;
 declare type AJV_Extended = AJV.Ajv & {
     FullErrorsText(): string;
 };
