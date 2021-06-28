@@ -1,4 +1,5 @@
 import { StringCE, E } from "js-vextensions";
+import { g } from "./@PrivateExports.js";
 export function Assert(condition, messageOrMessageFunc) {
     if (condition)
         return true;
@@ -49,7 +50,7 @@ export class LogTypes_Base {
     }
 }
 export function ShouldLog_Base(shouldLogFunc) {
-    return shouldLogFunc(window["logTypes"] || {});
+    return shouldLogFunc(g["logTypes"] || {});
 }
 export function MaybeLog_Base(shouldLogFunc, loggerFunc) {
     if (!ShouldLog_Base(shouldLogFunc))

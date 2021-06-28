@@ -61,7 +61,7 @@ async function BuildDBShapeFile() {
 		const tableNameMatches = code_noComments.Matches(/table: "(.+?)"/);
 		const tablePreInitFuncMatches = code_noComments.Matches(/\st=>/);
 		const fieldDecoratorMatches = code_noComments.Matches(/@DB\(/);
-		const fieldNameMatches = code_noComments.Matches(/\t+(\w+)\??(: | = )/); // eg. "	id: string;"
+		const fieldNameMatches = code_noComments.Matches(/^\t(\w+)\??(: | = )/m); // eg. "	id: string;"
 		console.log(`In file "${paths.basename(filePath)}", found matches:${""
 			} tableNames(${tableNameMatches.length}),${""
 			} tablePreInitFuncs(${tablePreInitFuncMatches.length}),${""

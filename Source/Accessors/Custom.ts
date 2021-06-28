@@ -3,6 +3,7 @@ import {CE, ObjectCE, E, Assert} from "js-vextensions";
 import {GraphOptions, defaultGraphOptions} from "../Graphlink.js";
 import {RootStoreShape} from "../UserTypes.js";
 import {storeAccessorCachingTempDisabled, GetWait} from "./Helpers.js";
+import {g} from "../Utils/@PrivateExports.js";
 
 // for profiling
 class StoreAccessorProfileData {
@@ -90,7 +91,7 @@ export const StoreAccessor: StoreAccessorFunc = (...args)=> {
 	name = name! ?? "[name missing]";
 
 	//let addProfiling = manager.devEnv; // manager isn't populated yet
-	const addProfiling = window["DEV"];
+	const addProfiling = g["DEV"];
 	//const needsWrapper = addProfiling || options.cache;
 
 	let accessor_forMainStore: (...callArgs)=>any;

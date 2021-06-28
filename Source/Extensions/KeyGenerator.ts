@@ -12,6 +12,13 @@ AddSchema("UUID", {type: "string", pattern: UUID_regex});
 const unpleasant2Chars = ["fu", "pp"];
 //let unpleasant4Chars = [];
 
+
+export const generatedUUIDHistory = [] as string[];
+/** Helper, eg. for if creating a db-seed file, and you need to reference the ID of the previous entry within an array literal. */
+export function LastUUID(indexAdjustment = 0) {
+	return generatedUUIDHistory[(generatedUUIDHistory.length - 1) + indexAdjustment];
+}
+
 export function GenerateUUID(avoidUnpleasantStartChars = true): string {
 	// return uuidV4(options);
 	let result: string = slugid.v4();
@@ -20,5 +27,6 @@ export function GenerateUUID(avoidUnpleasantStartChars = true): string {
 			result = slugid.v4();
 		}
 	}
+	generatedUUIDHistory.push(result);
 	return result;
 }

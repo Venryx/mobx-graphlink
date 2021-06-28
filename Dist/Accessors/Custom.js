@@ -2,6 +2,7 @@ import { computedFn } from "mobx-utils";
 import { CE, E, Assert } from "js-vextensions";
 import { defaultGraphOptions } from "../Graphlink.js";
 import { storeAccessorCachingTempDisabled, GetWait } from "./Helpers.js";
+import { g } from "../Utils/@PrivateExports.js";
 // for profiling
 class StoreAccessorProfileData {
     constructor(name) {
@@ -73,7 +74,7 @@ export const StoreAccessor = (...args) => {
         [name, options, accessorGetter] = args;
     name = (_a = name) !== null && _a !== void 0 ? _a : "[name missing]";
     //let addProfiling = manager.devEnv; // manager isn't populated yet
-    const addProfiling = window["DEV"];
+    const addProfiling = g["DEV"];
     //const needsWrapper = addProfiling || options.cache;
     let accessor_forMainStore;
     let accessor_forMainStore_cacherProxy;

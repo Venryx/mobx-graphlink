@@ -60,7 +60,8 @@ export function InitGraphlink() {
 	graph.Initialize({rootStore: store});
 }
 ```
-5) Follow the instructions [here](https://github.com/apollographql/apollo-client/issues/7734#issuecomment-782587795) to fix a typing issue in `ts-invariant`.
+5) Temp: Follow the instructions [here](https://github.com/apollographql/apollo-client/issues/7734#issuecomment-782587795) to fix a typing issue in `ts-invariant`.
+6) Temp: If loading lib as ESM, open all the `package.json` files under `node_modules/@apollo/client`, adding the line `"type": "module"` (temp fix for [this issue](https://github.com/apollographql/apollo-client/pull/8396)). There are many `package.json` files, so it's recommended to use a search-and-replace tool (like `grep` or [grepWin](https://tools.stefankueng.com/grepWin.html)), replacing `"module":` with `"type": "module", "module":`.
 
 ### Usage
 

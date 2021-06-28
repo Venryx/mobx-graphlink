@@ -8,6 +8,11 @@ AddSchema("UUID", { type: "string", pattern: UUID_regex });
 // we display the first 2 chars of UUIDs in various places, so try to avoid unpleasant character-combos for it
 const unpleasant2Chars = ["fu", "pp"];
 //let unpleasant4Chars = [];
+export const generatedUUIDHistory = [];
+/** Helper, eg. for if creating a db-seed file, and you need to reference the ID of the previous entry within an array literal. */
+export function LastUUID(indexAdjustment = 0) {
+    return generatedUUIDHistory[(generatedUUIDHistory.length - 1) + indexAdjustment];
+}
 export function GenerateUUID(avoidUnpleasantStartChars = true) {
     // return uuidV4(options);
     let result = slugid.v4();
@@ -16,5 +21,6 @@ export function GenerateUUID(avoidUnpleasantStartChars = true) {
             result = slugid.v4();
         }
     }
+    generatedUUIDHistory.push(result);
     return result;
 }

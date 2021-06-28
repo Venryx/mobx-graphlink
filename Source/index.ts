@@ -1,5 +1,7 @@
+import {g} from "./Utils/@PrivateExports.js";
+
 // warn about multiple lib instances
-let vLibCounts = (window["vLibCounts"] = window["vLibCounts"] || {});
+let vLibCounts = (g["vLibCounts"] = g["vLibCounts"] || {});
 vLibCounts["mobx-graphlink"] = (vLibCounts["mobx-graphlink"] || 0) + 1;
 if (vLibCounts["mobx-graphlink"] >= 2) {
 	console.warn("More than one instance of mobx-graphlink loaded. This can cause issues, eg. with WrapDBValue.");
