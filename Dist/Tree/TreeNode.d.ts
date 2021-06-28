@@ -43,7 +43,7 @@ export declare class QueryParams_Linked extends QueryParams {
     } & Partial<QueryParams_Linked>);
     treeNode: TreeNode<any>;
     get CollectionName(): string;
-    get DocShemaName(): string;
+    get DocSchemaName(): string;
     readonly queryStr: string;
     readonly graphQLQuery: DocumentNode;
     ToQueryStr(): string;

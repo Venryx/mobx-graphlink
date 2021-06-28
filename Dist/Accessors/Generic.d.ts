@@ -6,7 +6,7 @@ export declare class GetDocs_Options {
     static default: GetDocs_Options;
     inLinkRoot?: boolean | undefined;
     params?: QueryParams;
-    resultForLoading?: never[] | undefined;
+    resultForLoading?: any[] | undefined;
 }
 export declare function GetDocs<DB = DBShape, DocT = any>(options: Partial<GraphOptions<any, DB>> & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DB) => ObservableMap<any, DocT>)): DocT[] | undefined;
 export declare class GetDoc_Options {

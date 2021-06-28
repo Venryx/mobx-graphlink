@@ -1,6 +1,6 @@
 import {DocumentNode, FetchResult, gql} from "@apollo/client/core/index.js";
 import {Observable} from "@apollo/client/utilities/index.js";
-import {Assert, CE, FromJSON, ToJSON} from "js-vextensions";
+import {Assert, CE, FromJSON, ModifyString, ToJSON} from "js-vextensions";
 import {observable, ObservableMap, runInAction, _getGlobalState} from "mobx";
 import {collection_docSchemaName, GetSchemaJSON} from "../Extensions/SchemaHelpers.js";
 import {Graphlink} from "../Graphlink.js";
@@ -86,7 +86,7 @@ export class QueryParams_Linked extends QueryParams {
 	get CollectionName() {
 		return CE(this.treeNode.pathSegments_noQuery).XFromLast(this.treeNode.type == TreeNodeType.Document ? 1 : 0);
 	}
-	get DocShemaName() {
+	get DocSchemaName() {
 		//if (ObjectCE(this.treeNode.type).IsOneOf(TreeNodeType.Collection, TreeNodeType.CollectionQuery)) {
 		const docSchemaName = collection_docSchemaName.get(this.CollectionName);
 		Assert(docSchemaName, `No schema has been associated with collection "${this.CollectionName}". Did you forget the \`@Table("DOC_SCHEMA_NAME")\` decorator?`);
@@ -98,8 +98,8 @@ export class QueryParams_Linked extends QueryParams {
 	readonly graphQLQuery: DocumentNode;
 	ToQueryStr() {
 		Assert(this.treeNode.type != TreeNodeType.Root, "Cannot create QueryParams for the root TreeNode.");
-		const docSchema = GetSchemaJSON(this.DocShemaName);
-		Assert(docSchema, `Cannot find schema with name "${this.DocShemaName}".`);
+		const docSchema = GetSchemaJSON(this.DocSchemaName);
+		Assert(docSchema, `Cannot find schema with name "${this.DocSchemaName}".`);
 
 		let varsDefineAsStr = "";
 		if (this.varsDefine) {
@@ -124,10 +124,10 @@ export class QueryParams_Linked extends QueryParams {
 		
 		if (this.treeNode.type == TreeNodeType.Document) {
 			const pairs = CE(docSchema.properties).Pairs();
-			Assert(pairs.length > 0, `Cannot create GraphQL type for "${this.DocShemaName}" without at least 1 property.`);
+			Assert(pairs.length > 0, `Cannot create GraphQL type for "${this.DocSchemaName}" without at least 1 property.`);
 			return `
 				subscription DocInCollection_${this.CollectionName}${varsDefineAsStr} {
-					${this.DocShemaName.toLowerCase()}${argsAsStr} {
+					${ModifyString(this.DocSchemaName, m=>[m.startUpper_to_lower, m.underscoreUpper_to_underscoreLower])}${argsAsStr} {
 						${pairs.map(a=>a.key).join(" ")}
 					}
 				}
@@ -135,6 +135,7 @@ export class QueryParams_Linked extends QueryParams {
 		} else {
 			const pairs = CE(docSchema.properties).Pairs();
 			Assert(pairs.length > 0, `Cannot create GraphQL type for "${this.CollectionName}" without at least 1 property.`);
+
 			return `
 				subscription Collection_${this.CollectionName}${varsDefineAsStr} {
 					${this.CollectionName}${argsAsStr} {

@@ -5,7 +5,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 import { gql } from "@apollo/client/core/index.js";
-import { Assert, CE, FromJSON, ToJSON } from "js-vextensions";
+import { Assert, CE, FromJSON, ModifyString, ToJSON } from "js-vextensions";
 import { observable, runInAction, _getGlobalState } from "mobx";
 import { collection_docSchemaName, GetSchemaJSON } from "../Extensions/SchemaHelpers.js";
 import { MaybeLog_Base } from "../Utils/General.js";
@@ -58,7 +58,7 @@ export class QueryParams_Linked extends QueryParams {
     get CollectionName() {
         return CE(this.treeNode.pathSegments_noQuery).XFromLast(this.treeNode.type == TreeNodeType.Document ? 1 : 0);
     }
-    get DocShemaName() {
+    get DocSchemaName() {
         //if (ObjectCE(this.treeNode.type).IsOneOf(TreeNodeType.Collection, TreeNodeType.CollectionQuery)) {
         const docSchemaName = collection_docSchemaName.get(this.CollectionName);
         Assert(docSchemaName, `No schema has been associated with collection "${this.CollectionName}". Did you forget the \`@Table("DOC_SCHEMA_NAME")\` decorator?`);
@@ -67,8 +67,8 @@ export class QueryParams_Linked extends QueryParams {
     ToQueryStr() {
         var _a, _b, _c, _d;
         Assert(this.treeNode.type != TreeNodeType.Root, "Cannot create QueryParams for the root TreeNode.");
-        const docSchema = GetSchemaJSON(this.DocShemaName);
-        Assert(docSchema, `Cannot find schema with name "${this.DocShemaName}".`);
+        const docSchema = GetSchemaJSON(this.DocSchemaName);
+        Assert(docSchema, `Cannot find schema with name "${this.DocSchemaName}".`);
         let varsDefineAsStr = "";
         if (this.varsDefine) {
             varsDefineAsStr = `(${this.varsDefine})`;
@@ -90,10 +90,10 @@ export class QueryParams_Linked extends QueryParams {
         }
         if (this.treeNode.type == TreeNodeType.Document) {
             const pairs = CE(docSchema.properties).Pairs();
-            Assert(pairs.length > 0, `Cannot create GraphQL type for "${this.DocShemaName}" without at least 1 property.`);
+            Assert(pairs.length > 0, `Cannot create GraphQL type for "${this.DocSchemaName}" without at least 1 property.`);
             return `
 				subscription DocInCollection_${this.CollectionName}${varsDefineAsStr} {
-					${this.DocShemaName.toLowerCase()}${argsAsStr} {
+					${ModifyString(this.DocSchemaName, m => [m.startUpper_to_lower, m.underscoreUpper_to_underscoreLower])}${argsAsStr} {
 						${pairs.map(a => a.key).join(" ")}
 					}
 				}
