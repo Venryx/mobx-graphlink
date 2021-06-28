@@ -5,7 +5,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 import { gql } from "@apollo/client/core/index.js";
-import { Assert, CE, FromJSON, ModifyString, ToJSON } from "js-vextensions";
+import { Assert, CE, E, FromJSON, ModifyString, ToJSON } from "js-vextensions";
 import { observable, runInAction, _getGlobalState } from "mobx";
 import { collection_docSchemaName, GetSchemaJSON } from "../Extensions/SchemaHelpers.js";
 import { MaybeLog_Base } from "../Utils/General.js";
@@ -50,10 +50,7 @@ export class QueryParams_Linked extends QueryParams {
     constructor(initialData) {
         super();
         CE(this).Extend(initialData);
-        if (this.treeNode.type != TreeNodeType.Root) {
-            this.queryStr = this.ToQueryStr();
-            this.graphQLQuery = gql(this.queryStr);
-        }
+        this.CalculateDerivatives();
     }
     get CollectionName() {
         return CE(this.treeNode.pathSegments_noQuery).XFromLast(this.treeNode.type == TreeNodeType.Document ? 1 : 0);
@@ -64,8 +61,16 @@ export class QueryParams_Linked extends QueryParams {
         Assert(docSchemaName, `No schema has been associated with collection "${this.CollectionName}". Did you forget the \`@Table("DOC_SCHEMA_NAME")\` decorator?`);
         return docSchemaName;
     }
+    get QueryStr() { return this.queryStr; }
+    get GraphQLQuery() { return this.graphQLQuery; }
+    CalculateDerivatives() {
+        if (this.treeNode.type != TreeNodeType.Root) {
+            this.queryStr = this.ToQueryStr();
+            this.graphQLQuery = gql(this.queryStr);
+        }
+    }
     ToQueryStr() {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e, _f;
         Assert(this.treeNode.type != TreeNodeType.Root, "Cannot create QueryParams for the root TreeNode.");
         const docSchema = GetSchemaJSON(this.DocSchemaName);
         Assert(docSchema, `Cannot find schema with name "${this.DocSchemaName}".`);
@@ -74,9 +79,17 @@ export class QueryParams_Linked extends QueryParams {
             varsDefineAsStr = `(${this.varsDefine})`;
         }
         let argsAsStr = "";
-        const firstNonNullArg = (_d = (_c = (_b = (_a = this.first) !== null && _a !== void 0 ? _a : this.after) !== null && _b !== void 0 ? _b : this.last) !== null && _c !== void 0 ? _c : this.before) !== null && _d !== void 0 ? _d : this.filter;
-        if (firstNonNullArg != null) {
-            const argsObj = CE(this).Including("first", "after", "last", "before", "filter");
+        const firstNonNullAutoArg = (_d = (_c = (_b = (_a = this.first) !== null && _a !== void 0 ? _a : this.after) !== null && _b !== void 0 ? _b : this.last) !== null && _c !== void 0 ? _c : this.before) !== null && _d !== void 0 ? _d : this.filter;
+        if (this.args_rawPrefixStr || Object.keys((_e = this.args_custom) !== null && _e !== void 0 ? _e : {}).length || firstNonNullAutoArg != null) {
+            const argsObj = {};
+            // add custom args
+            for (const [key, value] of Object.keys((_f = this.args_custom) !== null && _f !== void 0 ? _f : {})) {
+                argsObj[key] = value;
+            }
+            // add auto args
+            for (const key of ["first", "after", "last", "before", "filter"]) {
+                argsObj[key] = this[key];
+            }
             if (argsObj.filter) {
                 for (const [key, value] of Object.entries(argsObj.filter)) {
                     // if filter entry's value is falsy, remove (so user can use pattern type: `{prop: shouldRequire3 && {equalTo: 3}}`)
@@ -85,8 +98,12 @@ export class QueryParams_Linked extends QueryParams {
                     }
                 }
             }
-            const argsAsStr_json = JSON.stringify(argsObj);
-            argsAsStr = `(${argsAsStr_json.slice(1, -1)})`; // remove "{}", then wrap with "()"
+            const argsAsStr_json = Object.keys(argsObj).length ? JSON.stringify(argsObj) : "";
+            const argsStr_parts = [
+                this.args_rawPrefixStr,
+                argsAsStr_json.slice(1, -1), // remove "{}"
+            ].filter(a => a);
+            argsAsStr = `(${argsStr_parts.join(", ")})`; // wrap with "()"
         }
         if (this.treeNode.type == TreeNodeType.Document) {
             const pairs = CE(docSchema.properties).Pairs();
@@ -112,6 +129,12 @@ export class QueryParams_Linked extends QueryParams {
         }
     }
 }
+//export const $varOfSameName = Symbol("$varOfSameName");
+export class String_NotWrappedInGraphQL {
+    toJSON() {
+        return this.str; // don't put quotes around it
+    }
+}
 export class TreeNode {
     constructor(fire, pathOrSegments) {
         var _a;
@@ -135,6 +158,13 @@ export class TreeNode {
             this.query.treeNode = this;
             this.query.CalculateDerivatives();
         }*/
+        if (this.type == TreeNodeType.Document) {
+            this.query.varsDefine = ["$id: String!", this.query.varsDefine].filter(a => a).join(", ");
+            //this.query.args_custom = {id: "$id"};
+            this.query.args_rawPrefixStr = "id: $id";
+            this.query.vars = E({ id: this.pathSegments.slice(-1)[0] }, this.query.vars);
+            this.query.CalculateDerivatives();
+        }
     }
     Request() {
         this.graph.treeRequestWatchers.forEach(a => a.nodesRequested.add(this));
@@ -155,15 +185,19 @@ export class TreeNode {
         MaybeLog_Base(a => a.subscriptions, () => `Subscribing to: ${this.path}`);
         if (this.type == TreeNodeType.Document) {
             this.observable = this.graph.subs.apollo.subscribe({
-                query: this.query.graphQLQuery,
+                query: this.query.GraphQLQuery,
                 variables: this.query.vars,
             });
             this.subscription = this.observable.subscribe({
                 //start: ()=>{},
                 next: data => {
-                    MaybeLog_Base(a => a.subscriptions, l => l(`Got doc snapshot. @path(${this.path}) @snapshot:`, data.data));
+                    const returnedData = data.data; // if requested from top-level-query "map", data.data will have shape: {map: {...}}
+                    //const returnedDocument = returnedData[Object.keys(this.query.vars!)[0]]; // so unwrap it here
+                    Assert(Object.values(returnedData).length == 1);
+                    const returnedDocument = Object.values(returnedData)[1]; // so unwrap it here
+                    MaybeLog_Base(a => a.subscriptions, l => l(`Got doc snapshot. @path(${this.path}) @snapshot:`, returnedDocument));
                     runInAction("TreeNode.Subscribe.onSnapshot_doc", () => {
-                        this.SetData(data.data, false);
+                        this.SetData(returnedDocument, false);
                     });
                 },
                 error: err => console.error("SubscriptionError:", err),
@@ -171,7 +205,7 @@ export class TreeNode {
         }
         else {
             this.observable = this.graph.subs.apollo.subscribe({
-                query: this.query.graphQLQuery,
+                query: this.query.GraphQLQuery,
                 variables: this.query.vars,
             });
             this.subscription = this.observable.subscribe({

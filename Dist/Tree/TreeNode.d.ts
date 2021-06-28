@@ -28,7 +28,8 @@ export declare class QueryParams {
     varsDefine?: string;
     /** Example: {limit: 10, maxValue: 100} */
     vars?: Object;
-    /** Example: "first: $limit, filter: {someProp: {lessThan: $maxValue}}" */
+    args_rawPrefixStr?: string;
+    args_custom?: Object;
     /** Example: {someProp: {lessThan: $maxValue}}*/
     filter?: Object;
     first?: number;
@@ -44,9 +45,16 @@ export declare class QueryParams_Linked extends QueryParams {
     treeNode: TreeNode<any>;
     get CollectionName(): string;
     get DocSchemaName(): string;
-    readonly queryStr: string;
-    readonly graphQLQuery: DocumentNode;
+    private queryStr;
+    get QueryStr(): string;
+    private graphQLQuery;
+    get GraphQLQuery(): DocumentNode;
+    CalculateDerivatives(): void;
     ToQueryStr(): string;
+}
+export declare class String_NotWrappedInGraphQL {
+    str: string;
+    toJSON(): string;
 }
 export declare class TreeNode<DataShape> {
     constructor(fire: Graphlink<any, any>, pathOrSegments: string | string[]);

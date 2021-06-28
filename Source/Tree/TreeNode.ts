@@ -1,6 +1,6 @@
 import {DocumentNode, FetchResult, gql} from "@apollo/client/core/index.js";
 import {Observable} from "@apollo/client/utilities/index.js";
-import {Assert, CE, FromJSON, ModifyString, ToJSON} from "js-vextensions";
+import {Assert, CE, E, FromJSON, ModifyString, ToJSON} from "js-vextensions";
 import {observable, ObservableMap, runInAction, _getGlobalState} from "mobx";
 import {collection_docSchemaName, GetSchemaJSON} from "../Extensions/SchemaHelpers.js";
 import {Graphlink} from "../Graphlink.js";
@@ -56,8 +56,13 @@ export class QueryParams {
 	//queryOps = [] as QueryOp[];
 
 	// old way 2; dropped, since safer to use JSON stringification
-	/** Example: "first: $limit, filter: {someProp: {lessThan: $maxValue}}" */
+	/*#* Example: "first: $limit, filter: {someProp: {lessThan: $maxValue}}" */
 	//argsStr?: string;
+
+	// enables stuff like "id: $id" (direct selection-by-id, rather than using filter system)
+	args_rawPrefixStr?: string;
+	// for other random things possible on server-side 
+	args_custom?: Object;
 
 	// filtering
 	/** Example: {someProp: {lessThan: $maxValue}}*/
@@ -76,10 +81,7 @@ export class QueryParams_Linked extends QueryParams {
 	constructor(initialData?: {treeNode: TreeNode<any>} & Partial<QueryParams_Linked>) {
 		super();
 		CE(this).Extend(initialData);
-		if (this.treeNode.type != TreeNodeType.Root) {
-			this.queryStr = this.ToQueryStr();
-			this.graphQLQuery = gql(this.queryStr);
-		}
+		this.CalculateDerivatives();
 	}
 	
 	treeNode: TreeNode<any>;
@@ -94,8 +96,17 @@ export class QueryParams_Linked extends QueryParams {
 	}
 
 	// derivatives
-	readonly queryStr: string;
-	readonly graphQLQuery: DocumentNode;
+	private queryStr: string;
+	get QueryStr() { return this.queryStr; }
+	private graphQLQuery: DocumentNode;
+	get GraphQLQuery() { return this.graphQLQuery; }
+	CalculateDerivatives() {
+		if (this.treeNode.type != TreeNodeType.Root) {
+			this.queryStr = this.ToQueryStr();
+			this.graphQLQuery = gql(this.queryStr);
+		}
+	}
+
 	ToQueryStr() {
 		Assert(this.treeNode.type != TreeNodeType.Root, "Cannot create QueryParams for the root TreeNode.");
 		const docSchema = GetSchemaJSON(this.DocSchemaName);
@@ -107,9 +118,19 @@ export class QueryParams_Linked extends QueryParams {
 		}
 
 		let argsAsStr = "";
-		const firstNonNullArg = this.first ?? this.after ?? this.last ?? this.before ?? this.filter;
-		if (firstNonNullArg != null) {
-			const argsObj = CE(this).Including("first", "after", "last", "before", "filter");
+		const firstNonNullAutoArg = this.first ?? this.after ?? this.last ?? this.before ?? this.filter;
+		if (this.args_rawPrefixStr || Object.keys(this.args_custom ?? {}).length || firstNonNullAutoArg != null) {
+			const argsObj = {} as any;
+
+			// add custom args
+			for (const [key, value] of Object.keys(this.args_custom ?? {})) {
+				argsObj[key] = value;
+			}
+			
+			// add auto args
+			for (const key of ["first", "after", "last", "before", "filter"]) {
+				argsObj[key] = this[key];
+			}
 			if (argsObj.filter) {
 				for (const [key, value] of Object.entries(argsObj.filter as any)) {
 					// if filter entry's value is falsy, remove (so user can use pattern type: `{prop: shouldRequire3 && {equalTo: 3}}`)
@@ -118,8 +139,13 @@ export class QueryParams_Linked extends QueryParams {
 					}
 				}
 			}
-			const argsAsStr_json = JSON.stringify(argsObj);
-			argsAsStr = `(${argsAsStr_json.slice(1, -1)})`; // remove "{}", then wrap with "()"
+
+			const argsAsStr_json = Object.keys(argsObj).length ? JSON.stringify(argsObj) : "";
+			const argsStr_parts = [
+				this.args_rawPrefixStr,
+				argsAsStr_json.slice(1, -1), // remove "{}"
+			].filter(a=>a);
+			argsAsStr = `(${argsStr_parts.join(", ")})`; // wrap with "()"
 		}
 		
 		if (this.treeNode.type == TreeNodeType.Document) {
@@ -147,6 +173,14 @@ export class QueryParams_Linked extends QueryParams {
 	}
 }
 
+//export const $varOfSameName = Symbol("$varOfSameName");
+export class String_NotWrappedInGraphQL {
+	str: string;
+	toJSON() {
+		return this.str; // don't put quotes around it
+	}
+}
+
 export class TreeNode<DataShape> {
 	constructor(fire: Graphlink<any, any>, pathOrSegments: string | string[]) {
 		this.graph = fire;
@@ -159,10 +193,18 @@ export class TreeNode<DataShape> {
 		this.type = GetTreeNodeTypeForPath(this.pathSegments);
 		const query_raw = queryStr ? QueryParams.ParseString(queryStr) : new QueryParams();
 		this.query = new QueryParams_Linked({...query_raw, treeNode: this});
+
 		/*if (this.type != TreeNodeType.Root) {
 			this.query.treeNode = this;
 			this.query.CalculateDerivatives();
 		}*/
+		if (this.type == TreeNodeType.Document) {
+			this.query.varsDefine = ["$id: String!", this.query.varsDefine].filter(a=>a).join(", ");
+			//this.query.args_custom = {id: "$id"};
+			this.query.args_rawPrefixStr = "id: $id";
+			this.query.vars = E({id: this.pathSegments.slice(-1)[0]}, this.query.vars);
+			this.query.CalculateDerivatives();
+		}
 	}
 	graph: Graphlink<any, any>;
 	pathSegments: string[];
@@ -192,22 +234,26 @@ export class TreeNode<DataShape> {
 		MaybeLog_Base(a=>a.subscriptions, ()=>`Subscribing to: ${this.path}`);
 		if (this.type == TreeNodeType.Document) {
 			this.observable = this.graph.subs.apollo.subscribe({
-				query: this.query.graphQLQuery,
+				query: this.query.GraphQLQuery,
 				variables: this.query.vars,
 			});
 			this.subscription = this.observable.subscribe({
 				//start: ()=>{},
 				next: data=>{
-					MaybeLog_Base(a=>a.subscriptions, l=>l(`Got doc snapshot. @path(${this.path}) @snapshot:`, data.data));
+					const returnedData = data.data; // if requested from top-level-query "map", data.data will have shape: {map: {...}}
+					//const returnedDocument = returnedData[Object.keys(this.query.vars!)[0]]; // so unwrap it here
+					Assert(Object.values(returnedData).length == 1);
+					const returnedDocument = Object.values(returnedData)[1] as any; // so unwrap it here
+					MaybeLog_Base(a=>a.subscriptions, l=>l(`Got doc snapshot. @path(${this.path}) @snapshot:`, returnedDocument));
 					runInAction("TreeNode.Subscribe.onSnapshot_doc", ()=> {
-						this.SetData(data.data, false);
+						this.SetData(returnedDocument, false);
 					});
 				},
 				error: err=>console.error("SubscriptionError:", err),
 			});
 		} else {
 			this.observable = this.graph.subs.apollo.subscribe({
-				query: this.query.graphQLQuery,
+				query: this.query.GraphQLQuery,
 				variables: this.query.vars,
 			});
 			this.subscription = this.observable.subscribe({
