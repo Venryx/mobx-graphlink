@@ -1,24 +1,24 @@
 import {DocumentNode, FetchResult, gql} from "@apollo/client/core/index.js";
 import {Observable} from "@apollo/client/utilities/index.js";
-import {Assert, CE, E, FromJSON, ModifyString, ToJSON} from "js-vextensions";
+import {Assert, CE, E, FromJSON, ModifyString, ObjectCE, ToJSON, ToJSON_Advanced} from "js-vextensions";
 import {observable, ObservableMap, runInAction, _getGlobalState} from "mobx";
 import {collection_docSchemaName, GetSchemaJSON} from "../Extensions/SchemaHelpers.js";
 import {Graphlink} from "../Graphlink.js";
-import {MaybeLog_Base} from "../Utils/General.js";
+import {JSONStringify_NoQuotesForKeys, MaybeLog_Base} from "../Utils/General.js";
 import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "../Utils/PathHelpers.js";
 
 export enum TreeNodeType {
-	Root,
-	Collection,
-	CollectionQuery,
-	Document,
+	Root = "Root",
+	Collection = "Collection",
+	CollectionQuery = "CollectionQuery",
+	Document = "Document",
 }
 
 export enum DataStatus {
-	Initial,
-	Waiting,
-	Received_Cache,
-	Received_Full,
+	Initial = "Initial",
+	Waiting = "Waiting",
+	Received_Cache = "Received_Cache",
+	Received_Full = "Received_Full",
 }
 
 export class PathSubscription {
@@ -78,6 +78,10 @@ export class QueryParams {
 /** Class specifies the filtering, sorting, etc. for a given TreeNode. */
 // (comments based on usage with Postgraphile and https://github.com/graphile-contrib/postgraphile-plugin-connection-filter)
 export class QueryParams_Linked extends QueryParams {
+	toString() {
+		return ToJSON(this);
+	}
+
 	constructor(initialData?: {treeNode: TreeNode<any>} & Partial<QueryParams_Linked>) {
 		super();
 		CE(this).Extend(initialData);
@@ -85,8 +89,8 @@ export class QueryParams_Linked extends QueryParams {
 	}
 	
 	treeNode: TreeNode<any>;
-	get CollectionName() {
-		return CE(this.treeNode.pathSegments_noQuery).XFromLast(this.treeNode.type == TreeNodeType.Document ? 1 : 0);
+	get CollectionName(): string {
+		return this.treeNode.pathSegments[0];
 	}
 	get DocSchemaName() {
 		//if (ObjectCE(this.treeNode.type).IsOneOf(TreeNodeType.Collection, TreeNodeType.CollectionQuery)) {
@@ -118,8 +122,23 @@ export class QueryParams_Linked extends QueryParams {
 		}
 
 		let argsAsStr = "";
-		const firstNonNullAutoArg = this.first ?? this.after ?? this.last ?? this.before ?? this.filter;
-		if (this.args_rawPrefixStr || Object.keys(this.args_custom ?? {}).length || firstNonNullAutoArg != null) {
+
+		const nonNullAutoArgs = ["first", "after", "last", "before", "filter"].filter(key=>{
+			if (this[key] == null) return false;
+			const IsEmptyObj = obj=>typeof obj == "object" && (Object.keys(obj).length == 0 || Object.values(obj).filter(a=>a != null).length == 0);
+			if (IsEmptyObj(this[key])) return false; // don't add if just empty object (server complains)
+			if (IsEmptyObj(Object.values(this[key]).filter(a=>a)[0])) return false; // don't add if just object containing empty object(s) (server complains)
+			/*if (IsEmptyObj(this[key])) {
+				throw new Error(`Query arg "${key}" is invalid; the value is empty (ie. null, a key-less object, or an object whose keys all have null assigned). @arg:${ToJSON_Advanced(this[key], {stringifyUndefinedAs: null})}`);
+			}
+			const firstNonNullSubObj = Object.values(this[key]).filter(a=>a)[0];
+			if (IsEmptyObj(firstNonNullSubObj)) {
+				throw new Error(`Query arg "${key}" is invalid; the value has no subobject that is non-empty. @arg:${ToJSON_Advanced(this[key], {stringifyUndefinedAs: null})}`);
+			}*/
+			return true;
+		});
+
+		if (this.args_rawPrefixStr || Object.keys(this.args_custom ?? {}).length || nonNullAutoArgs.length) {
 			const argsObj = {} as any;
 
 			// add custom args
@@ -128,7 +147,7 @@ export class QueryParams_Linked extends QueryParams {
 			}
 			
 			// add auto args
-			for (const key of ["first", "after", "last", "before", "filter"]) {
+			for (const key of nonNullAutoArgs) {
 				argsObj[key] = this[key];
 			}
 			if (argsObj.filter) {
@@ -140,7 +159,8 @@ export class QueryParams_Linked extends QueryParams {
 				}
 			}
 
-			const argsAsStr_json = Object.keys(argsObj).length ? JSON.stringify(argsObj) : "";
+			//const argsAsStr_json = Object.keys(argsObj).length ? JSON.stringify(argsObj) : "";
+			const argsAsStr_json = Object.keys(argsObj).length ? JSONStringify_NoQuotesForKeys(argsObj) : "";
 			const argsStr_parts = [
 				this.args_rawPrefixStr,
 				argsAsStr_json.slice(1, -1), // remove "{}"
@@ -153,7 +173,10 @@ export class QueryParams_Linked extends QueryParams {
 			Assert(pairs.length > 0, `Cannot create GraphQL type for "${this.DocSchemaName}" without at least 1 property.`);
 			return `
 				subscription DocInCollection_${this.CollectionName}${varsDefineAsStr} {
-					${ModifyString(this.DocSchemaName, m=>[m.startUpper_to_lower, m.underscoreUpper_to_underscoreLower])}${argsAsStr} {
+					${
+						//ModifyString(this.DocSchemaName, m=>[m.startUpper_to_lower, m.underscoreUpper_to_underscoreLower])
+						this.CollectionName.replace(/s$/, "")
+					}${argsAsStr} {
 						${pairs.map(a=>a.key).join(" ")}
 					}
 				}
@@ -243,7 +266,7 @@ export class TreeNode<DataShape> {
 					const returnedData = data.data; // if requested from top-level-query "map", data.data will have shape: {map: {...}}
 					//const returnedDocument = returnedData[Object.keys(this.query.vars!)[0]]; // so unwrap it here
 					Assert(Object.values(returnedData).length == 1);
-					const returnedDocument = Object.values(returnedData)[1] as any; // so unwrap it here
+					const returnedDocument = Object.values(returnedData)[0] as any; // so unwrap it here
 					MaybeLog_Base(a=>a.subscriptions, l=>l(`Got doc snapshot. @path(${this.path}) @snapshot:`, returnedDocument));
 					runInAction("TreeNode.Subscribe.onSnapshot_doc", ()=> {
 						this.SetData(returnedDocument, false);
@@ -388,6 +411,8 @@ export class TreeNode<DataShape> {
 				if (currentNode == null) break;
 			}
 			if (query && currentNode) {
+				// make sure query object is an "actual instance of" QueryParams (else query.toString() will return useless "[object Object]")
+				Object.setPrototypeOf(query, QueryParams.prototype);
 				if (!currentNode.queryNodes.has(query.toString()) && createTreeNodesIfMissing) {
 					if (!inAction) return proceed_inAction(); // if not yet running in action, restart in one
 					currentNode.queryNodes.set(query.toString(), new TreeNode(this.graph, this.pathSegments.concat(subpathSegments).concat("@query:" + query)))
@@ -413,8 +438,14 @@ export class TreeNode<DataShape> {
 export function GetTreeNodeTypeForPath(pathOrSegments: string | string[]) {
 	let pathSegments = PathOrPathGetterToPathSegments(pathOrSegments);
 	if (pathSegments == null || pathSegments.length == 0) return TreeNodeType.Root;
-	if (CE(pathSegments).Last().startsWith("@query:")) return TreeNodeType.CollectionQuery;
-	return pathSegments.length % 2 == 1 ? TreeNodeType.Collection : TreeNodeType.Document;
+	if (pathSegments.length == 1) return TreeNodeType.Collection;
+	if (pathSegments.length == 2 || pathSegments.length == 3) {
+		if (CE(pathSegments).Last().startsWith("@query:")) return TreeNodeType.CollectionQuery;
+		return TreeNodeType.Document;
+	}
+	Assert(false, `Invalid TreeNode path. Cannot determine type. @path:${pathOrSegments}`);
+	return null as any as TreeNodeType;
+	//return pathSegments.length % 2 == 1 ? TreeNodeType.Collection : TreeNodeType.Document;
 }
 /*export function EnsurePathWatched(opt: FireOptions, path: string, filters?: Filter[]) {
 	opt = E(defaultFireOptions, opt);

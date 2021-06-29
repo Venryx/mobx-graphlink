@@ -5,24 +5,24 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 import { gql } from "@apollo/client/core/index.js";
-import { Assert, CE, E, FromJSON, ModifyString, ToJSON } from "js-vextensions";
+import { Assert, CE, E, FromJSON, ToJSON } from "js-vextensions";
 import { observable, runInAction, _getGlobalState } from "mobx";
 import { collection_docSchemaName, GetSchemaJSON } from "../Extensions/SchemaHelpers.js";
-import { MaybeLog_Base } from "../Utils/General.js";
+import { JSONStringify_NoQuotesForKeys, MaybeLog_Base } from "../Utils/General.js";
 import { PathOrPathGetterToPath, PathOrPathGetterToPathSegments } from "../Utils/PathHelpers.js";
 export var TreeNodeType;
 (function (TreeNodeType) {
-    TreeNodeType[TreeNodeType["Root"] = 0] = "Root";
-    TreeNodeType[TreeNodeType["Collection"] = 1] = "Collection";
-    TreeNodeType[TreeNodeType["CollectionQuery"] = 2] = "CollectionQuery";
-    TreeNodeType[TreeNodeType["Document"] = 3] = "Document";
+    TreeNodeType["Root"] = "Root";
+    TreeNodeType["Collection"] = "Collection";
+    TreeNodeType["CollectionQuery"] = "CollectionQuery";
+    TreeNodeType["Document"] = "Document";
 })(TreeNodeType || (TreeNodeType = {}));
 export var DataStatus;
 (function (DataStatus) {
-    DataStatus[DataStatus["Initial"] = 0] = "Initial";
-    DataStatus[DataStatus["Waiting"] = 1] = "Waiting";
-    DataStatus[DataStatus["Received_Cache"] = 2] = "Received_Cache";
-    DataStatus[DataStatus["Received_Full"] = 3] = "Received_Full";
+    DataStatus["Initial"] = "Initial";
+    DataStatus["Waiting"] = "Waiting";
+    DataStatus["Received_Cache"] = "Received_Cache";
+    DataStatus["Received_Full"] = "Received_Full";
 })(DataStatus || (DataStatus = {}));
 export class PathSubscription {
     constructor(unsubscribe) {
@@ -52,8 +52,11 @@ export class QueryParams_Linked extends QueryParams {
         CE(this).Extend(initialData);
         this.CalculateDerivatives();
     }
+    toString() {
+        return ToJSON(this);
+    }
     get CollectionName() {
-        return CE(this.treeNode.pathSegments_noQuery).XFromLast(this.treeNode.type == TreeNodeType.Document ? 1 : 0);
+        return this.treeNode.pathSegments[0];
     }
     get DocSchemaName() {
         //if (ObjectCE(this.treeNode.type).IsOneOf(TreeNodeType.Collection, TreeNodeType.CollectionQuery)) {
@@ -70,7 +73,7 @@ export class QueryParams_Linked extends QueryParams {
         }
     }
     ToQueryStr() {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b;
         Assert(this.treeNode.type != TreeNodeType.Root, "Cannot create QueryParams for the root TreeNode.");
         const docSchema = GetSchemaJSON(this.DocSchemaName);
         Assert(docSchema, `Cannot find schema with name "${this.DocSchemaName}".`);
@@ -79,15 +82,31 @@ export class QueryParams_Linked extends QueryParams {
             varsDefineAsStr = `(${this.varsDefine})`;
         }
         let argsAsStr = "";
-        const firstNonNullAutoArg = (_d = (_c = (_b = (_a = this.first) !== null && _a !== void 0 ? _a : this.after) !== null && _b !== void 0 ? _b : this.last) !== null && _c !== void 0 ? _c : this.before) !== null && _d !== void 0 ? _d : this.filter;
-        if (this.args_rawPrefixStr || Object.keys((_e = this.args_custom) !== null && _e !== void 0 ? _e : {}).length || firstNonNullAutoArg != null) {
+        const nonNullAutoArgs = ["first", "after", "last", "before", "filter"].filter(key => {
+            if (this[key] == null)
+                return false;
+            const IsEmptyObj = obj => typeof obj == "object" && (Object.keys(obj).length == 0 || Object.values(obj).filter(a => a != null).length == 0);
+            if (IsEmptyObj(this[key]))
+                return false; // don't add if just empty object (server complains)
+            if (IsEmptyObj(Object.values(this[key]).filter(a => a)[0]))
+                return false; // don't add if just object containing empty object(s) (server complains)
+            /*if (IsEmptyObj(this[key])) {
+                throw new Error(`Query arg "${key}" is invalid; the value is empty (ie. null, a key-less object, or an object whose keys all have null assigned). @arg:${ToJSON_Advanced(this[key], {stringifyUndefinedAs: null})}`);
+            }
+            const firstNonNullSubObj = Object.values(this[key]).filter(a=>a)[0];
+            if (IsEmptyObj(firstNonNullSubObj)) {
+                throw new Error(`Query arg "${key}" is invalid; the value has no subobject that is non-empty. @arg:${ToJSON_Advanced(this[key], {stringifyUndefinedAs: null})}`);
+            }*/
+            return true;
+        });
+        if (this.args_rawPrefixStr || Object.keys((_a = this.args_custom) !== null && _a !== void 0 ? _a : {}).length || nonNullAutoArgs.length) {
             const argsObj = {};
             // add custom args
-            for (const [key, value] of Object.keys((_f = this.args_custom) !== null && _f !== void 0 ? _f : {})) {
+            for (const [key, value] of Object.keys((_b = this.args_custom) !== null && _b !== void 0 ? _b : {})) {
                 argsObj[key] = value;
             }
             // add auto args
-            for (const key of ["first", "after", "last", "before", "filter"]) {
+            for (const key of nonNullAutoArgs) {
                 argsObj[key] = this[key];
             }
             if (argsObj.filter) {
@@ -98,7 +117,8 @@ export class QueryParams_Linked extends QueryParams {
                     }
                 }
             }
-            const argsAsStr_json = Object.keys(argsObj).length ? JSON.stringify(argsObj) : "";
+            //const argsAsStr_json = Object.keys(argsObj).length ? JSON.stringify(argsObj) : "";
+            const argsAsStr_json = Object.keys(argsObj).length ? JSONStringify_NoQuotesForKeys(argsObj) : "";
             const argsStr_parts = [
                 this.args_rawPrefixStr,
                 argsAsStr_json.slice(1, -1), // remove "{}"
@@ -110,7 +130,9 @@ export class QueryParams_Linked extends QueryParams {
             Assert(pairs.length > 0, `Cannot create GraphQL type for "${this.DocSchemaName}" without at least 1 property.`);
             return `
 				subscription DocInCollection_${this.CollectionName}${varsDefineAsStr} {
-					${ModifyString(this.DocSchemaName, m => [m.startUpper_to_lower, m.underscoreUpper_to_underscoreLower])}${argsAsStr} {
+					${
+            //ModifyString(this.DocSchemaName, m=>[m.startUpper_to_lower, m.underscoreUpper_to_underscoreLower])
+            this.CollectionName.replace(/s$/, "")}${argsAsStr} {
 						${pairs.map(a => a.key).join(" ")}
 					}
 				}
@@ -194,7 +216,7 @@ export class TreeNode {
                     const returnedData = data.data; // if requested from top-level-query "map", data.data will have shape: {map: {...}}
                     //const returnedDocument = returnedData[Object.keys(this.query.vars!)[0]]; // so unwrap it here
                     Assert(Object.values(returnedData).length == 1);
-                    const returnedDocument = Object.values(returnedData)[1]; // so unwrap it here
+                    const returnedDocument = Object.values(returnedData)[0]; // so unwrap it here
                     MaybeLog_Base(a => a.subscriptions, l => l(`Got doc snapshot. @path(${this.path}) @snapshot:`, returnedDocument));
                     runInAction("TreeNode.Subscribe.onSnapshot_doc", () => {
                         this.SetData(returnedDocument, false);
@@ -318,6 +340,8 @@ export class TreeNode {
                     break;
             }
             if (query && currentNode) {
+                // make sure query object is an "actual instance of" QueryParams (else query.toString() will return useless "[object Object]")
+                Object.setPrototypeOf(query, QueryParams.prototype);
                 if (!currentNode.queryNodes.has(query.toString()) && createTreeNodesIfMissing) {
                     if (!inAction)
                         return proceed_inAction(); // if not yet running in action, restart in one
@@ -357,9 +381,16 @@ export function GetTreeNodeTypeForPath(pathOrSegments) {
     let pathSegments = PathOrPathGetterToPathSegments(pathOrSegments);
     if (pathSegments == null || pathSegments.length == 0)
         return TreeNodeType.Root;
-    if (CE(pathSegments).Last().startsWith("@query:"))
-        return TreeNodeType.CollectionQuery;
-    return pathSegments.length % 2 == 1 ? TreeNodeType.Collection : TreeNodeType.Document;
+    if (pathSegments.length == 1)
+        return TreeNodeType.Collection;
+    if (pathSegments.length == 2 || pathSegments.length == 3) {
+        if (CE(pathSegments).Last().startsWith("@query:"))
+            return TreeNodeType.CollectionQuery;
+        return TreeNodeType.Document;
+    }
+    Assert(false, `Invalid TreeNode path. Cannot determine type. @path:${pathOrSegments}`);
+    return null;
+    //return pathSegments.length % 2 == 1 ? TreeNodeType.Collection : TreeNodeType.Document;
 }
 /*export function EnsurePathWatched(opt: FireOptions, path: string, filters?: Filter[]) {
     opt = E(defaultFireOptions, opt);

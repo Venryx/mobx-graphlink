@@ -4,16 +4,16 @@ import { Observable } from "@apollo/client/utilities/index.js";
 import { ObservableMap } from "mobx";
 import { Graphlink } from "../Graphlink.js";
 export declare enum TreeNodeType {
-    Root = 0,
-    Collection = 1,
-    CollectionQuery = 2,
-    Document = 3
+    Root = "Root",
+    Collection = "Collection",
+    CollectionQuery = "CollectionQuery",
+    Document = "Document"
 }
 export declare enum DataStatus {
-    Initial = 0,
-    Waiting = 1,
-    Received_Cache = 2,
-    Received_Full = 3
+    Initial = "Initial",
+    Waiting = "Waiting",
+    Received_Cache = "Received_Cache",
+    Received_Full = "Received_Full"
 }
 export declare class PathSubscription {
     constructor(unsubscribe: () => void);
@@ -39,6 +39,7 @@ export declare class QueryParams {
 }
 /** Class specifies the filtering, sorting, etc. for a given TreeNode. */
 export declare class QueryParams_Linked extends QueryParams {
+    toString(): string;
     constructor(initialData?: {
         treeNode: TreeNode<any>;
     } & Partial<QueryParams_Linked>);

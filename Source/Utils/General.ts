@@ -68,3 +68,25 @@ export function MaybeLog_Base<LogTypes extends LogTypes_Base>(shouldLogFunc: (lo
 	if (loggerFuncIsSimpleGetter) Log((loggerFunc as ()=>string)());
 	else loggerFunc(Log);
 }
+
+// this one doesn't work for objects nested in arrays
+/*export function JSONStringify_NoQuotesForKeys(obj: Object) {
+	if (typeof obj !== "object" || Array.isArray(obj)){
+		 // not an object, stringify using native function
+		 return JSON.stringify(obj);
+	}
+	// Implements recursive object serialization according to JSON spec
+	// but without quotes around the keys.
+	let props = Object
+		 .keys(obj)
+		 .map(key=>`${key}:${JSONStringify_NoQuotesForKeys(obj[key])}`)
+		 .join(",");
+	return `{${props}}`;
+}*/
+// this one does (from: https://stackoverflow.com/a/65443215)
+export function JSONStringify_NoQuotesForKeys(obj: Object) {
+	var cleaned = JSON.stringify(obj, null, 2);
+	return cleaned.replace(/^[\t ]*"[^:\n\r]+(?<!\\)":/gm, match=>{
+		return match.replace(/"/g, "");
+	});
+}
