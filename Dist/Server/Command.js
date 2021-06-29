@@ -64,7 +64,7 @@ export class Command {
         return __awaiter(this, void 0, void 0, function* () {
             //await GetAsync(()=>this.Validate(), E({errorHandling: "ignore"}, IsNumber(maxIterations) && {maxIterations}));
             //await GetAsync(()=>this.Validate(), {errorHandling: "ignore", maxIterations: OmitIfFalsy(maxIterations)});
-            yield GetAsync(() => this.Validate(), E({ errorHandling: "ignore" }, options));
+            yield GetAsync(() => this.Validate(), E({ errorHandling: "ignore", throwImmediatelyOnDBWait: true }, options));
         });
     }
     PreRun() {

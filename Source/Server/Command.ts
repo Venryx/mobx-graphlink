@@ -74,7 +74,7 @@ export abstract class Command<Payload, ReturnData = void> {
 	async Validate_Async(options?: Partial<GraphOptions> & GetAsync_Options) {
 		//await GetAsync(()=>this.Validate(), E({errorHandling: "ignore"}, IsNumber(maxIterations) && {maxIterations}));
 		//await GetAsync(()=>this.Validate(), {errorHandling: "ignore", maxIterations: OmitIfFalsy(maxIterations)});
-		await GetAsync(()=>this.Validate(), E({errorHandling: "ignore"}, options));
+		await GetAsync(()=>this.Validate(), E({errorHandling: "ignore", throwImmediatelyOnDBWait: true}, options));
 	}
 	/** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
 	abstract GetDBUpdates(): {}

@@ -44,7 +44,7 @@ export class GetAsync_Options {
         this.maxIterations = 50; // todo: maybe replace this with system that tracks the list of paths accessed, and which halts if it "senses no progression" [eg. max-iterations-without-change-to-access-paths]
         this.errorHandling = "none";
         /** If true, db requests within dataGetterFunc that find themselves waiting for remote db-data, with throw an error immediately. (avoiding higher-level processing) */
-        this.throwImmediatelyOnDBWait = true;
+        this.throwImmediatelyOnDBWait = false;
     }
 }
 GetAsync_Options.default = new GetAsync_Options();
@@ -89,7 +89,8 @@ export function GetAsync(dataGetterFunc, options) {
                 iterationIndex++;
                 // prep for getter-func
                 watcher.Start();
-                GetAsync_throwImmediatelyOnDBWait_activeDepth++;
+                if (options === null || options === void 0 ? void 0 : options.throwImmediatelyOnDBWait)
+                    GetAsync_throwImmediatelyOnDBWait_activeDepth++;
                 // flip some flag here to say, "don't use cached data -- re-request!"
                 storeAccessorCachingTempDisabled = true;
                 let result;
@@ -112,7 +113,8 @@ export function GetAsync(dataGetterFunc, options) {
                 }
                 // cleanup for getter-func
                 storeAccessorCachingTempDisabled = false;
-                GetAsync_throwImmediatelyOnDBWait_activeDepth--;
+                if (options === null || options === void 0 ? void 0 : options.throwImmediatelyOnDBWait)
+                    GetAsync_throwImmediatelyOnDBWait_activeDepth--;
                 watcher.Stop();
                 let nodesRequested_array = Array.from(watcher.nodesRequested);
                 //let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status == DataStatus.Waiting);
