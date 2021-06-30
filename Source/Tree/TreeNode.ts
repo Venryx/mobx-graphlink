@@ -1,6 +1,6 @@
 import {DocumentNode, FetchResult, gql} from "@apollo/client/core/index.js";
 import {Observable} from "@apollo/client/utilities/index.js";
-import {Assert, CE, E, FromJSON, ModifyString, ObjectCE, ToJSON, ToJSON_Advanced} from "js-vextensions";
+import {Assert, CE, Clone, E, FromJSON, ModifyString, ObjectCE, ToJSON, ToJSON_Advanced} from "js-vextensions";
 import {observable, ObservableMap, runInAction, _getGlobalState} from "mobx";
 import {collection_docSchemaName, GetSchemaJSON} from "../Extensions/SchemaHelpers.js";
 import {Graphlink} from "../Graphlink.js";
@@ -37,7 +37,24 @@ export class QueryParams {
 	}
 	toString() {
 		//return ToJSON(CE(this).Including("variablesStr", "variables"));
+		//return ToJSON(this);
 		return ToJSON(this);
+	}
+
+	/** This function cleans the data-structure. (ie. requests with identical meanings but different json-strings, are made uniform) */
+	Clean() {
+		if (this.filter) {
+			const filterObj_final = Clone(this.filter);
+			for (const [key, value] of Object.entries(filterObj_final)) {
+				// first check blocks eg. "{filter: false && {...}}", and second check blocks eg. "{filter: {equalTo: null}}" (both would otherwise error)
+				const isValidFilterEntry = (value != null && typeof value == "object"); // && Object.values(value as any).filter(a=>a != null).length;
+				if (!isValidFilterEntry) {
+					delete filterObj_final[key];
+				}
+			}
+			this.filter = filterObj_final;
+		}
+		return this;
 	}
 
 	constructor(initialData?: Partial<QueryParams_Linked>) {
@@ -85,6 +102,7 @@ export class QueryParams_Linked extends QueryParams {
 	constructor(initialData?: {treeNode: TreeNode<any>} & Partial<QueryParams_Linked>) {
 		super();
 		CE(this).Extend(initialData);
+		this.Clean(); // our data is probably already cleaned (ie. if called from "TreeNode.Get(...)"), but clean it again (in case user called this constructor directly)
 		this.CalculateDerivatives();
 	}
 	
@@ -149,14 +167,6 @@ export class QueryParams_Linked extends QueryParams {
 			// add auto args
 			for (const key of nonNullAutoArgs) {
 				argsObj[key] = this[key];
-			}
-			if (argsObj.filter) {
-				for (const [key, value] of Object.entries(argsObj.filter as any)) {
-					// if filter entry's value is falsy, remove (so user can use pattern type: `{prop: shouldRequire3 && {equalTo: 3}}`)
-					if (!value) {
-						delete argsObj[key];
-					}
-				}
 			}
 
 			//const argsAsStr_json = Object.keys(argsObj).length ? JSON.stringify(argsObj) : "";
@@ -394,36 +404,45 @@ export class TreeNode<DataShape> {
 	// default createTreeNodesIfMissing to false, so that it's safe to call this from a computation (which includes store-accessors)
 	Get(subpathOrGetterFunc: string | string[] | ((data: DataShape)=>any), query?: QueryParams, createTreeNodesIfMissing = false): TreeNode<any>|null {
 		let subpathSegments = PathOrPathGetterToPathSegments(subpathOrGetterFunc);
-		let currentNode: TreeNode<any> = this;
 
 		let proceed_inAction = ()=>runInAction(`TreeNode.Get @path(${this.path})`, ()=>proceed(true));
 		let proceed = (inAction: boolean)=> {
-			currentNode = this;
+			let currentNode: TreeNode<any> = this;
 			for (let [index, segment] of subpathSegments.entries()) {
 				let subpathSegmentsToHere = subpathSegments.slice(0, index + 1);
 				let childNodesMap = currentNode[currentNode.type == TreeNodeType.Collection ? "docNodes" : "collectionNodes"] as ObservableMap<string, TreeNode<any>>;
-				if (!childNodesMap.has(segment) && createTreeNodesIfMissing) {
-					if (!inAction) return proceed_inAction(); // if not yet running in action, restart in one
+
+				// if tree-node is non-existent, we have to either create it (if permitted), or abort
+				if (!childNodesMap.has(segment)) {
+					if (!createTreeNodesIfMissing) return null; // if not permitted to create, abort
+					if (!inAction) return proceed_inAction(); // if permitted to create, restart function in action (creation must be in action)
 					//let pathToSegment = subpathSegments.slice(0, index).join("/");
 					childNodesMap.set(segment, new TreeNode(this.graph, this.pathSegments.concat(subpathSegmentsToHere)));
 				}
+
 				currentNode = childNodesMap.get(segment)!;
-				if (currentNode == null) break;
 			}
-			if (query && currentNode) {
+
+			// if a query is specified, we need to add one additional tree-node (one level deeper) for it
+			if (query) {
 				// make sure query object is an "actual instance of" QueryParams (else query.toString() will return useless "[object Object]")
 				Object.setPrototypeOf(query, QueryParams.prototype);
-				if (!currentNode.queryNodes.has(query.toString()) && createTreeNodesIfMissing) {
-					if (!inAction) return proceed_inAction(); // if not yet running in action, restart in one
+				query.Clean(); // query must be cleaned now, before calling "toString()" (the keys need to be consistent)
+
+				// if tree-node is non-existent, we have to either create it (if permitted), or abort
+				if (!currentNode.queryNodes.has(query.toString())) {
+					if (!createTreeNodesIfMissing) return null; // if not permitted to create, abort
+					if (!inAction) return proceed_inAction(); // if permitted to create, restart function in action (creation must be in action)
 					currentNode.queryNodes.set(query.toString(), new TreeNode(this.graph, this.pathSegments.concat(subpathSegments).concat("@query:" + query)))
 				}
+
 				currentNode = currentNode.queryNodes.get(query.toString())!;
 			}
+
+			return currentNode;
 		}
 		// first, try proceeding without runInAction 
-		proceed(false);
-
-		return currentNode;
+		return proceed(false);
 	}
 
 	get raw() { return this.AsRawData(); } // helper for in console
