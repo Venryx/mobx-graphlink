@@ -132,7 +132,7 @@ export class QueryParams_Linked extends QueryParams {
 				subscription DocInCollection_${this.CollectionName}${varsDefineAsStr} {
 					${
             //ModifyString(this.DocSchemaName, m=>[m.startUpper_to_lower, m.underscoreUpper_to_underscoreLower])
-            this.CollectionName.replace(/s$/, "")}${argsAsStr} {
+            this.CollectionName.replace(/ies$/, "y").replace(/s$/, "")}${argsAsStr} {
 						${pairs.map(a => a.key).join(" ")}
 					}
 				}
