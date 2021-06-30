@@ -5,7 +5,7 @@ export declare abstract class Command<Payload, ReturnData = void> {
     static defaultPayload: {};
     constructor(payload: Payload);
     constructor(options: Partial<GraphOptions>, payload: Payload);
-    get userInfo(): import("../Graphlink.js").UserInfo | null;
+    get userInfo(): import("../Graphlink.js").UserInfo;
     type: string;
     options: GraphOptions;
     payload: Payload;

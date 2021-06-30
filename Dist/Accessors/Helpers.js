@@ -14,6 +14,7 @@ import { DataStatus } from "../Tree/TreeNode.js";
 import { TreeRequestWatcher } from "../Tree/TreeRequestWatcher.js";
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 // (one of the rare cases where opt is not the first argument; that's because GetWait may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
+// Note: This function doesn't really have a purpose atm, as Command.Validate functions already use a GetAsync wrapper that quick-throws as soon as any db-request has to wait.
 export function GetWait(dataGetterFunc, options, funcName) {
     // Alt approach 1) Use checks like "=== null", "=== undefined", and "=== emptyArray_forLoading" [con: hard to ensure these magic values are propogated through every level properly]
     // Alt approach 2) Find main tree-node, and just checks its single node.status value [con: doesn't work for freeform/multi-tree-node store-accessors]
@@ -157,7 +158,7 @@ export function GetAsync(dataGetterFunc, options) {
 export let AssertV_triggerDebugger = false;
 /** Variant of Assert, which does not trigger the debugger. (to be used in mobx-graphlink Command.Validate functions, since it's okay/expected for those to fail asserts) */
 export function AssertV(condition, messageOrMessageFunc) {
-    Assert(condition, messageOrMessageFunc, AssertV_triggerDebugger);
+    Assert(condition, messageOrMessageFunc /* temp */, AssertV_triggerDebugger);
     return true;
 }
 Object.defineProperty(Function.prototype, "AV", {
@@ -183,4 +184,8 @@ class AVWrapper {
 AVWrapper.generic = new AVWrapper("");
 /** Helper object for making in-line assertions. */
 export const AV = AVWrapper.generic;
+export function NNV(val) {
+    AssertV(val != null, () => `Value cannot be null. (provided value: ${val})`);
+    return val;
+}
 export let storeAccessorCachingTempDisabled = false;

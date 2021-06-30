@@ -20,19 +20,17 @@ export declare class StoreAccessorOptions {
     cache_unwrapArrays: boolean;
 }
 export declare type CallArgToDependencyConvertorFunc = (callArgs: any[]) => any[];
+declare type WithNonNullableReturnType<Func> = Func extends ((..._: infer Args) => infer ReturnTypeX) ? (..._: Args) => NonNullable<ReturnTypeX> : Func;
+declare type FuncExtensions<Func> = {
+    Wait: Func;
+    NN: WithNonNullableReturnType<Func>;
+    WithBail: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(bailValOrGetter: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : Func;
+};
 interface StoreAccessorFunc<RootState_PreSet = RootStoreShape> {
-    <Func extends Function, RootState = RootState_PreSet>(accessor: (s: RootState) => Func): Func & {
-        Wait: Func;
-    };
-    <Func extends Function, RootState = RootState_PreSet>(options: Partial<GraphOptions<RootState> & StoreAccessorOptions>, accessor: (s: RootState) => Func): Func & {
-        Wait: Func;
-    };
-    <Func extends Function, RootState = RootState_PreSet>(name: string, accessor: (s: RootState) => Func): Func & {
-        Wait: Func;
-    };
-    <Func extends Function, RootState = RootState_PreSet>(name: string, options: Partial<GraphOptions<RootState> & StoreAccessorOptions>, accessor: (s: RootState) => Func): Func & {
-        Wait: Func;
-    };
+    <Func extends Function, RootState = RootState_PreSet>(accessor: (s: RootState) => Func): Func & FuncExtensions<Func>;
+    <Func extends Function, RootState = RootState_PreSet>(options: Partial<GraphOptions<RootState> & StoreAccessorOptions>, accessor: (s: RootState) => Func): Func & FuncExtensions<Func>;
+    <Func extends Function, RootState = RootState_PreSet>(name: string, accessor: (s: RootState) => Func): Func & FuncExtensions<Func>;
+    <Func extends Function, RootState = RootState_PreSet>(name: string, options: Partial<GraphOptions<RootState> & StoreAccessorOptions>, accessor: (s: RootState) => Func): Func & FuncExtensions<Func>;
 }
 /**
 Probably temp. Usage:

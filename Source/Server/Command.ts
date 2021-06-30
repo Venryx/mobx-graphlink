@@ -37,7 +37,7 @@ export abstract class Command<Payload, ReturnData = void> {
 		this.payload = E(Clone(this.constructor["defaultPayload"]), Clone(payload));
 	}
 	//userInfo: FireUserInfo;
-	get userInfo() { return this.options.graph.userInfo; }
+	get userInfo() { return this.options.graph.userInfo!; }
 	type: string;
 	options: GraphOptions;
 	payload: Payload;

@@ -2,8 +2,9 @@ import {computedFn} from "mobx-utils";
 import {CE, ObjectCE, E, Assert} from "js-vextensions";
 import {GraphOptions, defaultGraphOptions} from "../Graphlink.js";
 import {RootStoreShape} from "../UserTypes.js";
-import {storeAccessorCachingTempDisabled, GetWait} from "./Helpers.js";
+import {storeAccessorCachingTempDisabled, GetWait, AssertV} from "./Helpers.js";
 import {g} from "../Utils/@PrivateExports.js";
+import {ArgumentsType} from "updeep/types/types";
 
 // for profiling
 class StoreAccessorProfileData {
@@ -58,11 +59,28 @@ export type CallArgToDependencyConvertorFunc = (callArgs: any[])=>any[];
 	<Func extends Function>(accessor: (s: RootState)=>Func, callArgToDependencyConvertorFunc?: CallArgToDependencyConvertorFunc): Func & {WS: (state: RootState)=>Func};
 	<Func extends Function>(name: string, accessor: (s: RootState)=>Func, callArgToDependencyConvertorFunc?: CallArgToDependencyConvertorFunc): Func & {WS: (state: RootState)=>Func};
 }*/
-interface StoreAccessorFunc<RootState_PreSet = RootStoreShape> {
+/*interface StoreAccessorFunc<RootState_PreSet = RootStoreShape> {
 	<Func extends Function, RootState = RootState_PreSet>(accessor: (s: RootState)=>Func): Func & {Wait: Func};
 	<Func extends Function, RootState = RootState_PreSet>(options: Partial<GraphOptions<RootState> & StoreAccessorOptions>, accessor: (s: RootState)=>Func): Func & {Wait: Func};
 	<Func extends Function, RootState = RootState_PreSet>(name: string, accessor: (s: RootState)=>Func): Func & {Wait: Func};
 	<Func extends Function, RootState = RootState_PreSet>(name: string, options: Partial<GraphOptions<RootState> & StoreAccessorOptions>, accessor: (s: RootState)=>Func): Func & {Wait: Func};
+}*/
+type WithNonNullableReturnType<Func> =
+	Func extends ((..._: infer Args)=>infer ReturnTypeX)
+		? (..._: Args)=>NonNullable<ReturnTypeX>
+		: Func;
+type FuncExtensions<Func> = {
+	Wait: Func,
+	NN: WithNonNullableReturnType<Func>,
+	WithBail: Func extends ((..._: infer Args)=>infer ReturnTypeX)
+		? <T>(bailValOrGetter: T, ..._: Args)=>NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T)
+		: Func,
+};
+interface StoreAccessorFunc<RootState_PreSet = RootStoreShape> {
+	<Func extends Function, RootState = RootState_PreSet>(accessor: (s: RootState)=>Func): Func & FuncExtensions<Func>;
+	<Func extends Function, RootState = RootState_PreSet>(options: Partial<GraphOptions<RootState> & StoreAccessorOptions>, accessor: (s: RootState)=>Func): Func & FuncExtensions<Func>;
+	<Func extends Function, RootState = RootState_PreSet>(name: string, accessor: (s: RootState)=>Func): Func & FuncExtensions<Func>;
+	<Func extends Function, RootState = RootState_PreSet>(name: string, options: Partial<GraphOptions<RootState> & StoreAccessorOptions>, accessor: (s: RootState)=>Func): Func & FuncExtensions<Func>;
 }
 
 /**
@@ -198,12 +216,20 @@ export const StoreAccessor: StoreAccessorFunc = (...args)=> {
 	};
 
 	// Func.Wait(thing) is shortcut for GetWait(()=>Func(thing))
+	// Note: This function doesn't really have a purpose atm, as Command.Validate functions already use a GetAsync wrapper that quick-throws as soon as any db-request has to wait.
 	wrapperAccessor.Wait = (...callArgs)=>{
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
 		const opt = E(StoreAccessorOptions.default, options!) as Partial<GraphOptions> & StoreAccessorOptions;
 		let graphOpt = E(defaultGraphOptions, CE(opt).Including("graph"));
 
 		return GetWait(()=>wrapperAccessor(...callArgs), graphOpt);
+	};
+	// this is kind of a "lighter" version of Func.Wait; rather than check if any db-paths are being waited for, it confirms that the result is non-null, erroring otherwise (so similar, but not exactly the same)
+	// (we override Function.NN from jsve, so we can call AssertV instead, and for a slightly more specific error message)
+	wrapperAccessor.NN = (...callArgs)=>{
+		const result = wrapperAccessor(...callArgs);
+		AssertV(result != null, `Store-accessor "${wrapperAccessor.name}" returned ${result}. Since this violates a non-null type-guard, an error has been thrown; the caller will try again once the underlying data changes.`);
+		return result;
 	};
 
 	//if (name) wrapperAccessor["displayName"] = name;

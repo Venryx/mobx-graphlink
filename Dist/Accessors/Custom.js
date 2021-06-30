@@ -1,7 +1,7 @@
 import { computedFn } from "mobx-utils";
 import { CE, E, Assert } from "js-vextensions";
 import { defaultGraphOptions } from "../Graphlink.js";
-import { storeAccessorCachingTempDisabled, GetWait } from "./Helpers.js";
+import { storeAccessorCachingTempDisabled, GetWait, AssertV } from "./Helpers.js";
 import { g } from "../Utils/@PrivateExports.js";
 // for profiling
 class StoreAccessorProfileData {
@@ -178,11 +178,19 @@ export const StoreAccessor = (...args) => {
         return result;
     };
     // Func.Wait(thing) is shortcut for GetWait(()=>Func(thing))
+    // Note: This function doesn't really have a purpose atm, as Command.Validate functions already use a GetAsync wrapper that quick-throws as soon as any db-request has to wait.
     wrapperAccessor.Wait = (...callArgs) => {
         // initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
         const opt = E(StoreAccessorOptions.default, options);
         let graphOpt = E(defaultGraphOptions, CE(opt).Including("graph"));
         return GetWait(() => wrapperAccessor(...callArgs), graphOpt);
+    };
+    // this is kind of a "lighter" version of Func.Wait; rather than check if any db-paths are being waited for, it confirms that the result is non-null, erroring otherwise (so similar, but not exactly the same)
+    // (we override Function.NN from jsve, so we can call AssertV instead, and for a slightly more specific error message)
+    wrapperAccessor.NN = (...callArgs) => {
+        const result = wrapperAccessor(...callArgs);
+        AssertV(result != null, `Store-accessor "${wrapperAccessor.name}" returned ${result}. Since this violates a non-null type-guard, an error has been thrown; the caller will try again once the underlying data changes.`);
+        return result;
     };
     //if (name) wrapperAccessor["displayName"] = name;
     //if (name) Object.defineProperty(wrapperAccessor, "name", {value: name});

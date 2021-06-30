@@ -3,7 +3,6 @@ import { runInAction } from "mobx";
 import { defaultGraphOptions } from "../Graphlink.js";
 import { DataStatus } from "../Tree/TreeNode.js";
 import { DoX_ComputationSafe } from "../Utils/MobX.js";
-import { nil } from "../Utils/Nil.js";
 import { PathOrPathGetterToPathSegments } from "../Utils/PathHelpers.js";
 import { NotifyWaitingForDB } from "./Helpers.js";
 /*
@@ -81,7 +80,7 @@ export function GetDoc(options, docPathOrGetterFunc) {
     else {
         // we can't change observables from within computations, so do it in a moment (out of computation call-stack)
         DoX_ComputationSafe(() => runInAction("GetDoc_Request", () => {
-            opt.graph.tree.Get(pathSegments, nil, true).Request();
+            opt.graph.tree.Get(pathSegments, undefined, true).Request();
         }));
     }
     //if (opt.undefinedForLoading && treeNode?.status != DataStatus.Received_Full) return undefined;

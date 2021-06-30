@@ -1,9 +1,3 @@
-export declare function Assert(condition: any, messageOrMessageFunc?: string | Function): condition is true;
-export declare function AssertWarn(condition: any, messageOrMessageFunc?: string | Function): void;
-export declare function GetStackTraceStr(opt?: {
-    stackTrace?: string;
-    sourceStackTrace?: boolean;
-}): string;
 export declare function Log(...args: any[]): void;
 export declare class LogTypes_Base {
     dbRequests: boolean;

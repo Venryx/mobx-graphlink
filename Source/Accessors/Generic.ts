@@ -23,7 +23,7 @@ export class GetDocs_Options {
 	resultForLoading? = emptyArray_forLoading;
 	//resultForEmpty? = emptyArray;
 }
-export function GetDocs<DB = DBShape, DocT = any>(options: Partial<GraphOptions<any, DB>> & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>ObservableMap<any, DocT>)): DocT[]|undefined {
+export function GetDocs<DB = DBShape, DocT = any>(options: Partial<GraphOptions<any, DB>> & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>ObservableMap<any, DocT>)): DocT[] {
 	const opt = E(defaultGraphOptions, GetDocs_Options.default, options) as GraphOptions & GetDocs_Options;
 	let subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
 	//let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
@@ -47,7 +47,7 @@ export function GetDocs<DB = DBShape, DocT = any>(options: Partial<GraphOptions<
 	
 	if (treeNode?.status != DataStatus.Received_Full) {
 		NotifyWaitingForDB(pathSegments.join("/"));
-		return opt.resultForLoading;
+		return opt.resultForLoading as DocT[];
 	}
 	/*let docNodes = Array.from(treeNode.docNodes.values());
 	let docDatas = docNodes.map(docNode=>docNode.data);
@@ -82,7 +82,7 @@ export function GetDoc<DB = DBShape, DocT = any>(options: Partial<GraphOptions<a
 	} else {
 		// we can't change observables from within computations, so do it in a moment (out of computation call-stack)
 		DoX_ComputationSafe(()=>runInAction("GetDoc_Request", ()=> {
-			opt.graph.tree.Get(pathSegments, nil, true)!.Request();
+			opt.graph.tree.Get(pathSegments, undefined, true)!.Request();
 		}));
 	}
 

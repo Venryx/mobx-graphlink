@@ -7,6 +7,7 @@ import {MobXPathGetterToPath} from "../Utils/PathHelpers.js";
 
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 // (one of the rare cases where opt is not the first argument; that's because GetWait may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
+// Note: This function doesn't really have a purpose atm, as Command.Validate functions already use a GetAsync wrapper that quick-throws as soon as any db-request has to wait.
 export function GetWait<T>(dataGetterFunc: ()=>T, options?: Partial<GraphOptions>, funcName?: string): T {
 	// Alt approach 1) Use checks like "=== null", "=== undefined", and "=== emptyArray_forLoading" [con: hard to ensure these magic values are propogated through every level properly]
 	// Alt approach 2) Find main tree-node, and just checks its single node.status value [con: doesn't work for freeform/multi-tree-node store-accessors]
@@ -157,9 +158,9 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<Graph
 
 export let AssertV_triggerDebugger = false;
 /** Variant of Assert, which does not trigger the debugger. (to be used in mobx-graphlink Command.Validate functions, since it's okay/expected for those to fail asserts) */
-export function AssertV(condition, messageOrMessageFunc?: string | Function): condition is true {
-	Assert(condition, messageOrMessageFunc, AssertV_triggerDebugger);
-	return true;
+export function AssertV(condition, messageOrMessageFunc?: string | Function | null): asserts condition {
+	Assert(condition, messageOrMessageFunc as any /* temp */, AssertV_triggerDebugger);
+	return true as any;
 }
 
 /*export function AV(propNameOrGetter: string | ((..._)=>any)) {
@@ -203,11 +204,16 @@ class AVWrapper {
 		AssertV(value != null, ()=>`Value${this.propName ? ` of prop "${this.propName}"` : ""} cannot be null. (provided value: ${value})`);
 		return value;
 	}
-	set NonNull(value) {
+	set NonNull(value: NonNullable<any>) {
 		this.NonNull_(value);
 	}
 }
 /** Helper object for making in-line assertions. */
 export const AV = AVWrapper.generic;
+
+export function NNV<T>(val: T): NonNullable<T> {
+	AssertV(val != null, ()=>`Value cannot be null. (provided value: ${val})`);
+	return val as any;
+}
 
 export let storeAccessorCachingTempDisabled = false;
