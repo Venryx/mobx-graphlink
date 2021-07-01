@@ -44,6 +44,7 @@ export function WithStore<T>(options: Partial<GraphOptions>, store: any, accesso
 // for profiling
 export const accessorStack = [] as string[];
 
+//export class StoreAccessorOptions<T> {
 export class StoreAccessorOptions {
 	static default = new StoreAccessorOptions();
 	cache = true;
@@ -52,6 +53,10 @@ export class StoreAccessorOptions {
 	//cache_unwrapArgs?: number[];
 	cache_unwrapArrays = true;
 	//callArgToDependencyConvertorFunc?: CallArgToDependencyConvertorFunc;
+
+	/** Short for bail-result. */
+	//onBail: T;
+	onBail: any;
 }
 export type CallArgToDependencyConvertorFunc = (callArgs: any[])=>any[];
 
@@ -71,9 +76,10 @@ type WithNonNullableReturnType<Func> =
 		: Func;
 type FuncExtensions<Func> = {
 	Wait: Func,
-	NN: WithNonNullableReturnType<Func>,
-	WithBail: Func extends ((..._: infer Args)=>infer ReturnTypeX)
-		? <T>(bailValOrGetter: T, ..._: Args)=>NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T)
+	/*#* Short for "bail if null". */
+	//BIN: WithNonNullableReturnType<Func>,
+	CatchBail: Func extends ((..._: infer Args)=>infer ReturnTypeX)
+		? <T>(bailResultOrGetter: T, ..._: Args)=>NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T)
 		: Func,
 };
 interface StoreAccessorFunc<RootState_PreSet = RootStoreShape> {
@@ -82,6 +88,23 @@ interface StoreAccessorFunc<RootState_PreSet = RootStoreShape> {
 	<Func extends Function, RootState = RootState_PreSet>(name: string, accessor: (s: RootState)=>Func): Func & FuncExtensions<Func>;
 	<Func extends Function, RootState = RootState_PreSet>(name: string, options: Partial<GraphOptions<RootState> & StoreAccessorOptions>, accessor: (s: RootState)=>Func): Func & FuncExtensions<Func>;
 }
+/*type WithReturnTypeExtended<Func, X> =
+	Func extends ((..._: infer Args)=>infer ReturnTypeX)
+		? (..._: Args)=>ReturnTypeX | X
+		: Func;
+type StoreAccessor_FuncFinal<Func, Bail> = {
+	Wait: Func,
+	BIN: WithNonNullableReturnType<Func>,
+	CatchBail: Func extends ((..._: infer Args)=>infer ReturnTypeX)
+		? <T>(bailResultOrGetter: T, ..._: Args)=>NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T)
+		: Func,
+} & WithReturnTypeExtended<Func, Bail>;
+interface StoreAccessorFunc<RootState_PreSet = RootStoreShape> {
+	<Func extends Function, RootState = RootState_PreSet, Bail = undefined>(accessor: (s: RootState)=>Func): StoreAccessor_FuncFinal<Func, Bail>;
+	<Func extends Function, RootState = RootState_PreSet, Bail = any>(options: Partial<GraphOptions<RootState> & StoreAccessorOptions<Bail>>, accessor: (s: RootState)=>Func): StoreAccessor_FuncFinal<Func, Bail>;
+	<Func extends Function, RootState = RootState_PreSet, Bail = undefined>(name: string, accessor: (s: RootState)=>Func): StoreAccessor_FuncFinal<Func, Bail>;
+	<Func extends Function, RootState = RootState_PreSet, Bail = any>(name: string, options: Partial<GraphOptions<RootState> & StoreAccessorOptions<Bail>>, accessor: (s: RootState)=>Func): StoreAccessor_FuncFinal<Func, Bail>;
+}*/
 
 /**
 Probably temp. Usage:
@@ -226,11 +249,11 @@ export const StoreAccessor: StoreAccessorFunc = (...args)=> {
 	};
 	// this is kind of a "lighter" version of Func.Wait; rather than check if any db-paths are being waited for, it confirms that the result is non-null, erroring otherwise (so similar, but not exactly the same)
 	// (we override Function.NN from jsve, so we can call AssertV instead, and for a slightly more specific error message)
-	wrapperAccessor.NN = (...callArgs)=>{
+	/*wrapperAccessor.NN = (...callArgs)=>{
 		const result = wrapperAccessor(...callArgs);
 		AssertV(result != null, `Store-accessor "${wrapperAccessor.name}" returned ${result}. Since this violates a non-null type-guard, an error has been thrown; the caller will try again once the underlying data changes.`);
 		return result;
-	};
+	};*/
 
 	//if (name) wrapperAccessor["displayName"] = name;
 	//if (name) Object.defineProperty(wrapperAccessor, "name", {value: name});

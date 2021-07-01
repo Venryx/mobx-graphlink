@@ -42,7 +42,7 @@ export class QueryParams {
 	}
 
 	/** This function cleans the data-structure. (ie. requests with identical meanings but different json-strings, are made uniform) */
-	Clean() {
+	Clean?() {
 		if (this.filter) {
 			const filterObj_final = Clone(this.filter);
 			for (const [key, value] of Object.entries(filterObj_final)) {
@@ -102,7 +102,7 @@ export class QueryParams_Linked extends QueryParams {
 	constructor(initialData?: {treeNode: TreeNode<any>} & Partial<QueryParams_Linked>) {
 		super();
 		CE(this).Extend(initialData);
-		this.Clean(); // our data is probably already cleaned (ie. if called from "TreeNode.Get(...)"), but clean it again (in case user called this constructor directly)
+		this.Clean!(); // our data is probably already cleaned (ie. if called from "TreeNode.Get(...)"), but clean it again (in case user called this constructor directly)
 		this.CalculateDerivatives();
 	}
 	
@@ -427,7 +427,7 @@ export class TreeNode<DataShape> {
 			if (query) {
 				// make sure query object is an "actual instance of" QueryParams (else query.toString() will return useless "[object Object]")
 				Object.setPrototypeOf(query, QueryParams.prototype);
-				query.Clean(); // query must be cleaned now, before calling "toString()" (the keys need to be consistent)
+				query.Clean!(); // query must be cleaned now, before calling "toString()" (the keys need to be consistent)
 
 				// if tree-node is non-existent, we have to either create it (if permitted), or abort
 				if (!currentNode.queryNodes.has(query.toString())) {

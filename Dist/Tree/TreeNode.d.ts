@@ -24,7 +24,7 @@ export declare class QueryParams {
     static ParseData(data: any): QueryParams;
     toString(): string;
     /** This function cleans the data-structure. (ie. requests with identical meanings but different json-strings, are made uniform) */
-    Clean(): this;
+    Clean?(): this;
     constructor(initialData?: Partial<QueryParams_Linked>);
     /** Example: "$limit: Int!, $maxValue: Int!" */
     varsDefine?: string;

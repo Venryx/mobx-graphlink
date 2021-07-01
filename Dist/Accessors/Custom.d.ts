@@ -18,13 +18,13 @@ export declare class StoreAccessorOptions {
     cache: boolean;
     cache_keepAlive: boolean;
     cache_unwrapArrays: boolean;
+    /** Short for bail-result. */
+    onBail: any;
 }
 export declare type CallArgToDependencyConvertorFunc = (callArgs: any[]) => any[];
-declare type WithNonNullableReturnType<Func> = Func extends ((..._: infer Args) => infer ReturnTypeX) ? (..._: Args) => NonNullable<ReturnTypeX> : Func;
 declare type FuncExtensions<Func> = {
     Wait: Func;
-    NN: WithNonNullableReturnType<Func>;
-    WithBail: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(bailValOrGetter: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : Func;
+    CatchBail: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(bailResultOrGetter: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : Func;
 };
 interface StoreAccessorFunc<RootState_PreSet = RootStoreShape> {
     <Func extends Function, RootState = RootState_PreSet>(accessor: (s: RootState) => Func): Func & FuncExtensions<Func>;

@@ -8,6 +8,7 @@ export * from "./Extensions/SchemaHelpers.js";
 export * from "./Extensions/Decorators.js";
 export * from "./Server/Command.js";
 export * from "./Tree/TreeNode.js";
+export * from "./Utils/BailManager.js";
 export * from "./Utils/DatabaseHelpers.js";
 export * from "./Utils/DBUpdateMerging.js";
 export * from "./Utils/General.js";
