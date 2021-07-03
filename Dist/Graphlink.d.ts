@@ -1,7 +1,7 @@
 import { TreeNode } from "./Tree/TreeNode.js";
 import { TreeRequestWatcher } from "./Tree/TreeRequestWatcher.js";
 import { ApolloClient, NormalizedCacheObject } from "@apollo/client/core/index.js";
-import { AccessorContext } from "./Accessors/Custom.js";
+import { AccessorContext } from "./Accessors/CreateAccessor.js";
 export declare let defaultGraphOptions: GraphOptions;
 export declare function SetDefaultGraphOptions(opt: GraphOptions): void;
 export interface GraphOptions<RootStoreShape = any, DBShape = any> {

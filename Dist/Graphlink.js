@@ -15,7 +15,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import { TreeNode } from "./Tree/TreeNode.js";
 import { observable } from "mobx";
-import { AccessorContext } from "./Accessors/Custom.js";
+import { AccessorContext } from "./Accessors/CreateAccessor.js";
 export let defaultGraphOptions;
 export function SetDefaultGraphOptions(opt) {
     defaultGraphOptions = opt;

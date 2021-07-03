@@ -15,8 +15,8 @@ export * from "./Graphlink.js"; // main
 // subfolders
 // ==========
 
-export * from "./Accessors/Custom.js";
-export * from "./Accessors/Generic.js";
+export * from "./Accessors/CreateAccessor.js";
+export * from "./Accessors/DBAccessors.js";
 export * from "./Accessors/Helpers.js";
 
 export * from "./DBShape/Constructs.js";

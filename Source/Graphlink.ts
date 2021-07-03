@@ -3,7 +3,7 @@ import {TreeRequestWatcher} from "./Tree/TreeRequestWatcher.js";
 import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "./Utils/PathHelpers.js";
 import {observable, runInAction} from "mobx";
 import {ApolloClient, NormalizedCacheObject} from "@apollo/client/core/index.js";
-import {AccessorContext} from "./Accessors/Custom.js";
+import {AccessorContext} from "./Accessors/CreateAccessor.js";
 
 export let defaultGraphOptions: GraphOptions;
 export function SetDefaultGraphOptions(opt: GraphOptions) {

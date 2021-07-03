@@ -1,5 +1,6 @@
 import { GraphOptions, Graphlink } from "../Graphlink.js";
 import { RootStoreShape } from "../UserTypes.js";
+import { AccessorMetadata } from "./@AccessorMetadata.js";
 export declare function WithStore<T>(options: Partial<GraphOptions>, store: any, accessorFunc: () => T): T;
 export declare class AccessorOptions {
     static default: AccessorOptions;
@@ -32,13 +33,15 @@ export declare class AccessorContext<RootStoreShape> {
     constructor(graph: Graphlink<RootStoreShape, any>);
     graph: Graphlink<RootStoreShape, any>;
     accessorCallStack: AccessorCallStackEntry[];
-    get liveValuesStack_current(): AccessorCallStackEntry;
+    get accessorCallStack_current(): AccessorCallStackEntry;
     get store(): RootStoreShape;
+    get accessorMeta(): AccessorMetadata;
     get catchItemBails(): boolean;
-    get catchItemBails_asX(): boolean;
+    get catchItemBails_asX(): any;
+    MaybeCatchItemBail<T>(itemGetter: () => T): T;
 }
 export declare class AccessorCallStackEntry {
-    accessor: Function;
+    meta: AccessorMetadata;
     catchItemBails: boolean;
     catchItemBails_asX: any;
     _startTime?: number;

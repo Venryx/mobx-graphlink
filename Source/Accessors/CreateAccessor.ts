@@ -1,36 +1,13 @@
 import {computedFn} from "mobx-utils";
-import {CE, ObjectCE, E, Assert} from "js-vextensions";
+import {CE, ObjectCE, E, Assert, emptyObj} from "js-vextensions";
 import {GraphOptions, defaultGraphOptions, Graphlink} from "../Graphlink.js";
 import {RootStoreShape} from "../UserTypes.js";
 import {storeAccessorCachingTempDisabled, GetWait, AssertV} from "./Helpers.js";
 import {g} from "../Utils/@PrivateExports.js";
 import {ArgumentsType} from "updeep/types/types";
 import {CatchBail} from "../Utils/BailManager.js";
-import {AccessorCache, GetAccessorCache} from "./CacheManager.js";
-
-// for profiling
-class AccessorProfileData {
-	constructor(name: string) {
-		this.name = name;
-		// make names the same length, for easier scanning in console listing // not needed for console.table
-		//this.name = _.padEnd(name, 50, " ");
-		this.callCount = 0;
-		this.totalRunTime = 0;
-		this.totalRunTime_asRoot = 0;
-	}
-	name: string;
-	callCount: number;
-	totalRunTime: number;
-	totalRunTime_asRoot: number;
-	//origAccessors: Function[];
-}
-export const accessorProfileData = {} as {[key: string]: AccessorProfileData};
-export function LogAccessorRunTimes() {
-	const accessorRunTimes_ordered = CE(CE(accessorProfileData).VValues()).OrderByDescending(a=>a.totalRunTime);
-	console.log(`Store-accessor cumulative run-times: @TotalCalls(${CE(accessorRunTimes_ordered.map(a=>a.callCount)).Sum()}) @TotalTimeInRootAccessors(${CE(accessorRunTimes_ordered.map(a=>a.totalRunTime_asRoot)).Sum()})`);
-	//Log({}, accessorRunTimes_ordered);
-	console.table(accessorRunTimes_ordered);
-}
+import {DeepMap} from "mobx-utils/lib/deepMap";
+import {AccessorMetadata, accessorMetadata} from "./@AccessorMetadata.js";
 
 export function WithStore<T>(options: Partial<GraphOptions>, store: any, accessorFunc: ()=>T): T {
 	const opt = E(defaultGraphOptions, options) as GraphOptions;
@@ -42,9 +19,6 @@ export function WithStore<T>(options: Partial<GraphOptions>, store: any, accesso
 	}
 	return result;
 }
-
-// for profiling
-export const accessorStack = [] as string[];
 
 //export class AccessorOptions<T> {
 export class AccessorOptions {
@@ -62,20 +36,15 @@ export class AccessorOptions {
 }
 export type CallArgToDependencyConvertorFunc = (callArgs: any[])=>any[];
 
-type WithNonNullableReturnType<Func> =
-	Func extends ((..._: infer Args)=>infer ReturnTypeX)
-		? (..._: Args)=>NonNullable<ReturnTypeX>
-		: Func;
-type BailCatcher<Func> = Func extends ((..._: infer Args)=>infer ReturnTypeX)
-	? <T>(bailResultOrGetter: T, ..._: Args)=>NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T)
-	: Func;
 type FuncExtensions<Func> = {
 	Wait: Func,
-	/*#* Short for "bail if null". */
-	//BIN: WithNonNullableReturnType<Func>,
-	CatchBail: BailCatcher<Func>,
-	//CatchItemBails: ItemBailCatcher<Func>, // was same as BailCatcher, but with different arg-name
-	CatchItemBails: BailCatcher<Func>,
+	// other functions, like BIN and BILA, are provided in BailManager.ts as Function.prototype extensions
+	CatchBail: Func extends ((..._: infer Args)=>infer ReturnTypeX)
+		? <T>(bailResultOrGetter: T, ..._: Args)=>NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T)
+		: Func,
+	CatchItemBails: Func extends ((..._: infer Args)=>infer ReturnTypeX)
+		? <T>(itemBailResult: T, ..._: Args)=>NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T)
+		: Func
 };
 
 // I want to use these to extract out the typing, but then it makes the metadata harder to understand for library users
@@ -117,8 +86,8 @@ export class AccessorContext<RootStoreShape> {
 	}
 	
 	graph: Graphlink<RootStoreShape, any>;
-	liveValuesStack = [] as {catchItemBailsAsNulls?: boolean}[];
-	get liveValuesStack_current() { return this.liveValuesStack[this.liveValuesStack.length - 1]; }
+	accessorCallStack = [] as AccessorCallStackEntry[];
+	get accessorCallStack_current() { return this.accessorCallStack[this.accessorCallStack.length - 1]; }
 
 	// static getters, which return the values for the lowest store-accessor in the stack (assumed to be the level of the code asking for this data)
 	//		(if not, eg. if one SA passes func to child SA, then parent SA needs to first cache/unwrap the data it wants, at start of its execution)
@@ -126,14 +95,33 @@ export class AccessorContext<RootStoreShape> {
 		//return AccessorContext.liveValuesStack_current._store;
 		return this.graph.storeOverridesStack.length == 0 ? this.graph.rootStore : this.graph.storeOverridesStack.slice(-1)[0];
 	};
-	get catchItemBailsAsNulls(): boolean {
-		return this.liveValuesStack_current.catchItemBailsAsNulls ?? false;
+	get accessorMeta(): AccessorMetadata {
+		return this.accessorCallStack_current.meta;
+	}
+	get catchItemBails(): boolean {
+		return this.accessorCallStack_current.catchItemBails ?? false;
 	};
+	get catchItemBails_asX(): any {
+		return this.accessorCallStack_current.catchItemBails_asX;
+	};
+	MaybeCatchItemBail<T>(itemGetter: ()=>T): T {
+		if (this.catchItemBails) {
+			return CatchBail(this.catchItemBails_asX, itemGetter);
+		}
+		return itemGetter();
+	}
 }
-const AccessorContext_liveValueSet_presets = {
-	catchItemBailsAsNulls_true: {catchItemBailsAsNulls: true},
-	catchItemBailsAsNulls_false: {catchItemBailsAsNulls: false},
-};
+export class AccessorCallStackEntry {
+	// metadata
+	meta: AccessorMetadata;
+
+	// for use within accessor-func's code (relevant to caching)
+	catchItemBails: boolean;
+	catchItemBails_asX: any;
+
+	// extras (not relevant to caching, or the func's own code [other than for debugging, and potentially logging])
+	_startTime?: number;
+}
 
 /**
 Wrap a function with CreateAccessor if it's under the "Store/" path, and one of the following:
@@ -149,73 +137,59 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 	else [name, options, accessorGetter] = args;
 	name = name! ?? "[name missing]";
 
-	//let addProfiling = manager.devEnv; // manager isn't populated yet
-	const addProfiling = g["DEV"];
-	//const needsWrapper = addProfiling || options.cache;
+	const meta = new AccessorMetadata({name});
+	accessorMetadata.set(name, meta);
 
 	let accessor: Function|undefined;
-	let accessorCache: AccessorCache;
-	let nextCall_catchItemBails = false;
 	const wrapperAccessor = (...callArgs)=>{
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
 		const opt = E(AccessorOptions.default, options!) as Partial<GraphOptions> & AccessorOptions;
 		let graphOpt = E(defaultGraphOptions, CE(opt).Including("graph"));
 		const graph = graphOpt.graph;
-
 		// now that we know what graphlink instance should be used, obtain the actual accessor-func (sending in the graphlink's accessor-context)
 		if (accessor == null) {
 			accessor = accessorGetter(graph.accessorContext) as Function;
 			if (name) CE(accessor).SetName(name);
-			accessorCache = GetAccessorCache(accessor, {keepAlive: opt.cache_keepAlive});
 		}
 
-		if (addProfiling) {
-			accessorStack.push(name ?? "n/a");
-
-			var startTime = performance.now();
-			//return accessor.apply(this, callArgs);
-		}
+		const callStackEntry: AccessorCallStackEntry = {meta, catchItemBails: meta.nextCall_catchItemBails, catchItemBails_asX: meta.nextCall_catchItemBails_asX};
+		graph.accessorContext.accessorCallStack.push(callStackEntry);
+		callStackEntry._startTime = performance.now();
 
 		let result;
-		//graph.accessorContext.liveValuesStack.push({catchItemBailsAsNulls: nextCall_catchItemBails})
-		graph.accessorContext.liveValuesStack.push(AccessorContext_liveValueSet_presets[`catchItemBailsAsNulls_${nextCall_catchItemBails}`]);
-		if (nextCall_catchItemBails) nextCall_catchItemBails = false; // reset flag
+		//graph.accessorContext.accessorCallStack.push(nextCall_catchItemBails ? {catchItemBails: nextCall_catchItemBails, catchItemBails_asX: nextCall_catchItemBails_asX} : AccessorCallStackEntry.default);
+		if (meta.nextCall_catchItemBails) {
+			meta.nextCall_catchItemBails = false; // reset flag
+			//delete meta.nextCall_catchItemBails_asX;
+			// also confirm that function actually uses the flag (else, probably an issue, ie. usage forgotten)
+			Assert(meta.canCatchItemBails, `${name}.CatchItemBails() called, but accessor seems to contain no bail-catching code. (it neither checks for c.catchItemBails, nor calls c.MaybeCatchItemBail)${""
+				}This suggests a mistake, so either remove the CatchItemBails() call, or add bail-catching code within the accessor-func.`);
+		}
 		if (opt.cache && !storeAccessorCachingTempDisabled) {
 			const contextVars = [
 				graph.accessorContext.store,
-				graph.accessorContext.catchItemBailsAsNulls
+				graph.accessorContext.catchItemBails,
+				graph.accessorContext.catchItemBails_asX,
 			];
-			result = accessorCache.CallAccessor_OrReturnCache(contextVars, callArgs, opt.cache_unwrapArrays);
+			result = meta.CallAccessor_OrReturnCache(contextVars, callArgs, opt.cache_unwrapArrays);
 		} else {
 			result = accessor(...callArgs);
 		}
-		graph.accessorContext.liveValuesStack.pop();
 
-		if (addProfiling) {
-			const runTime = performance.now() - startTime!;
-
-			const profileData = accessorProfileData[name] || (accessorProfileData[name] = new AccessorProfileData(name));
-			profileData.callCount++;
-			profileData.totalRunTime += runTime;
-			if (accessorStack.length == 1) {
-				profileData.totalRunTime_asRoot += runTime;
-			}
-			// name should have been added by webpack transformer, but if not, give some info to help debugging (under key "null")
-			if (name == "[name missing]") {
-				profileData["origAccessors"] = profileData["origAccessors"] || [];
-				if (!profileData["origAccessors"].Contains(accessorGetter)) {
-					profileData["origAccessors"].push(accessorGetter);
-				}
-			}
-
-			CE(accessorStack).RemoveAt(accessorStack.length - 1);
+		const runTime = performance.now() - callStackEntry._startTime!;
+		meta.callCount++;
+		meta.totalRunTime += runTime;
+		const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
+		if (isRootAccessor) {
+			meta.totalRunTime_asRoot += runTime;
 		}
+		graph.accessorContext.accessorCallStack.pop();
 
 		return result;
 	};
 
 	// Func.Wait(thing) is shortcut for GetWait(()=>Func(thing))
-	// Note: This function doesn't really have a purpose atm, as Command.Validate functions already use a GetAsync wrapper that quick-throws as soon as any db-request has to wait.
+	// Note: This function doesn't really have a purpose atm, now that "bailing" system is in place.
 	wrapperAccessor.Wait = (...callArgs)=>{
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
 		const opt = E(AccessorOptions.default, options!) as Partial<GraphOptions> & AccessorOptions;
@@ -223,26 +197,17 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 
 		return GetWait(()=>wrapperAccessor(...callArgs), graphOpt);
 	};
-	// this is kind of a "lighter" version of Func.Wait; rather than check if any db-paths are being waited for, it confirms that the result is non-null, erroring otherwise (so similar, but not exactly the same)
-	// (we override Function.NN from jsve, so we can call AssertV instead, and for a slightly more specific error message)
-	/*wrapperAccessor.NN = (...callArgs)=>{
-		const result = wrapperAccessor(...callArgs);
-		AssertV(result != null, `Store-accessor "${wrapperAccessor.name}" returned ${result}. Since this violates a non-null type-guard, an error has been thrown; the caller will try again once the underlying data changes.`);
-		return result;
-	};*/
-
 	wrapperAccessor.CatchBail = (...callArgs)=>{
 		const bailResultOrGetter = callArgs[0];
 		return CatchBail(bailResultOrGetter, wrapperAccessor);
 	};
 	wrapperAccessor.CatchItemBails = (...callArgs)=>{
-		const bailResultOrGetter = callArgs[0];
-		nextCall_catchItemBails = true;
-		return CatchBail(bailResultOrGetter, wrapperAccessor);
+		const bailResult = callArgs[0];
+		meta.nextCall_catchItemBails = true;
+		meta.nextCall_catchItemBails_asX = bailResult;
+		return CatchBail(bailResult, wrapperAccessor);
 	};
 
-	//if (name) wrapperAccessor["displayName"] = name;
-	//if (name) Object.defineProperty(wrapperAccessor, "name", {value: name});
 	if (name) CE(wrapperAccessor).SetName(name);
 	return wrapperAccessor as any;
 };

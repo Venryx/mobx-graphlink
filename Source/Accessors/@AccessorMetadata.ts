@@ -1,30 +1,44 @@
+import {CE} from "js-vextensions";
 import { DeepMap } from "mobx-utils/lib/deepMap";
 import {IComputedValue,IComputedValueOptions, computed, onBecomeUnobserved, _isComputingDerivation, isAction} from "mobx"
 
-export const accessorCaches = new Map<Function, AccessorCache>();
-export function GetAccessorCache(accessor: Function, mobxCacheOpts: IComputedValueOptions<any>) {
-	if (!accessorCaches.has(accessor)) {
-		accessorCaches.set(accessor, new AccessorCache(accessor, mobxCacheOpts));
-	}
-	return accessorCaches.get(accessor)!;
+// profiling
+export function LogAccessorRunTimes() {
+	const accessorRunTimes_ordered = CE(CE(accessorMetadata).VValues()).OrderByDescending(a=>a.totalRunTime);
+	console.log(`Accessor cumulative run-times: @TotalCalls(${CE(accessorRunTimes_ordered.map(a=>a.callCount)).Sum()}) @TotalTimeInRootAccessors(${CE(accessorRunTimes_ordered.map(a=>a.totalRunTime_asRoot)).Sum()})`);
+	//Log({}, accessorRunTimes_ordered);
+	console.table(accessorRunTimes_ordered);
 }
 
-export class AccessorCache {
-	constructor(accessor: Function, mobxCacheOpts: IComputedValueOptions<any>) {
-		this.accessor = accessor;
-		this.mobxCacheOpts = mobxCacheOpts;
+export const accessorMetadata = new Map<string, AccessorMetadata>();
+export class AccessorMetadata {
+	constructor(data: Partial<AccessorMetadata>) {
+		Object.assign(this, data);
+		this.codeStr_cached = this.accessor.toString();
+		this.canCatchItemBails = this.codeStr_cached.includes("catchItemBails") || this.codeStr_cached.includes("MaybeCatchItemBail");
 	}
-
+	name: string;
 	accessor: Function;
-	mobxCacheOpts: IComputedValueOptions<any>;
 
+	// inspection of func-code
+	codeStr_cached: string;
+	canCatchItemBails: boolean;
+
+	// temp fields
+	nextCall_catchItemBails = false;
+	nextCall_catchItemBails_asX: any;
+
+	// profiling
+	callCount = 0;
+	totalRunTime = 0;
+	totalRunTime_asRoot = 0;
+
+	// result-caching
+	mobxCacheOpts: IComputedValueOptions<any>;
 	resultCache: DeepMap<IComputedValue<any>>;
    numberOfArgCombinationsCached = 0
 	memoWarned = false;
-
-	/*private GetCacheEntryForArgs(args: any[]) {
-		return this.resultCache.entry(args);
-	}*/
+	
 	CallAccessor_OrReturnCache(contextVars: any[], callArgs: any[], unwrapArraysForCache = true) {
 		let callArgs_unwrapped = callArgs;
 		if (unwrapArraysForCache) {

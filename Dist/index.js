@@ -10,8 +10,8 @@ if (vLibCounts["mobx-graphlink"] >= 2) {
 export * from "./Graphlink.js"; // main
 // subfolders
 // ==========
-export * from "./Accessors/Custom.js";
-export * from "./Accessors/Generic.js";
+export * from "./Accessors/CreateAccessor.js";
+export * from "./Accessors/DBAccessors.js";
 export * from "./Accessors/Helpers.js";
 export * from "./DBShape/Constructs.js";
 // these "extensions" are separable from mobx-graphlink, but are included for convenience, since I use them everywhere I use mobx-graphlink
