@@ -1,11 +1,11 @@
-import { computedFn } from "mobx-utils";
-import { CE, E, Assert } from "js-vextensions";
+import { CE, E } from "js-vextensions";
 import { defaultGraphOptions } from "../Graphlink.js";
 import { storeAccessorCachingTempDisabled, GetWait } from "./Helpers.js";
 import { g } from "../Utils/@PrivateExports.js";
 import { CatchBail } from "../Utils/BailManager.js";
+import { GetAccessorCache } from "./CacheManager.js";
 // for profiling
-class StoreAccessorProfileData {
+class AccessorProfileData {
     constructor(name) {
         this.name = name;
         // make names the same length, for easier scanning in console listing // not needed for console.table
@@ -15,9 +15,9 @@ class StoreAccessorProfileData {
         this.totalRunTime_asRoot = 0;
     }
 }
-export const storeAccessorProfileData = {};
-export function LogStoreAccessorRunTimes() {
-    const accessorRunTimes_ordered = CE(CE(storeAccessorProfileData).VValues()).OrderByDescending(a => a.totalRunTime);
+export const accessorProfileData = {};
+export function LogAccessorRunTimes() {
+    const accessorRunTimes_ordered = CE(CE(accessorProfileData).VValues()).OrderByDescending(a => a.totalRunTime);
     console.log(`Store-accessor cumulative run-times: @TotalCalls(${CE(accessorRunTimes_ordered.map(a => a.callCount)).Sum()}) @TotalTimeInRootAccessors(${CE(accessorRunTimes_ordered.map(a => a.totalRunTime_asRoot)).Sum()})`);
     //Log({}, accessorRunTimes_ordered);
     console.table(accessorRunTimes_ordered);
@@ -35,8 +35,8 @@ export function WithStore(options, store, accessorFunc) {
 }
 // for profiling
 export const accessorStack = [];
-//export class StoreAccessorOptions<T> {
-export class StoreAccessorOptions {
+//export class AccessorOptions<T> {
+export class AccessorOptions {
     constructor() {
         this.cache = true;
         this.cache_keepAlive = false;
@@ -45,43 +45,57 @@ export class StoreAccessorOptions {
         this.cache_unwrapArrays = true;
     }
 }
-StoreAccessorOptions.default = new StoreAccessorOptions();
-/*type WithReturnTypeExtended<Func, X> =
-    Func extends ((..._: infer Args)=>infer ReturnTypeX)
-        ? (..._: Args)=>ReturnTypeX | X
-        : Func;
-type StoreAccessor_FuncFinal<Func, Bail> = {
-    Wait: Func,
-    BIN: WithNonNullableReturnType<Func>,
-    CatchBail: Func extends ((..._: infer Args)=>infer ReturnTypeX)
-        ? <T>(bailResultOrGetter: T, ..._: Args)=>NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T)
-        : Func,
-} & WithReturnTypeExtended<Func, Bail>;
-interface StoreAccessorFunc<RootState_PreSet = RootStoreShape> {
-    <Func extends Function, RootState = RootState_PreSet, Bail = undefined>(accessor: (s: RootState)=>Func): StoreAccessor_FuncFinal<Func, Bail>;
-    <Func extends Function, RootState = RootState_PreSet, Bail = any>(options: Partial<GraphOptions<RootState> & StoreAccessorOptions<Bail>>, accessor: (s: RootState)=>Func): StoreAccessor_FuncFinal<Func, Bail>;
-    <Func extends Function, RootState = RootState_PreSet, Bail = undefined>(name: string, accessor: (s: RootState)=>Func): StoreAccessor_FuncFinal<Func, Bail>;
-    <Func extends Function, RootState = RootState_PreSet, Bail = any>(name: string, options: Partial<GraphOptions<RootState> & StoreAccessorOptions<Bail>>, accessor: (s: RootState)=>Func): StoreAccessor_FuncFinal<Func, Bail>;
+AccessorOptions.default = new AccessorOptions();
+// I want to use the approach below, but the TS type-inference for args (after removing the 1st one) is still not perfect; it strips the types of "paramName = defaultVal" entries, and param comments
+/*export declare type ArgumentsType_ExceptFirst<F extends (firstArg: any, ...args: any[]) => any> = F extends (firstArg: any, ...args: infer A) => any ? A : never;
+export type AccessorWithContext = (context: AccessorContext, ...args: any[])=>any;
+export type AccessorWithContext_CallShape<Func extends AccessorWithContext> = ((...args: ArgumentsType_ExceptFirst<Func>)=>ReturnType<Func>);
+interface CreateAccessor_Shape2<RootState_PreSet = RootStoreShape> {
+    <Func extends AccessorWithContext, RootState = RootState_PreSet>(accessor: Func): AccessorWithContext_CallShape<Func> & FuncExtensions<Func>;
+    ...
 }*/
 /**
 Probably temp. Usage:
-export const StoreAccessor_Typed = CreateStoreAccessor_Typed<RootStoreShape>();
-export const GetPerson = StoreAccessor_Typed({}, ...);
+export const CreateAccessor_Typed = Create_CreateAccessor_Typed<RootStoreShape>();
+export const GetPerson = CreateAccessor_Typed({}, ...);
 */
-export function CreateStoreAccessor_Typed() {
+export function Create_CreateAccessor_Typed() {
+    // for TS testing of interfaces
+    //const a = CreateAccessor(c=>(/** Keep this... */ name: string, /** Keep this 2... */ others = 4)=>"hi");
     //return State_Base as typeof State_Base<RootStateType, any>;
     //return State_Base as StateFunc_WithWatch<RootState>;
-    return StoreAccessor;
+    return CreateAccessor;
 }
+export class AccessorContext {
+    constructor(graph) {
+        this.liveValuesStack = [];
+        this.graph = graph;
+    }
+    get liveValuesStack_current() { return this.liveValuesStack[this.liveValuesStack.length - 1]; }
+    // static getters, which return the values for the lowest store-accessor in the stack (assumed to be the level of the code asking for this data)
+    //		(if not, eg. if one SA passes func to child SA, then parent SA needs to first cache/unwrap the data it wants, at start of its execution)
+    get store() {
+        //return AccessorContext.liveValuesStack_current._store;
+        return this.graph.storeOverridesStack.length == 0 ? this.graph.rootStore : this.graph.storeOverridesStack.slice(-1)[0];
+    }
+    ;
+    get catchItemBailsAsNulls() {
+        var _a;
+        return (_a = this.liveValuesStack_current.catchItemBailsAsNulls) !== null && _a !== void 0 ? _a : false;
+    }
+    ;
+}
+const AccessorContext_liveValueSet_presets = {
+    catchItemBailsAsNulls_true: { catchItemBailsAsNulls: true },
+    catchItemBailsAsNulls_false: { catchItemBailsAsNulls: false },
+};
 /**
-Wrap a function with StoreAccessor if it's under the "Store/" path, and one of the following:
+Wrap a function with CreateAccessor if it's under the "Store/" path, and one of the following:
 1) It accesses the store directly (ie. store.main.page). (thus, "WithStore(testStoreContents, ()=>GetThingFromStore())" works, without hacky overriding of project-wide "store" export)
-2) It involves "heavy" processing, such that it's worth caching that processing. (rather than use computedFn directly, just standardize on StoreAccessor)
+2) It involves "heavy" processing, such that it's worth caching that processing. (rather than use computedFn directly, just standardize on CreateAccessor)
 3) It involves a transformation of data into a new wrapper (ie. breaking reference equality), such that it's worth caching the processing. (to not trigger unnecessary child-ui re-renders)
 */
-export const StoreAccessor = (...args) => {
-    /*const a = StoreAccessor(s=>(name: string)=>"hi");
-    a("hi");*/
+export const CreateAccessor = (...args) => {
     var _a;
     let name, options, accessorGetter;
     if (typeof args[0] == "function" && args.length == 1)
@@ -96,92 +110,45 @@ export const StoreAccessor = (...args) => {
     //let addProfiling = manager.devEnv; // manager isn't populated yet
     const addProfiling = g["DEV"];
     //const needsWrapper = addProfiling || options.cache;
-    let accessor_forMainStore;
-    let accessor_forMainStore_cacherProxy;
+    let accessor;
+    let accessorCache;
+    let nextCall_catchItemBails = false;
     const wrapperAccessor = (...callArgs) => {
         // initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
-        const opt = E(StoreAccessorOptions.default, options);
+        const opt = E(AccessorOptions.default, options);
         let graphOpt = E(defaultGraphOptions, CE(opt).Including("graph"));
+        const graph = graphOpt.graph;
+        // now that we know what graphlink instance should be used, obtain the actual accessor-func (sending in the graphlink's accessor-context)
+        if (accessor == null) {
+            accessor = accessorGetter(graph.accessorContext);
+            if (name)
+                CE(accessor).SetName(name);
+            accessorCache = GetAccessorCache(accessor, { keepAlive: opt.cache_keepAlive });
+        }
         if (addProfiling) {
             accessorStack.push(name !== null && name !== void 0 ? name : "n/a");
             var startTime = performance.now();
             //return accessor.apply(this, callArgs);
         }
-        let accessor;
-        const usingMainStore = graphOpt.graph.storeOverridesStack.length == 0; // || storeOverridesStack[storeOverridesStack.length - 1] == fire.rootStore;
-        // todo: update this part to new system, with context-arg passed having "store" and "opts" fields (rather than just store)
-        if (usingMainStore) {
-            if (accessor_forMainStore == null) {
-                Assert(graphOpt.graph.rootStore != null, "A store-accessor cannot be called before its associated Graphlink instance has been set.");
-                accessor_forMainStore = accessorGetter(graphOpt.graph.rootStore);
-            }
-            accessor = accessor_forMainStore;
-        }
-        else {
-            accessor = accessorGetter(graphOpt.graph.storeOverridesStack.slice(-1)[0]);
-        }
-        if (name)
-            CE(accessor).SetName(name);
         let result;
-        if (opt.cache && usingMainStore && !storeAccessorCachingTempDisabled) {
-            let callArgs_unwrapped = callArgs;
-            //const callArg_unwrapLengths = {};
-            if (opt.cache_unwrapArrays) {
-                //Assert(options.cache, "There is no point to unwrapping-args if caching is disabled.");
-                //for (const argIndex of options.cache_unwrapArgs.Pairs().map(a=>a.keyNum)) {
-                //callArgs_unwrapped = callArgs.slice();
-                for (const [argIndex, callArg] of callArgs.entries()) {
-                    if (!Array.isArray(callArg))
-                        continue;
-                    // make sure we're not modifying the passed in callArgs array
-                    if (callArgs_unwrapped == callArgs)
-                        callArgs_unwrapped = callArgs.slice();
-                    callArgs_unwrapped.splice(argIndex, 1, "$ARRAY_ITEMS_START", ...callArg, "$ARRAY_ITEMS_END");
-                    //callArg_unwrapLengths[argIndex] = unwrappedValuesForCallArg.length;
-                }
-            }
-            if (accessor_forMainStore_cacherProxy == null) {
-                /*result = computedFn((...callArgs_unwrapped_2)=>{
-                    return accessor(...callArgs);
-                }, {name, keepAlive: opt.cache_keepAlive})(callArgs_unwrapped);*/
-                let accessor_rewrapper = (...callArgs_unwrapped_2) => {
-                    let callArgs_rewrapped = [];
-                    let arrayBeingReconstructed = null;
-                    for (let callArgOrItem of callArgs_unwrapped_2) {
-                        if (callArgOrItem == "$ARRAY_ITEMS_START") {
-                            Assert(arrayBeingReconstructed == null);
-                            arrayBeingReconstructed = [];
-                        }
-                        else if (callArgOrItem == "$ARRAY_ITEMS_END") {
-                            Assert(arrayBeingReconstructed != null);
-                            callArgs_rewrapped.push(arrayBeingReconstructed);
-                            arrayBeingReconstructed = null;
-                        }
-                        else {
-                            if (arrayBeingReconstructed != null) {
-                                arrayBeingReconstructed.push(callArgOrItem);
-                            }
-                            else {
-                                callArgs_rewrapped.push(callArgOrItem);
-                            }
-                        }
-                    }
-                    return accessor(...callArgs_rewrapped);
-                };
-                if (name)
-                    CE(accessor_rewrapper).SetName(name);
-                accessor_forMainStore_cacherProxy = computedFn(accessor_rewrapper, { name, keepAlive: opt.cache_keepAlive });
-                if (name)
-                    CE(accessor_forMainStore_cacherProxy).SetName(name);
-            }
-            result = accessor_forMainStore_cacherProxy(...callArgs_unwrapped);
+        //graph.accessorContext.liveValuesStack.push({catchItemBailsAsNulls: nextCall_catchItemBails})
+        graph.accessorContext.liveValuesStack.push(AccessorContext_liveValueSet_presets[`catchItemBailsAsNulls_${nextCall_catchItemBails}`]);
+        if (nextCall_catchItemBails)
+            nextCall_catchItemBails = false; // reset flag
+        if (opt.cache && !storeAccessorCachingTempDisabled) {
+            const contextVars = [
+                graph.accessorContext.store,
+                graph.accessorContext.catchItemBailsAsNulls
+            ];
+            result = accessorCache.CallAccessor_OrReturnCache(contextVars, callArgs, opt.cache_unwrapArrays);
         }
         else {
             result = accessor(...callArgs);
         }
+        graph.accessorContext.liveValuesStack.pop();
         if (addProfiling) {
             const runTime = performance.now() - startTime;
-            const profileData = storeAccessorProfileData[name] || (storeAccessorProfileData[name] = new StoreAccessorProfileData(name));
+            const profileData = accessorProfileData[name] || (accessorProfileData[name] = new AccessorProfileData(name));
             profileData.callCount++;
             profileData.totalRunTime += runTime;
             if (accessorStack.length == 1) {
@@ -202,7 +169,7 @@ export const StoreAccessor = (...args) => {
     // Note: This function doesn't really have a purpose atm, as Command.Validate functions already use a GetAsync wrapper that quick-throws as soon as any db-request has to wait.
     wrapperAccessor.Wait = (...callArgs) => {
         // initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
-        const opt = E(StoreAccessorOptions.default, options);
+        const opt = E(AccessorOptions.default, options);
         let graphOpt = E(defaultGraphOptions, CE(opt).Including("graph"));
         return GetWait(() => wrapperAccessor(...callArgs), graphOpt);
     };
@@ -219,6 +186,7 @@ export const StoreAccessor = (...args) => {
     };
     wrapperAccessor.CatchItemBails = (...callArgs) => {
         const bailResultOrGetter = callArgs[0];
+        nextCall_catchItemBails = true;
         return CatchBail(bailResultOrGetter, wrapperAccessor);
     };
     //if (name) wrapperAccessor["displayName"] = name;

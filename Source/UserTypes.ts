@@ -12,16 +12,16 @@ declare module 'mobx-graphlink/Dist/UserTypes' {
 }
 ==========
 
-This enables you to get typing within StoreAccessor, GetDocs, etc. without having to pass type-data in each call.
+This enables you to get typing within CreateAccessor, GetDocs, etc. without having to pass type-data in each call.
 
 Note: This approach only works "once" per codebase; so it shouldn't be used by libraries. For libraries, you should do the following:
 ==========
 // in some module
-export const fire = new Firelink<RootStoreShape, DBShape>();
+export const graph = new Graphlink<RootStoreShape, DBShape>();
 
-// in other modules (store/db shapes will be extracted from the type-data of the passed "fire" variable)
-export const GetPerson = StoreAccessor({fire}, ...);
-export const person = GetDoc({fire}, ...);
+// in other modules (store/db shapes will be extracted from the type-data of the passed "graph" variable)
+export const GetPerson = CreateAccessor({graph}, ...);
+export const person = GetDoc({graph}, ...);
 ==========
 */
 

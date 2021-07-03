@@ -1,20 +1,20 @@
-import { GraphOptions } from "../Graphlink.js";
+import { GraphOptions, Graphlink } from "../Graphlink.js";
 import { RootStoreShape } from "../UserTypes.js";
-declare class StoreAccessorProfileData {
+declare class AccessorProfileData {
     constructor(name: string);
     name: string;
     callCount: number;
     totalRunTime: number;
     totalRunTime_asRoot: number;
 }
-export declare const storeAccessorProfileData: {
-    [key: string]: StoreAccessorProfileData;
+export declare const accessorProfileData: {
+    [key: string]: AccessorProfileData;
 };
-export declare function LogStoreAccessorRunTimes(): void;
+export declare function LogAccessorRunTimes(): void;
 export declare function WithStore<T>(options: Partial<GraphOptions>, store: any, accessorFunc: () => T): T;
 export declare const accessorStack: string[];
-export declare class StoreAccessorOptions {
-    static default: StoreAccessorOptions;
+export declare class AccessorOptions {
+    static default: AccessorOptions;
     cache: boolean;
     cache_keepAlive: boolean;
     cache_unwrapArrays: boolean;
@@ -28,23 +28,36 @@ declare type FuncExtensions<Func> = {
     CatchBail: BailCatcher<Func>;
     CatchItemBails: BailCatcher<Func>;
 };
-interface StoreAccessorFunc<RootState_PreSet = RootStoreShape> {
-    <Func extends Function, RootState = RootState_PreSet>(accessor: (s: RootState) => Func): Func & FuncExtensions<Func>;
-    <Func extends Function, RootState = RootState_PreSet>(options: Partial<GraphOptions<RootState> & StoreAccessorOptions>, accessor: (s: RootState) => Func): Func & FuncExtensions<Func>;
-    <Func extends Function, RootState = RootState_PreSet>(name: string, accessor: (s: RootState) => Func): Func & FuncExtensions<Func>;
-    <Func extends Function, RootState = RootState_PreSet>(name: string, options: Partial<GraphOptions<RootState> & StoreAccessorOptions>, accessor: (s: RootState) => Func): Func & FuncExtensions<Func>;
+declare type CA_Options<RootState> = Partial<GraphOptions<RootState> & AccessorOptions>;
+interface CreateAccessor_Shape<RootState_PreSet = RootStoreShape> {
+    <Func extends Function, RootState = RootState_PreSet>(accessorGetter: (context: AccessorContext<RootState>) => Func): Func & FuncExtensions<Func>;
+    <Func extends Function, RootState = RootState_PreSet>(options: CA_Options<RootState>, accessorGetter: (context: AccessorContext<RootState>) => Func): Func & FuncExtensions<Func>;
+    <Func extends Function, RootState = RootState_PreSet>(name: string, accessorGetter: (context: AccessorContext<RootState>) => Func): Func & FuncExtensions<Func>;
+    <Func extends Function, RootState = RootState_PreSet>(name: string, options: CA_Options<RootState>, accessorGetter: (context: AccessorContext<RootState>) => Func): Func & FuncExtensions<Func>;
 }
 /**
 Probably temp. Usage:
-export const StoreAccessor_Typed = CreateStoreAccessor_Typed<RootStoreShape>();
-export const GetPerson = StoreAccessor_Typed({}, ...);
+export const CreateAccessor_Typed = Create_CreateAccessor_Typed<RootStoreShape>();
+export const GetPerson = CreateAccessor_Typed({}, ...);
 */
-export declare function CreateStoreAccessor_Typed<RootState>(): StoreAccessorFunc<RootState>;
+export declare function Create_CreateAccessor_Typed<RootState>(): CreateAccessor_Shape<RootState>;
+export declare class AccessorContext<RootStoreShape> {
+    constructor(graph: Graphlink<RootStoreShape, any>);
+    graph: Graphlink<RootStoreShape, any>;
+    liveValuesStack: {
+        catchItemBailsAsNulls?: boolean | undefined;
+    }[];
+    get liveValuesStack_current(): {
+        catchItemBailsAsNulls?: boolean | undefined;
+    };
+    get store(): RootStoreShape;
+    get catchItemBailsAsNulls(): boolean;
+}
 /**
-Wrap a function with StoreAccessor if it's under the "Store/" path, and one of the following:
+Wrap a function with CreateAccessor if it's under the "Store/" path, and one of the following:
 1) It accesses the store directly (ie. store.main.page). (thus, "WithStore(testStoreContents, ()=>GetThingFromStore())" works, without hacky overriding of project-wide "store" export)
-2) It involves "heavy" processing, such that it's worth caching that processing. (rather than use computedFn directly, just standardize on StoreAccessor)
+2) It involves "heavy" processing, such that it's worth caching that processing. (rather than use computedFn directly, just standardize on CreateAccessor)
 3) It involves a transformation of data into a new wrapper (ie. breaking reference equality), such that it's worth caching the processing. (to not trigger unnecessary child-ui re-renders)
 */
-export declare const StoreAccessor: StoreAccessorFunc;
+export declare const CreateAccessor: CreateAccessor_Shape;
 export {};

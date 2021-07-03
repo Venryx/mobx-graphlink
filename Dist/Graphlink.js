@@ -15,6 +15,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import { TreeNode } from "./Tree/TreeNode.js";
 import { observable } from "mobx";
+import { AccessorContext } from "./Accessors/Custom.js";
 export let defaultGraphOptions;
 export function SetDefaultGraphOptions(opt) {
     defaultGraphOptions = opt;
@@ -25,6 +26,7 @@ export class Graphlink {
     constructor(initOptions) {
         this.initialized = false;
         this.storeOverridesStack = [];
+        this.accessorContext = new AccessorContext(this);
         /*InitSubs() {
             // todo
             this.subs.apollo = null;

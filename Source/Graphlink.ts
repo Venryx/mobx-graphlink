@@ -3,6 +3,7 @@ import {TreeRequestWatcher} from "./Tree/TreeRequestWatcher.js";
 import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "./Utils/PathHelpers.js";
 import {observable, runInAction} from "mobx";
 import {ApolloClient, NormalizedCacheObject} from "@apollo/client/core/index.js";
+import {AccessorContext} from "./Accessors/Custom.js";
 
 export let defaultGraphOptions: GraphOptions;
 export function SetDefaultGraphOptions(opt: GraphOptions) {
@@ -43,6 +44,7 @@ export class Graphlink<RootStoreShape, DBShape> {
 
 	rootStore: RootStoreShape;
 	storeOverridesStack = [] as RootStoreShape[];
+	accessorContext: AccessorContext<RootStoreShape> = new AccessorContext<RootStoreShape>(this);
 
 	/*InitSubs() {
 		// todo
