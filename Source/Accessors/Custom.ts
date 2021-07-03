@@ -5,6 +5,7 @@ import {RootStoreShape} from "../UserTypes.js";
 import {storeAccessorCachingTempDisabled, GetWait, AssertV} from "./Helpers.js";
 import {g} from "../Utils/@PrivateExports.js";
 import {ArgumentsType} from "updeep/types/types";
+import {CatchBail} from "../Utils/BailManager.js";
 
 // for profiling
 class StoreAccessorProfileData {
@@ -74,13 +75,16 @@ type WithNonNullableReturnType<Func> =
 	Func extends ((..._: infer Args)=>infer ReturnTypeX)
 		? (..._: Args)=>NonNullable<ReturnTypeX>
 		: Func;
+type BailCatcher<Func> = Func extends ((..._: infer Args)=>infer ReturnTypeX)
+	? <T>(bailResultOrGetter: T, ..._: Args)=>NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T)
+	: Func;
 type FuncExtensions<Func> = {
 	Wait: Func,
 	/*#* Short for "bail if null". */
 	//BIN: WithNonNullableReturnType<Func>,
-	CatchBail: Func extends ((..._: infer Args)=>infer ReturnTypeX)
-		? <T>(bailResultOrGetter: T, ..._: Args)=>NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T)
-		: Func,
+	CatchBail: BailCatcher<Func>,
+	//CatchItemBails: ItemBailCatcher<Func>, // was same as BailCatcher, but with different arg-name
+	CatchItemBails: BailCatcher<Func>,
 };
 interface StoreAccessorFunc<RootState_PreSet = RootStoreShape> {
 	<Func extends Function, RootState = RootState_PreSet>(accessor: (s: RootState)=>Func): Func & FuncExtensions<Func>;
@@ -124,6 +128,10 @@ Wrap a function with StoreAccessor if it's under the "Store/" path, and one of t
 3) It involves a transformation of data into a new wrapper (ie. breaking reference equality), such that it's worth caching the processing. (to not trigger unnecessary child-ui re-renders)
 */
 export const StoreAccessor: StoreAccessorFunc = (...args)=> {
+
+	/*const a = StoreAccessor(s=>(name: string)=>"hi");
+	a("hi");*/
+
 	let name: string, options: Partial<GraphOptions & StoreAccessorOptions>|null, accessorGetter: Function;
 	if (typeof args[0] == "function" && args.length == 1) [accessorGetter] = args;
 	else if (typeof args[0] == "object" && args.length == 2) [options, accessorGetter] = args;
@@ -151,6 +159,7 @@ export const StoreAccessor: StoreAccessorFunc = (...args)=> {
 
 		let accessor: Function;
 		const usingMainStore = graphOpt.graph.storeOverridesStack.length == 0; // || storeOverridesStack[storeOverridesStack.length - 1] == fire.rootStore;
+		// todo: update this part to new system, with context-arg passed having "store" and "opts" fields (rather than just store)
 		if (usingMainStore) {
 			if (accessor_forMainStore == null) {
 				Assert(graphOpt.graph.rootStore != null, "A store-accessor cannot be called before its associated Graphlink instance has been set.");
@@ -254,6 +263,15 @@ export const StoreAccessor: StoreAccessorFunc = (...args)=> {
 		AssertV(result != null, `Store-accessor "${wrapperAccessor.name}" returned ${result}. Since this violates a non-null type-guard, an error has been thrown; the caller will try again once the underlying data changes.`);
 		return result;
 	};*/
+
+	wrapperAccessor.CatchBail = (...callArgs)=>{
+		const bailResultOrGetter = callArgs[0];
+		return CatchBail(bailResultOrGetter, wrapperAccessor);
+	};
+	wrapperAccessor.CatchItemBails = (...callArgs)=>{
+		const bailResultOrGetter = callArgs[0];
+		return CatchBail(bailResultOrGetter, wrapperAccessor);
+	};
 
 	//if (name) wrapperAccessor["displayName"] = name;
 	//if (name) Object.defineProperty(wrapperAccessor, "name", {value: name});

@@ -1,4 +1,10 @@
-import { Assert, emptyArray_forLoading } from "js-vextensions";
+import { emptyArray_forLoading } from "js-vextensions";
+export class BailMessage {
+    constructor(message) {
+        this.message = message;
+    }
+}
+BailMessage.main = new BailMessage("[generic bail error]");
 Object.defineProperty(Function.prototype, "normal", { get() { return this; } });
 Object.defineProperty(Function.prototype, "BIN", function (...args) {
     const result = this.apply(null, args);
@@ -16,9 +22,42 @@ export class BailContext {
         this.onBail_triggerDebugger = false;
     }
 }
+export function CatchBail(bailResultOrGetter, func) {
+    let result;
+    try {
+        result = func();
+    }
+    catch (ex) {
+        if (ex instanceof BailMessage) {
+            const bailResult = bailResultOrGetter instanceof Function ? bailResultOrGetter() : bailResultOrGetter;
+            return bailResult;
+        }
+        else {
+            throw ex;
+        }
+    }
+    return result;
+}
+;
 export let bailContext;
+export function Bail(messageOrMessageFunc, triggerDebugger = false) {
+    var _a;
+    const message = (_a = (messageOrMessageFunc instanceof Function ? messageOrMessageFunc() : messageOrMessageFunc)) !== null && _a !== void 0 ? _a : "[generic bail error]";
+    const skipBail = false; // add flag which you can use to skip the bailing, when paused in debugger
+    if (triggerDebugger) {
+        debugger;
+    }
+    if (!skipBail) {
+        BailMessage.main.message = message;
+        throw BailMessage.main;
+    }
+    return undefined;
+}
 export function BailUnless(condition, messageOrMessageFunc) {
-    Assert(condition, messageOrMessageFunc /* temp */, bailContext.onBail_triggerDebugger);
+    //Assert(condition, messageOrMessageFunc as any /* temp */, bailContext.onBail_triggerDebugger);
+    if (!condition) {
+        Bail(messageOrMessageFunc);
+    }
     return true;
 }
 export const BU = BailUnless;

@@ -22,9 +22,11 @@ export declare class StoreAccessorOptions {
     onBail: any;
 }
 export declare type CallArgToDependencyConvertorFunc = (callArgs: any[]) => any[];
+declare type BailCatcher<Func> = Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(bailResultOrGetter: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : Func;
 declare type FuncExtensions<Func> = {
     Wait: Func;
-    CatchBail: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(bailResultOrGetter: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : Func;
+    CatchBail: BailCatcher<Func>;
+    CatchItemBails: BailCatcher<Func>;
 };
 interface StoreAccessorFunc<RootState_PreSet = RootStoreShape> {
     <Func extends Function, RootState = RootState_PreSet>(accessor: (s: RootState) => Func): Func & FuncExtensions<Func>;

@@ -3,6 +3,7 @@ import { CE, E, Assert } from "js-vextensions";
 import { defaultGraphOptions } from "../Graphlink.js";
 import { storeAccessorCachingTempDisabled, GetWait } from "./Helpers.js";
 import { g } from "../Utils/@PrivateExports.js";
+import { CatchBail } from "../Utils/BailManager.js";
 // for profiling
 class StoreAccessorProfileData {
     constructor(name) {
@@ -79,6 +80,8 @@ Wrap a function with StoreAccessor if it's under the "Store/" path, and one of t
 3) It involves a transformation of data into a new wrapper (ie. breaking reference equality), such that it's worth caching the processing. (to not trigger unnecessary child-ui re-renders)
 */
 export const StoreAccessor = (...args) => {
+    /*const a = StoreAccessor(s=>(name: string)=>"hi");
+    a("hi");*/
     var _a;
     let name, options, accessorGetter;
     if (typeof args[0] == "function" && args.length == 1)
@@ -106,6 +109,7 @@ export const StoreAccessor = (...args) => {
         }
         let accessor;
         const usingMainStore = graphOpt.graph.storeOverridesStack.length == 0; // || storeOverridesStack[storeOverridesStack.length - 1] == fire.rootStore;
+        // todo: update this part to new system, with context-arg passed having "store" and "opts" fields (rather than just store)
         if (usingMainStore) {
             if (accessor_forMainStore == null) {
                 Assert(graphOpt.graph.rootStore != null, "A store-accessor cannot be called before its associated Graphlink instance has been set.");
@@ -209,6 +213,14 @@ export const StoreAccessor = (...args) => {
         AssertV(result != null, `Store-accessor "${wrapperAccessor.name}" returned ${result}. Since this violates a non-null type-guard, an error has been thrown; the caller will try again once the underlying data changes.`);
         return result;
     };*/
+    wrapperAccessor.CatchBail = (...callArgs) => {
+        const bailResultOrGetter = callArgs[0];
+        return CatchBail(bailResultOrGetter, wrapperAccessor);
+    };
+    wrapperAccessor.CatchItemBails = (...callArgs) => {
+        const bailResultOrGetter = callArgs[0];
+        return CatchBail(bailResultOrGetter, wrapperAccessor);
+    };
     //if (name) wrapperAccessor["displayName"] = name;
     //if (name) Object.defineProperty(wrapperAccessor, "name", {value: name});
     if (name)

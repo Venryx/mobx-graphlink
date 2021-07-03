@@ -2,6 +2,7 @@ import { CE, E, emptyArray, emptyArray_forLoading } from "js-vextensions";
 import { runInAction } from "mobx";
 import { defaultGraphOptions } from "../Graphlink.js";
 import { DataStatus } from "../Tree/TreeNode.js";
+import { Bail } from "../Utils/BailManager.js";
 import { DoX_ComputationSafe } from "../Utils/MobX.js";
 import { PathOrPathGetterToPathSegments } from "../Utils/PathHelpers.js";
 import { NotifyWaitingForDB } from "./Helpers.js";
@@ -13,7 +14,8 @@ Why use explicit GetDocs, GetDoc, etc. calls instead of just Proxy's in mobx sto
 export class GetDocs_Options {
     constructor() {
         this.inLinkRoot = true;
-        this.resultForLoading = emptyArray_forLoading;
+        this.ifLoading_bail = true;
+        this.ifLoading_returnVal = emptyArray_forLoading;
         //resultForEmpty? = emptyArray;
     }
 }
@@ -43,7 +45,10 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
     }
     if ((treeNode === null || treeNode === void 0 ? void 0 : treeNode.status) != DataStatus.Received_Full) {
         NotifyWaitingForDB(pathSegments.join("/"));
-        return opt.resultForLoading;
+        if (opt.ifLoading_bail) {
+            Bail(opt.ifLoading_bail_message);
+        }
+        return opt.ifLoading_returnVal;
     }
     /*let docNodes = Array.from(treeNode.docNodes.values());
     let docDatas = docNodes.map(docNode=>docNode.data);
@@ -59,9 +64,8 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
 export class GetDoc_Options {
     constructor() {
         this.inLinkRoot = true;
-        ///** If true, return undefined when loading. Else, return default (null) when loading. */
-        //undefinedForLoading? = false;
-        this.resultForLoading = undefined;
+        this.ifLoading_bail = true;
+        this.ifLoading_returnVal = undefined;
     }
 }
 GetDoc_Options.default = new GetDoc_Options();
@@ -86,7 +90,10 @@ export function GetDoc(options, docPathOrGetterFunc) {
     //if (opt.undefinedForLoading && treeNode?.status != DataStatus.Received_Full) return undefined;
     if ((treeNode === null || treeNode === void 0 ? void 0 : treeNode.status) != DataStatus.Received_Full) {
         NotifyWaitingForDB(pathSegments.join("/"));
-        return opt.resultForLoading;
+        if (opt.ifLoading_bail) {
+            Bail(opt.ifLoading_bail_message);
+        }
+        return opt.ifLoading_returnVal;
     }
     return treeNode === null || treeNode === void 0 ? void 0 : treeNode.data;
 }

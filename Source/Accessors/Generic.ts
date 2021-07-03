@@ -3,6 +3,7 @@ import {ObservableMap, runInAction} from "mobx";
 import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
 import {DataStatus, QueryParams} from "../Tree/TreeNode.js";
 import {DBShape} from "../UserTypes.js";
+import {Bail, BailMessage} from "../Utils/BailManager.js";
 import {DoX_ComputationSafe} from "../Utils/MobX.js";
 import {nil} from "../Utils/Nil.js";
 import {PathOrPathGetterToPathSegments} from "../Utils/PathHelpers.js";
@@ -20,7 +21,9 @@ export class GetDocs_Options {
 	//queryOps?: QueryOp[];
 	params?: QueryParams;
 	
-	resultForLoading? = emptyArray_forLoading;
+	ifLoading_bail? = true;
+	ifLoading_bail_message?: string;
+	ifLoading_returnVal? = emptyArray_forLoading;
 	//resultForEmpty? = emptyArray;
 }
 export function GetDocs<DB = DBShape, DocT = any>(options: Partial<GraphOptions<any, DB>> & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>ObservableMap<any, DocT>)): DocT[] {
@@ -47,7 +50,10 @@ export function GetDocs<DB = DBShape, DocT = any>(options: Partial<GraphOptions<
 	
 	if (treeNode?.status != DataStatus.Received_Full) {
 		NotifyWaitingForDB(pathSegments.join("/"));
-		return opt.resultForLoading as DocT[];
+		if (opt.ifLoading_bail) {
+			Bail(opt.ifLoading_bail_message);
+		}
+		return opt.ifLoading_returnVal as DocT[];
 	}
 	/*let docNodes = Array.from(treeNode.docNodes.values());
 	let docDatas = docNodes.map(docNode=>docNode.data);
@@ -64,9 +70,10 @@ export function GetDocs<DB = DBShape, DocT = any>(options: Partial<GraphOptions<
 export class GetDoc_Options {
 	static default = new GetDoc_Options();
 	inLinkRoot? = true;
-	///** If true, return undefined when loading. Else, return default (null) when loading. */
-	//undefinedForLoading? = false;
-	resultForLoading? = undefined;
+
+	ifLoading_bail? = true;
+	ifLoading_bail_message?: string;
+	ifLoading_returnVal? = undefined;
 }
 export function GetDoc<DB = DBShape, DocT = any>(options: Partial<GraphOptions<any, DB>> & GetDoc_Options, docPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>DocT)): DocT|null|undefined {
 	const opt = E(defaultGraphOptions, GetDoc_Options.default, options) as GraphOptions & GetDoc_Options;
@@ -89,7 +96,10 @@ export function GetDoc<DB = DBShape, DocT = any>(options: Partial<GraphOptions<a
 	//if (opt.undefinedForLoading && treeNode?.status != DataStatus.Received_Full) return undefined;
 	if (treeNode?.status != DataStatus.Received_Full) {
 		NotifyWaitingForDB(pathSegments.join("/"));
-		return opt.resultForLoading;
+		if (opt.ifLoading_bail) {
+			Bail(opt.ifLoading_bail_message);
+		}
+		return opt.ifLoading_returnVal;
 	}
 	return treeNode?.data;
 }

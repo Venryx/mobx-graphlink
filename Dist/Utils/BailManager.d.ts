@@ -1,4 +1,9 @@
 import { ArgumentsType } from "updeep/types/types";
+export declare class BailMessage {
+    message: string;
+    static main: BailMessage;
+    constructor(message: string);
+}
 declare global {
     interface Function {
         /** The function itself, unchanged. */
@@ -13,7 +18,9 @@ export declare class BailContext {
     onBail_triggerError: boolean;
     onBail_triggerDebugger: boolean;
 }
+export declare function CatchBail<T, ReturnTypeX>(bailResultOrGetter: T, func: (...args: any[]) => ReturnTypeX): NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T);
 export declare let bailContext: BailContext;
+export declare function Bail(messageOrMessageFunc?: string | Function | null, triggerDebugger?: boolean): any;
 export declare function BailUnless(condition: any, messageOrMessageFunc?: string | Function | null): asserts condition;
 export declare const BU: typeof BailUnless;
 export declare function BailIfNull<T>(val: T, messageOrMessageFunc?: string | Function | null): NonNullable<T>;
