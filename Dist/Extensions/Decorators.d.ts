@@ -1,4 +1,13 @@
 import { Knex } from "knex";
+import { BailMessage } from "../Utils/BailManager.js";
+export declare let BailHandler_loadingUI_default: BailHandler;
+export declare function BailHandler_loadingUI_default_Set(value: BailHandler): void;
+export declare type BailHandler = (bailMessage: BailMessage) => any;
+export declare class BailHandler_Options {
+    loadingUI?: BailHandler;
+}
+export declare function BailHandler(targetClass: Function): any;
+export declare function BailHandler(options?: Partial<BailHandler_Options>): any;
 export declare function MGLClass(opts?: {
     name?: string;
     table?: string;

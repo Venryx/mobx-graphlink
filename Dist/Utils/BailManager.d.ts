@@ -20,7 +20,7 @@ export declare class BailContext {
 }
 export declare function CatchBail<T, ReturnTypeX>(bailResultOrGetter: T, func: (...args: any[]) => ReturnTypeX): NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T);
 export declare let bailContext: BailContext;
-export declare function Bail(messageOrMessageFunc?: string | Function | null, triggerDebugger?: boolean): any;
+export declare function Bail(messageOrMessageFunc?: string | Function | null, triggerDebugger?: boolean): never;
 export declare function BailUnless(condition: any, messageOrMessageFunc?: string | Function | null): asserts condition;
 export declare const BU: typeof BailUnless;
 export declare function BailIfNull<T>(val: T, messageOrMessageFunc?: string | Function | null): NonNullable<T>;

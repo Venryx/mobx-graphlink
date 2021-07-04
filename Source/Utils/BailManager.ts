@@ -69,18 +69,18 @@ export function CatchBail<T, ReturnTypeX>(bailResultOrGetter: T, func: (...args:
 };
 
 export let bailContext: BailContext;
-export function Bail(messageOrMessageFunc?: string | Function | null, triggerDebugger = false) {
+export function Bail(messageOrMessageFunc?: string | Function | null, triggerDebugger = false): never {
 	const message = (messageOrMessageFunc instanceof Function ? messageOrMessageFunc() : messageOrMessageFunc) ?? "[generic bail error]";
 
-	const skipBail = false; // add flag which you can use to skip the bailing, when paused in debugger
+	//const skipBail = false; // add flag which you can use to skip the bailing, when paused in debugger
 	if (triggerDebugger) {
 		debugger;
 	}
-	if (!skipBail) {
-		BailMessage.main.message = message;
-		throw BailMessage.main;
-	}
-	return undefined as any;
+	//if (!skipBail) {
+	BailMessage.main.message = message;
+	throw BailMessage.main;
+	//}
+	//return undefined as any;
 }
 
 export function BailUnless(condition, messageOrMessageFunc?: string | Function | null): asserts condition {

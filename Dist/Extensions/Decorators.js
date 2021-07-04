@@ -8,6 +8,47 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { AddSchema, collection_docSchemaName, WaitTillSchemaAdded } from "./SchemaHelpers.js";
+import { BailMessage } from "../Utils/BailManager.js";
+import { E } from "js-vextensions";
+// ui stuff
+// ==========
+export let BailHandler_loadingUI_default = () => null;
+export function BailHandler_loadingUI_default_Set(value) {
+    BailHandler_loadingUI_default = value;
+}
+export class BailHandler_Options {
+}
+export function BailHandler(...args) {
+    let opts = new BailHandler_Options();
+    if (typeof args[0] == "function") {
+        ApplyToClass(args[0]);
+    }
+    else {
+        opts = E(opts, args[0]);
+        return ApplyToClass;
+    }
+    function ApplyToClass(targetClass) {
+        const render_old = targetClass.prototype.render;
+        targetClass.prototype.render = function (...args) {
+            var _a, _b;
+            try {
+                const result = render_old.apply(this, args);
+                return result;
+            }
+            catch (ex) {
+                if (ex instanceof BailMessage) {
+                    const loadingUI = (_b = (_a = targetClass.prototype.loadingUI) !== null && _a !== void 0 ? _a : opts.loadingUI) !== null && _b !== void 0 ? _b : BailHandler_loadingUI_default;
+                    return loadingUI(ex);
+                }
+                else {
+                    throw ex;
+                }
+            }
+        };
+    }
+}
+// db stuff
+// ==========
 /*export function Table(docSchemaName: string) {
     return ApplyToClass;
     function ApplyToClass<T>(targetClass: T, propertyKey: string) {

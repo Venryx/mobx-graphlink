@@ -1,5 +1,51 @@
 import {AddSchema, collection_docSchemaName, WaitTillSchemaAdded} from "./SchemaHelpers.js";
 import {Knex} from "knex";
+import {BailMessage} from "../Utils/BailManager.js";
+import {E} from "js-vextensions";
+
+// ui stuff
+// ==========
+
+export let BailHandler_loadingUI_default: BailHandler = ()=>null;
+export function BailHandler_loadingUI_default_Set(value: BailHandler) {
+	BailHandler_loadingUI_default = value;
+}
+
+export type BailHandler = (bailMessage: BailMessage)=>any;
+export class BailHandler_Options {
+	loadingUI?: BailHandler;
+}
+export function BailHandler(targetClass: Function);
+export function BailHandler(options?: Partial<BailHandler_Options>);
+export function BailHandler(...args) {
+	let opts = new BailHandler_Options();
+	if (typeof args[0] == "function") {
+		ApplyToClass(args[0]);
+	} else {
+		opts = E(opts, args[0]);
+		return ApplyToClass;
+	}
+
+	function ApplyToClass(targetClass: Function) {
+		const render_old = targetClass.prototype.render;
+		targetClass.prototype.render = function(...args) {
+			try {
+				const result = render_old.apply(this, args);
+				return result;
+			} catch (ex) {
+				if (ex instanceof BailMessage) {
+					const loadingUI = targetClass.prototype.loadingUI ?? opts.loadingUI ?? BailHandler_loadingUI_default;
+					return loadingUI(ex);
+				} else {
+					throw ex;
+				}
+			}
+		};
+	}
+}
+
+// db stuff
+// ==========
 
 /*export function Table(docSchemaName: string) {
 	return ApplyToClass;

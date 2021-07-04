@@ -5,7 +5,7 @@ import {RootStoreShape} from "../UserTypes.js";
 import {storeAccessorCachingTempDisabled, GetWait, AssertV} from "./Helpers.js";
 import {g} from "../Utils/@PrivateExports.js";
 import {ArgumentsType} from "updeep/types/types";
-import {CatchBail} from "../Utils/BailManager.js";
+import {BailMessage, CatchBail} from "../Utils/BailManager.js";
 import {DeepMap} from "mobx-utils/lib/deepMap";
 import {AccessorMetadata, accessorMetadata} from "./@AccessorMetadata.js";
 
@@ -165,6 +165,8 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 			Assert(meta.canCatchItemBails, `${name}.CatchItemBails() called, but accessor seems to contain no bail-catching code. (it neither checks for c.catchItemBails, nor calls c.MaybeCatchItemBail)${""
 				}This suggests a mistake, so either remove the CatchItemBails() call, or add bail-catching code within the accessor-func.`);
 		}
+		const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
+		//try {
 		if (opt.cache && !storeAccessorCachingTempDisabled) {
 			const contextVars = [
 				graph.accessorContext.store,
@@ -175,11 +177,17 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 		} else {
 			result = accessor(...callArgs);
 		}
+		/*} catch (ex) {
+			if (ex instanceof BailMessage && isRootAccessor) {
+				result = opt.onBail; // if not set, will be "undefined", which is fine (it's traditionally what I've used to indicate "still loading")
+			} else {
+				throw ex;
+			}
+		}*/
 
 		const runTime = performance.now() - callStackEntry._startTime!;
 		meta.callCount++;
 		meta.totalRunTime += runTime;
-		const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
 		if (isRootAccessor) {
 			meta.totalRunTime_asRoot += runTime;
 		}

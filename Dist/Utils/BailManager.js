@@ -43,15 +43,15 @@ export let bailContext;
 export function Bail(messageOrMessageFunc, triggerDebugger = false) {
     var _a;
     const message = (_a = (messageOrMessageFunc instanceof Function ? messageOrMessageFunc() : messageOrMessageFunc)) !== null && _a !== void 0 ? _a : "[generic bail error]";
-    const skipBail = false; // add flag which you can use to skip the bailing, when paused in debugger
+    //const skipBail = false; // add flag which you can use to skip the bailing, when paused in debugger
     if (triggerDebugger) {
         debugger;
     }
-    if (!skipBail) {
-        BailMessage.main.message = message;
-        throw BailMessage.main;
-    }
-    return undefined;
+    //if (!skipBail) {
+    BailMessage.main.message = message;
+    throw BailMessage.main;
+    //}
+    //return undefined as any;
 }
 export function BailUnless(condition, messageOrMessageFunc) {
     //Assert(condition, messageOrMessageFunc as any /* temp */, bailContext.onBail_triggerDebugger);
