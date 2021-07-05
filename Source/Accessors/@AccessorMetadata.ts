@@ -1,5 +1,5 @@
 import {CE} from "js-vextensions";
-import { DeepMap } from "mobx-utils/lib/deepMap";
+import { DeepMap } from "mobx-utils/lib/deepMap.js";
 import {IComputedValue,IComputedValueOptions, computed, onBecomeUnobserved, _isComputingDerivation, isAction} from "mobx"
 
 // profiling
@@ -14,15 +14,21 @@ export const accessorMetadata = new Map<string, AccessorMetadata>();
 export class AccessorMetadata {
 	constructor(data: Partial<AccessorMetadata>) {
 		Object.assign(this, data);
-		this.codeStr_cached = this.accessor.toString();
-		this.canCatchItemBails = this.codeStr_cached.includes("catchItemBails") || this.codeStr_cached.includes("MaybeCatchItemBail");
 	}
 	name: string;
 	accessor: Function;
 
 	// inspection of func-code
-	codeStr_cached: string;
-	canCatchItemBails: boolean;
+	_codeStr_cached: string;
+	get CodeStr_Cached() {
+		this._codeStr_cached = this._codeStr_cached ?? this.accessor.toString();
+		return this._codeStr_cached;
+	}
+	_canCatchItemBails: boolean;
+	get CanCatchItemBails() {
+		this._canCatchItemBails = this.CodeStr_Cached.includes("catchItemBails") || this.CodeStr_Cached.includes("MaybeCatchItemBail");
+		return this._canCatchItemBails;
+	}
 
 	// temp fields
 	nextCall_catchItemBails = false;
@@ -34,8 +40,8 @@ export class AccessorMetadata {
 	totalRunTime_asRoot = 0;
 
 	// result-caching
-	mobxCacheOpts: IComputedValueOptions<any>;
-	resultCache: DeepMap<IComputedValue<any>>;
+	mobxCacheOpts: IComputedValueOptions<any> = {};
+	resultCache = new DeepMap<IComputedValue<any>>();
    numberOfArgCombinationsCached = 0
 	memoWarned = false;
 	

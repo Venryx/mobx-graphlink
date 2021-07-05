@@ -2,7 +2,11 @@ import { Knex } from "knex";
 import { BailMessage } from "../Utils/BailManager.js";
 export declare let BailHandler_loadingUI_default: BailHandler;
 export declare function BailHandler_loadingUI_default_Set(value: BailHandler): void;
-export declare type BailHandler = (bailMessage: BailMessage) => any;
+export declare type BailInfo = {
+    comp: any;
+    bailMessage: BailMessage;
+};
+export declare type BailHandler = (info: BailInfo) => any;
 export declare class BailHandler_Options {
     loadingUI?: BailHandler;
 }

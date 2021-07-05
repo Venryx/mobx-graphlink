@@ -1,4 +1,5 @@
 import { CE } from "js-vextensions";
+import { DeepMap } from "mobx-utils/lib/deepMap.js";
 import { computed, onBecomeUnobserved, _isComputingDerivation } from "mobx";
 // profiling
 export function LogAccessorRunTimes() {
@@ -16,11 +17,21 @@ export class AccessorMetadata {
         this.callCount = 0;
         this.totalRunTime = 0;
         this.totalRunTime_asRoot = 0;
+        // result-caching
+        this.mobxCacheOpts = {};
+        this.resultCache = new DeepMap();
         this.numberOfArgCombinationsCached = 0;
         this.memoWarned = false;
         Object.assign(this, data);
-        this.codeStr_cached = this.accessor.toString();
-        this.canCatchItemBails = this.codeStr_cached.includes("catchItemBails") || this.codeStr_cached.includes("MaybeCatchItemBail");
+    }
+    get CodeStr_Cached() {
+        var _a;
+        this._codeStr_cached = (_a = this._codeStr_cached) !== null && _a !== void 0 ? _a : this.accessor.toString();
+        return this._codeStr_cached;
+    }
+    get CanCatchItemBails() {
+        this._canCatchItemBails = this.CodeStr_Cached.includes("catchItemBails") || this.CodeStr_Cached.includes("MaybeCatchItemBail");
+        return this._canCatchItemBails;
     }
     CallAccessor_OrReturnCache(contextVars, callArgs, unwrapArraysForCache = true) {
         let callArgs_unwrapped = callArgs;

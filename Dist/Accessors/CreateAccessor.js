@@ -99,17 +99,16 @@ export const CreateAccessor = (...args) => {
     name = (_a = name) !== null && _a !== void 0 ? _a : "[name missing]";
     const meta = new AccessorMetadata({ name });
     accessorMetadata.set(name, meta);
-    let accessor;
     const wrapperAccessor = (...callArgs) => {
         // initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
         const opt = E(AccessorOptions.default, options);
         let graphOpt = E(defaultGraphOptions, CE(opt).Including("graph"));
         const graph = graphOpt.graph;
         // now that we know what graphlink instance should be used, obtain the actual accessor-func (sending in the graphlink's accessor-context)
-        if (accessor == null) {
-            accessor = accessorGetter(graph.accessorContext);
+        if (meta.accessor == null) {
+            meta.accessor = accessorGetter(graph.accessorContext);
             if (name)
-                CE(accessor).SetName(name);
+                CE(meta.accessor).SetName(name);
         }
         const callStackEntry = { meta, catchItemBails: meta.nextCall_catchItemBails, catchItemBails_asX: meta.nextCall_catchItemBails_asX };
         graph.accessorContext.accessorCallStack.push(callStackEntry);
@@ -120,7 +119,7 @@ export const CreateAccessor = (...args) => {
             meta.nextCall_catchItemBails = false; // reset flag
             //delete meta.nextCall_catchItemBails_asX;
             // also confirm that function actually uses the flag (else, probably an issue, ie. usage forgotten)
-            Assert(meta.canCatchItemBails, `${name}.CatchItemBails() called, but accessor seems to contain no bail-catching code. (it neither checks for c.catchItemBails, nor calls c.MaybeCatchItemBail)${""}This suggests a mistake, so either remove the CatchItemBails() call, or add bail-catching code within the accessor-func.`);
+            Assert(meta.CanCatchItemBails, `${name}.CatchItemBails() called, but accessor seems to contain no bail-catching code. (it neither checks for c.catchItemBails, nor calls c.MaybeCatchItemBail)${""}This suggests a mistake, so either remove the CatchItemBails() call, or add bail-catching code within the accessor-func.`);
         }
         const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
         //try {
@@ -133,7 +132,7 @@ export const CreateAccessor = (...args) => {
             result = meta.CallAccessor_OrReturnCache(contextVars, callArgs, opt.cache_unwrapArrays);
         }
         else {
-            result = accessor(...callArgs);
+            result = meta.accessor(...callArgs);
         }
         /*} catch (ex) {
             if (ex instanceof BailMessage && isRootAccessor) {

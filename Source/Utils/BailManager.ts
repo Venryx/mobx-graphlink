@@ -1,5 +1,6 @@
 import {Assert, emptyArray_forLoading} from "js-vextensions";
 import {ArgumentsType} from "updeep/types/types";
+import {defaultGraphOptions} from "../Graphlink.js";
 
 export class BailMessage {
 	static main = new BailMessage("[generic bail error]");
@@ -70,7 +71,16 @@ export function CatchBail<T, ReturnTypeX>(bailResultOrGetter: T, func: (...args:
 
 export let bailContext: BailContext;
 export function Bail(messageOrMessageFunc?: string | Function | null, triggerDebugger = false): never {
-	const message = (messageOrMessageFunc instanceof Function ? messageOrMessageFunc() : messageOrMessageFunc) ?? "[generic bail error]";
+	let message = messageOrMessageFunc instanceof Function ? messageOrMessageFunc() : messageOrMessageFunc;
+	if (message == null) {
+		const {accessorCallStack} = defaultGraphOptions.graph.accessorContext;
+		// if in accessor-call-stack, use that to make a more informative bail-message
+		if (accessorCallStack.length) {
+			message = `[generic bail error, at: ${accessorCallStack.map(a=>a.meta.accessor.name).join("->")}]`
+		} else {
+			message = "[generic bail error]";
+		}
+	}
 
 	//const skipBail = false; // add flag which you can use to skip the bailing, when paused in debugger
 	if (triggerDebugger) {
