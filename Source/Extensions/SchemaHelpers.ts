@@ -2,6 +2,7 @@ import AJV from "ajv";
 import AJVKeywords from "ajv-keywords";
 import {Clone, ToJSON, IsString, Assert, IsObject, E, CE, IsArray, DEL} from "js-vextensions";
 import {AssertV} from "../Accessors/Helpers.js";
+import {UUID_regex} from "./KeyGenerator.js";
 //import {RemoveHelpers, WithoutHelpers} from "./DatabaseHelpers.js";
 
 export const ajv = AJVKeywords(new AJV({allErrors: true})) as AJV_Extended;
@@ -261,3 +262,8 @@ export function GetInvalidPropPaths(data: Object, schemaObject: Object) {
 		return {propPath, error};
 	});
 }
+
+// hoisted schema definitions (eg. so other files, eg. KeyGenerator.ts, can be imported standalone)
+// ==========
+
+AddSchema("UUID", {type: "string", pattern: UUID_regex});

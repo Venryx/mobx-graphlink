@@ -1,10 +1,10 @@
 // import uuidV4 from 'uuid/v4';
 import slugid from "slugid";
-import { AddSchema } from "./SchemaHelpers.js";
+//import {AddSchema} from "./SchemaHelpers.js";
 import { CE } from "js-vextensions";
 export const UUID_regex_partial = "[A-Za-z0-9_-]{22}";
 export const UUID_regex = `^${UUID_regex_partial}$`;
-AddSchema("UUID", { type: "string", pattern: UUID_regex });
+//AddSchema("UUID", {type: "string", pattern: UUID_regex}); // moved to "SchemaHelpers.ts" file, so this file can be imported standalone
 // we display the first 2 chars of UUIDs in various places, so try to avoid unpleasant character-combos for it
 const unpleasant2Chars = ["fu", "pp"];
 //let unpleasant4Chars = [];

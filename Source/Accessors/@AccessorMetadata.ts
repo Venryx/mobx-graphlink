@@ -1,6 +1,10 @@
 import {CE} from "js-vextensions";
-import { DeepMap } from "mobx-utils/lib/deepMap.js";
-import {IComputedValue,IComputedValueOptions, computed, onBecomeUnobserved, _isComputingDerivation, isAction} from "mobx"
+import {IComputedValue, IComputedValueOptions, computed, onBecomeUnobserved, _isComputingDerivation} from "mobx"
+
+//import {DeepMap} from "mobx-utils/lib/deepMap.js";
+/*import deepMap_ from "mobx-utils/lib/deepMap.js";
+const { DeepMap } = deepMap_; // wrapper for ts-node (eg. init-db scripts)*/
+import {DeepMap} from "../Utils/DeepMap.js";
 
 // profiling
 export function LogAccessorRunTimes() {

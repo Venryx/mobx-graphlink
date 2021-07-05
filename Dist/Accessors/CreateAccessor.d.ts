@@ -1,4 +1,4 @@
-import { GraphOptions, Graphlink } from "../Graphlink.js";
+import { Graphlink, GraphOptions } from "../Graphlink.js";
 import { RootStoreShape } from "../UserTypes.js";
 import { AccessorMetadata } from "./@AccessorMetadata.js";
 export declare function WithStore<T>(options: Partial<GraphOptions>, store: any, accessorFunc: () => T): T;
