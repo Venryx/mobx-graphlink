@@ -161,32 +161,34 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 				}This suggests a mistake, so either remove the CatchItemBails() call, or add bail-catching code within the accessor-func.`);
 		}
 		const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
-		//try {
-		if (opt.cache && !storeAccessorCachingTempDisabled) {
-			const contextVars = [
-				graph.accessorContext.store,
-				graph.accessorContext.catchItemBails,
-				graph.accessorContext.catchItemBails_asX,
-			];
-			result = meta.CallAccessor_OrReturnCache(contextVars, callArgs, opt.cache_unwrapArrays);
-		} else {
-			result = meta.accessor(...callArgs);
+		try {
+			if (opt.cache && !storeAccessorCachingTempDisabled) {
+				const contextVars = [
+					graph.accessorContext.store,
+					graph.accessorContext.catchItemBails,
+					graph.accessorContext.catchItemBails_asX,
+				];
+				result = meta.CallAccessor_OrReturnCache(contextVars, callArgs, opt.cache_unwrapArrays);
+			} else {
+				result = meta.accessor(...callArgs);
+			}
 		}
-		/*} catch (ex) {
+		/*catch (ex) {
 			if (ex instanceof BailMessage && isRootAccessor) {
 				result = opt.onBail; // if not set, will be "undefined", which is fine (it's traditionally what I've used to indicate "still loading")
 			} else {
 				throw ex;
 			}
 		}*/
-
-		const runTime = performance.now() - callStackEntry._startTime!;
-		meta.callCount++;
-		meta.totalRunTime += runTime;
-		if (isRootAccessor) {
-			meta.totalRunTime_asRoot += runTime;
+		finally {
+			const runTime = performance.now() - callStackEntry._startTime!;
+			meta.callCount++;
+			meta.totalRunTime += runTime;
+			if (isRootAccessor) {
+				meta.totalRunTime_asRoot += runTime;
+			}
+			graph.accessorContext.accessorCallStack.pop();
 		}
-		graph.accessorContext.accessorCallStack.pop();
 
 		return result;
 	};

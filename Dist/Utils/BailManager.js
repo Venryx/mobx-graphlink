@@ -7,16 +7,16 @@ export class BailMessage {
 }
 BailMessage.main = new BailMessage("[generic bail error]");
 Object.defineProperty(Function.prototype, "normal", { get() { return this; } });
-Object.defineProperty(Function.prototype, "BIN", function (...args) {
-    const result = this.apply(null, args);
-    BailIfNull(result, `Function "${this.name}" returned value ${result}, which violates a non-null type-guard. Execution will bubble-up until it hits a bail-handler. The caller will try again once the underlying data changes.`);
-    return result;
-});
-Object.defineProperty(Function.prototype, "BILA", function (...args) {
-    const result = this.apply(null, args);
-    BailUnless(result != emptyArray_forLoading, `Function "${this.name}" returned value equal to emptyArray_loading, which violates a non-loading-array type-guard. Execution will bubble-up until it hits a bail-handler. The caller will try again once the underlying data changes.`);
-    return result;
-});
+Object.defineProperty(Function.prototype, "BIN", { value: function (...args) {
+        const result = this.apply(null, args);
+        BailIfNull(result, `Function "${this.name}" returned value ${result}, which violates a non-null type-guard. Execution will bubble-up until it hits a bail-handler. The caller will try again once the underlying data changes.`);
+        return result;
+    } });
+Object.defineProperty(Function.prototype, "BILA", { value: function (...args) {
+        const result = this.apply(null, args);
+        BailUnless(result != emptyArray_forLoading, `Function "${this.name}" returned value equal to emptyArray_loading, which violates a non-loading-array type-guard. Execution will bubble-up until it hits a bail-handler. The caller will try again once the underlying data changes.`);
+        return result;
+    } });
 export class BailContext {
     constructor() {
         this.onBail_triggerError = true;
