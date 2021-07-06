@@ -19,19 +19,19 @@ For `FeatureOrFix` version-extending (recommended for libraries), prepend "`~`" 
 ```
 @DBClass({table: "todoItems"})
 export class TodoItem {
-	@DB((t,n)=>t.text(n))
+	@DB((t, n)=>t.text(n))
 	@Field({type: "string"})
 	id: string;
 
-	@DB((t,n)=>t.text(n))
+	@DB((t, n)=>t.text(n))
 	@Field({type: "string"}, {req: true})
 	text: string;
 
-	@DB((t,n)=>t.boolean(n))
+	@DB((t, n)=>t.boolean(n))
 	@Field({type: "string"})
 	completed: boolean;
 
-	@DB((t,n)=>t.specificType(n, "text[]"))
+	@DB((t, n)=>t.specificType(n, "text[]"))
 	@Field({items: {type: "string"}})
 	tags: string[];
 }
