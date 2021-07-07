@@ -1,8 +1,10 @@
+import {Assert} from "js-vextensions";
 import {Graphlink, GraphOptions} from "../Graphlink.js";
 import {TreeNode} from "./TreeNode.js";
 
 export class TreeRequestWatcher {
 	constructor(graph: Graphlink<any ,any>) {
+		Assert(graph, "Graphlink instance must exist before creating TreeRequestWatchers.");
 		this.graph = graph;
 	}
 	graph: Graphlink<any ,any>;

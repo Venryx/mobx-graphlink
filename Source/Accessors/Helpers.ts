@@ -45,7 +45,7 @@ export class GetAsync_Options {
 	maxIterations? = 50; // todo: maybe replace this with system that tracks the list of paths accessed, and which halts if it "senses no progression" [eg. max-iterations-without-change-to-access-paths]
 	errorHandling? = "none" as "none" | "log" | "ignore";
 	/** If true, db requests within dataGetterFunc that find themselves waiting for remote db-data, with throw an error immediately. (avoiding higher-level processing) */
-	throwImmediatelyOnDBWait = false;
+	throwImmediatelyOnDBWait? = false;
 }
 export let GetAsync_throwImmediatelyOnDBWait_activeDepth = 0;
 export function NotifyWaitingForDB(dbPath: string) {

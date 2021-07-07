@@ -7,7 +7,7 @@ export declare class GetAsync_Options {
     maxIterations?: number | undefined;
     errorHandling?: "log" | "none" | "ignore" | undefined;
     /** If true, db requests within dataGetterFunc that find themselves waiting for remote db-data, with throw an error immediately. (avoiding higher-level processing) */
-    throwImmediatelyOnDBWait: boolean;
+    throwImmediatelyOnDBWait?: boolean | undefined;
 }
 export declare let GetAsync_throwImmediatelyOnDBWait_activeDepth: number;
 export declare function NotifyWaitingForDB(dbPath: string): void;
