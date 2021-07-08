@@ -109,9 +109,9 @@ export function dbp(strings: TemplateStringsArray, ...vars: string[]) {
 	Assert(vars.length >= 1, `The "dbp" template-literal function requires at least one variable, to protect from typos like: dbp(\`...\`) (do this instead: dbp\`...\`)`);
 	for (const expression of vars) {
 		Assert(typeof expression == "string", "DB-path-segment variables must be strings.");
-		Assert(/^([A-Za-z0-9_-.]+)$/.test(expression), `DB-path-segment variables must only contain alphanumeric, "_", "-", or "." characters.`);
+		Assert(/^([A-Za-z0-9_\-.]+)$/.test(expression), `DB-path-segment variables must only contain alphanumeric, "_", "-", or "." characters.`);
 	}
-	
+
 	// now just default template literal functionality
 	let result = dbpPrefix;
 	strings.forEach((str, i) => {

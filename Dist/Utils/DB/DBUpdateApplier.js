@@ -8,7 +8,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { Assert, CE, GetTreeNodesInObjTree } from "js-vextensions";
-import Knex from "knex";
 import u from "updeep";
 import { TableNameToDocSchemaName } from "../../Extensions/Decorators.js";
 import { Schema } from "../../Extensions/SchemaHelpers.js";
@@ -66,9 +65,10 @@ export function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true) {
     return __awaiter(this, void 0, void 0, function* () {
         dbUpdates = FinalizeDBUpdates(dbUpdates, simplifyDBUpdates);
         // prepare pg-client and knex
-        const pgClient = defaultGraphOptions.graph.subs.pgClient;
+        const { pgClient, knexModule } = defaultGraphOptions.graph.subs;
         Assert(pgClient != null, "pgClient must be supplied to Graphlink instance to be able to call ApplyDBUpdates. (only possible from db-server instance)");
-        const knex_raw = (_a = pgClient["_knex"]) !== null && _a !== void 0 ? _a : (pgClient["_knex"] = Knex({ client: "pg" }));
+        Assert(knexModule != null, "knexModule (the export of knex npm-module) must be supplied to Graphlink instance to be able to call ApplyDBUpdates. (only possible from db-server instance)");
+        const knex_raw = (_a = pgClient["_knex"]) !== null && _a !== void 0 ? _a : (pgClient["_knex"] = knexModule({ client: "pg" }));
         const knex = Object.assign((...args) => {
             return knex_raw(...args).connection(pgClient); // add pgClient as connection every time
         }, knex_raw); // add other fields/methods of "knex_raw" onto the "knex" wrapper

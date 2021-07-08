@@ -4,7 +4,8 @@ import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "./Utils/DB
 import {observable, runInAction} from "mobx";
 import {ApolloClient, NormalizedCacheObject} from "@apollo/client/core/index.js";
 import {AccessorContext} from "./Accessors/CreateAccessor.js";
-import {PoolClient} from "pg";
+import type {PoolClient} from "pg";
+import type Knex from "knex";
 
 export let defaultGraphOptions: GraphOptions;
 export function SetDefaultGraphOptions(opt: GraphOptions) {
@@ -17,6 +18,7 @@ export interface GraphOptions<RootStoreShape = any, DBShape = any> {
 export class GraphlinkInitOptions<RootStoreShape> {
 	rootStore: RootStoreShape;
 	apollo: ApolloClient<NormalizedCacheObject>;
+	knexModule?: typeof Knex;
 	pgClient?: PoolClient;
 	//initSubs = true;
 }
@@ -32,13 +34,15 @@ export class Graphlink<RootStoreShape, DBShape> {
 
 	initialized = false;
 	Initialize(initOptions: GraphlinkInitOptions<RootStoreShape>) {
-		let {apollo, rootStore} = initOptions;
+		let {rootStore, apollo, knexModule, pgClient} = initOptions;
 
 		Graphlink.instances.push(this);
 		this.rootStore = rootStore;
 		//if (initSubs) {
 		//this.InitSubs();
-		this.subs.apollo = apollo
+		this.subs.apollo = apollo;
+		this.subs.knexModule = knexModule;
+		this.subs.pgClient = pgClient;
 		this.tree = new TreeNode(this, []);
 		
 		this.initialized = true;
@@ -54,6 +58,7 @@ export class Graphlink<RootStoreShape, DBShape> {
 	}*/
 	subs = {} as {
 		apollo: ApolloClient<NormalizedCacheObject>;
+		knexModule?: typeof Knex|null; // only used if on db-server
 		pgClient?: PoolClient|null; // only used if on db-server
 	};
 

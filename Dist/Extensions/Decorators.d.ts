@@ -1,4 +1,4 @@
-import { Knex } from "knex";
+import type { Knex } from "knex";
 import { BailMessage } from "../Utils/General/BailManager.js";
 export declare function TableNameToDocSchemaName(tableName: string, errorIfMissing?: boolean): string;
 export declare function TableNameToGraphQLDocRetrieverKey(tableName: string): any;

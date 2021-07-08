@@ -2,7 +2,8 @@ import { TreeNode } from "./Tree/TreeNode.js";
 import { TreeRequestWatcher } from "./Tree/TreeRequestWatcher.js";
 import { ApolloClient, NormalizedCacheObject } from "@apollo/client/core/index.js";
 import { AccessorContext } from "./Accessors/CreateAccessor.js";
-import { PoolClient } from "pg";
+import type { PoolClient } from "pg";
+import type Knex from "knex";
 export declare let defaultGraphOptions: GraphOptions;
 export declare function SetDefaultGraphOptions(opt: GraphOptions): void;
 export interface GraphOptions<RootStoreShape = any, DBShape = any> {
@@ -11,6 +12,7 @@ export interface GraphOptions<RootStoreShape = any, DBShape = any> {
 export declare class GraphlinkInitOptions<RootStoreShape> {
     rootStore: RootStoreShape;
     apollo: ApolloClient<NormalizedCacheObject>;
+    knexModule?: typeof Knex;
     pgClient?: PoolClient;
 }
 export declare class Graphlink<RootStoreShape, DBShape> {
@@ -23,6 +25,7 @@ export declare class Graphlink<RootStoreShape, DBShape> {
     accessorContext: AccessorContext<RootStoreShape>;
     subs: {
         apollo: ApolloClient<NormalizedCacheObject>;
+        knexModule?: typeof Knex | null | undefined;
         pgClient?: PoolClient | null | undefined;
     };
     userInfo: UserInfo | null;

@@ -1,5 +1,5 @@
 import {AddSchema, collection_docSchemaName, WaitTillSchemaAdded} from "./SchemaHelpers.js";
-import {Knex} from "knex";
+import type {Knex} from "knex";
 import {BailMessage} from "../Utils/General/BailManager.js";
 import {Assert, E} from "js-vextensions";
 

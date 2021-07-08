@@ -38,12 +38,14 @@ export class Graphlink {
         }
     }
     Initialize(initOptions) {
-        let { apollo, rootStore } = initOptions;
+        let { rootStore, apollo, knexModule, pgClient } = initOptions;
         Graphlink.instances.push(this);
         this.rootStore = rootStore;
         //if (initSubs) {
         //this.InitSubs();
         this.subs.apollo = apollo;
+        this.subs.knexModule = knexModule;
+        this.subs.pgClient = pgClient;
         this.tree = new TreeNode(this, []);
         this.initialized = true;
     }
