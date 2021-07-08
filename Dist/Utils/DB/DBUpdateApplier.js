@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { Assert, CE, GetTreeNodesInObjTree } from "js-vextensions";
 import u from "updeep";
 import { TableNameToDocSchemaName } from "../../Extensions/Decorators.js";
-import { Schema } from "../../Extensions/SchemaHelpers.js";
+import { GetSchemaJSON, Schema } from "../../Extensions/SchemaHelpers.js";
 import { defaultGraphOptions } from "../../Graphlink.js";
 import { MaybeLog_Base } from "../General/General.js";
 import { dbpPrefix } from "./DBPaths.js";
@@ -34,7 +34,7 @@ export function FinalizeDBUpdates(dbUpdates, simplifyDBUpdates = true) {
 export function AssertDBUpdateIsValid(update) {
     Assert(CE(update.PathSegments.length).IsBetween(2, 3), `DB-updates must set the value of either a whole document/row, or a direct-child field/column.${""} For deep updates, apply changes locally, then submit the entire new document or field/column.`);
     if (update.PathSegments.length == 3) {
-        Assert(update.PathSegments[3].startsWith(".") && CE(update.PathSegments[3]).Matches(".").length == 1, `DB-updates for a specific field/column must start the field/column name with the "." character.`);
+        Assert(update.PathSegments[2].startsWith(".") && CE(update.PathSegments[2]).Matches(".").length == 1, `DB-updates for a specific field/column must start the field/column name with the "." character.`);
     }
 }
 // tries to approximate the application of db-updates, to a local copy of part of the db's data
@@ -69,17 +69,27 @@ export function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true) {
         Assert(pgClient != null, "pgClient must be supplied to Graphlink instance to be able to call ApplyDBUpdates. (only possible from db-server instance)");
         Assert(knexModule != null, "knexModule (the export of knex npm-module) must be supplied to Graphlink instance to be able to call ApplyDBUpdates. (only possible from db-server instance)");
         const knex_raw = (_a = pgClient["_knex"]) !== null && _a !== void 0 ? _a : (pgClient["_knex"] = knexModule({ client: "pg" }));
-        const knex = Object.assign((...args) => {
+        /*const knex: typeof knex_raw = ((...args)=>{
             return knex_raw(...args).connection(pgClient); // add pgClient as connection every time
-        }, knex_raw); // add other fields/methods of "knex_raw" onto the "knex" wrapper
+        }) as any;
+        // add other fields/methods of "knex_raw" onto the "knex" wrapper
+        for (const key of Object.getOwnPropertyNames(knex_raw)) { // "Object.keys" excludes some needed fields, like "transaction"
+            //if (key == "length" || key == "name") continue;
+            if (key in knex) continue;
+            knex[key] = knex_raw[key];
+        }
+        Object.setPrototypeOf(knex, Object.getPrototypeOf(knex_raw)); // also make sure prototype is the same (not sure if needed)*/
         // prepare transaction
         MaybeLog_Base(a => a.commands, l => l(`Applying db-updates...`));
-        const transaction = yield knex.transaction();
+        const knexTx = yield knex_raw.transaction(undefined, { connection: pgClient });
         // add db-commands to transaction
         for (const update of dbUpdates) {
             AssertDBUpdateIsValid(update);
             const tableName = update.PathSegments[0];
-            const docSchema = Schema(TableNameToDocSchemaName(tableName));
+            const docSchemaName = TableNameToDocSchemaName(tableName);
+            const docSchema = GetSchemaJSON(docSchemaName);
+            Assert(docSchema != null, `Could not find schema for table: ${tableName} (tried finding by name: "${docSchemaName}")`);
+            Assert(docSchema.properties != null, `Schema "${docSchemaName}" has no properties, which is invalid for a document/row type.`);
             const docID = update.PathSegments[1];
             const isSet = update.PathSegments.length == 2 && update.value != null;
             const isDelete = update.PathSegments.length == 2 && update.value == null;
@@ -92,22 +102,22 @@ export function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true) {
                         docValue_final[column] = null;
                     }
                 }
-                const [row] = yield knex(tableName).insert(docValue_final)
+                const [row] = yield knexTx(tableName).insert(docValue_final)
                     .onConflict("id").merge() // if row already exists, set it to the newly-passed data
                     .returning("*");
             }
             else if (isDelete) {
-                const [row] = yield knex(tableName).where({ id: docID }).delete().returning("*");
+                const [row] = yield knexTx(tableName).where({ id: docID }).delete().returning("*");
             }
             else {
                 const fieldName = update.PathSegments[2].slice(1);
-                const [row] = yield knex(tableName).where({ id: docID }).update({
+                const [row] = yield knexTx(tableName).where({ id: docID }).update({
                     [fieldName]: update.value,
                 }).returning("*");
             }
         }
         // commit transaction
         console.log("Committing transaction...");
-        yield transaction.commit();
+        yield knexTx.commit();
     });
 }

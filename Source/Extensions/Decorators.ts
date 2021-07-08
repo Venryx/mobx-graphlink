@@ -8,13 +8,13 @@ import {Assert, E} from "js-vextensions";
 
 export function TableNameToDocSchemaName(tableName: string, errorIfMissing = true) {
 	//if (ObjectCE(this.treeNode.type).IsOneOf(TreeNodeType.Collection, TreeNodeType.CollectionQuery)) {
-	const docSchemaName = collection_docSchemaName.get(this.CollectionName);
-	if (errorIfMissing) Assert(docSchemaName, `No schema has been associated with collection "${this.CollectionName}". Did you forget the \`@Table("DOC_SCHEMA_NAME")\` decorator?`);
+	const docSchemaName = collection_docSchemaName.get(tableName);
+	if (errorIfMissing) Assert(docSchemaName, `No schema has been associated with collection "${tableName}". Did you forget the \`@Table("DOC_SCHEMA_NAME")\` decorator?`);
 	return docSchemaName!;
 }
 export function TableNameToGraphQLDocRetrieverKey(tableName: string) {
 	//return ModifyString(this.DocSchemaName, m=>[m.startUpper_to_lower, m.underscoreUpper_to_underscoreLower]);
-	return this.CollectionName.replace(/ies$/, "y").replace(/s$/, "");
+	return tableName.replace(/ies$/, "y").replace(/s$/, "");
 }
 
 // ui stuff
