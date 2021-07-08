@@ -1,6 +1,6 @@
 import { Assert, CE, E } from "js-vextensions";
 import { defaultGraphOptions } from "../Graphlink.js";
-import { CatchBail } from "../Utils/BailManager.js";
+import { CatchBail } from "../Utils/General/BailManager.js";
 import { AccessorMetadata, accessorMetadata } from "./@AccessorMetadata.js";
 import { GetWait, storeAccessorCachingTempDisabled } from "./Helpers.js";
 export function WithStore(options, store, accessorFunc) {

@@ -1,5 +1,5 @@
 import { IComputedValue, IComputedValueOptions } from "mobx";
-import { DeepMap } from "../Utils/DeepMap.js";
+import { DeepMap } from "../Utils/General/DeepMap.js";
 export declare function LogAccessorRunTimes(): void;
 export declare const accessorMetadata: Map<string, AccessorMetadata>;
 export declare class AccessorMetadata {

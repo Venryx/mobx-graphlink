@@ -3,10 +3,10 @@ import {ObservableMap, runInAction} from "mobx";
 import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
 import {DataStatus, QueryParams} from "../Tree/TreeNode.js";
 import {DBShape} from "../UserTypes.js";
-import {Bail, BailMessage} from "../Utils/BailManager.js";
-import {DoX_ComputationSafe} from "../Utils/MobX.js";
-import {nil} from "../Utils/Nil.js";
-import {PathOrPathGetterToPathSegments} from "../Utils/PathHelpers.js";
+import {Bail, BailMessage} from "../Utils/General/BailManager.js";
+import {DoX_ComputationSafe} from "../Utils/General/MobX.js";
+import {nil} from "../Utils/General/Nil.js";
+import {PathOrPathGetterToPathSegments} from "../Utils/DB/DBPaths.js";
 import {NotifyWaitingForDB} from "./Helpers.js";
 
 /*

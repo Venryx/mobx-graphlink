@@ -8,10 +8,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { Clone, E, ArrayCE } from "js-vextensions";
-import { ApplyDBUpdates, ApplyDBUpdates_Local } from "../Utils/DatabaseHelpers.js";
-import { MaybeLog_Base } from "../Utils/General.js";
+import { MaybeLog_Base } from "../Utils/General/General.js";
 import { defaultGraphOptions } from "../Graphlink.js";
 import { GetAsync } from "../Accessors/Helpers.js";
+import { ApplyDBUpdates, ApplyDBUpdates_Local } from "../Utils/DB/DBUpdateApplier.js";
+import { DBUpdate, DBUpdateType } from "../Utils/DB/DBUpdate.js";
 export const commandsWaitingToComplete_new = [];
 let currentCommandRun_listeners = [];
 function WaitTillCurrentCommandFinishes() {
@@ -67,6 +68,13 @@ export class Command {
             yield GetAsync(() => this.Validate(), E({ errorHandling: "ignore", throwImmediatelyOnDBWait: true }, options));
         });
     }
+    /** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
+    GetDBUpdates() {
+        const helper = new DeclareDBUpdates_Helper();
+        this.DeclareDBUpdates(helper);
+        const dbUpdates = helper._dbUpdates;
+        return dbUpdates;
+    }
     PreRun() {
         return __awaiter(this, void 0, void 0, function* () {
             //RemoveHelpers(this.payload);
@@ -94,7 +102,8 @@ export class Command {
                 }
                 // FixDBUpdates(dbUpdates);
                 // await store.firebase.helpers.DBRef().update(dbUpdates);
-                yield ApplyDBUpdates(this.options, dbUpdates);
+                yield ApplyDBUpdates(dbUpdates);
+                // todo: make sure the db-changes we just made are reflected in our mobx store, *before* current command is marked as "completed" (else next command may start operating on not-yet-refreshed data)
                 // MaybeLog(a=>a.commands, ()=>`Finishing command. @type:${this.constructor.name} @payload(${ToJSON(this.payload)}) @dbUpdates(${ToJSON(dbUpdates)})`);
                 MaybeLog_Base(a => a.commands, l => l("Finishing command. @type:", this.constructor.name, " @command(", this, ") @dbUpdates(", dbUpdates, ")"));
             }
@@ -135,3 +144,19 @@ export class Command {
     }
 }
 Command.defaultPayload = {};
+export class DeclareDBUpdates_Helper {
+    constructor() {
+        this._dbUpdates = [];
+        /*delete(path: string, value: any) {
+            this._dbUpdates.push(new DBUpdate({type: DBUpdateType.delete, path, value}));
+        }*/
+    }
+    // add multiple pre-made db-updates (eg. from subcommand)
+    add(dbUpdates) {
+        this._dbUpdates.push(...dbUpdates);
+    }
+    // helpers for adding one db-update
+    set(path, value) {
+        this._dbUpdates.push(new DBUpdate({ type: DBUpdateType.set, path, value }));
+    }
+}

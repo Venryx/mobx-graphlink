@@ -1,6 +1,6 @@
 import {Assert, emptyArray_forLoading} from "js-vextensions";
 import {ArgumentsType} from "updeep/types/types";
-import {defaultGraphOptions} from "../Graphlink.js";
+import {defaultGraphOptions} from "../../Graphlink.js";
 
 export class BailMessage {
 	static main = new BailMessage("[generic bail error]");

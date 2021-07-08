@@ -1,4 +1,4 @@
-import { g } from "./Utils/@PrivateExports.js";
+import { g } from "./Utils/General/@PrivateExports.js";
 // warn about multiple lib instances
 let vLibCounts = (g["vLibCounts"] = g["vLibCounts"] || {});
 vLibCounts["mobx-graphlink"] = (vLibCounts["mobx-graphlink"] || 0) + 1;
@@ -20,11 +20,12 @@ export * from "./Extensions/SchemaHelpers.js";
 export * from "./Extensions/Decorators.js";
 export * from "./Server/Command.js";
 export * from "./Tree/TreeNode.js";
-export * from "./Utils/BailManager.js";
-export * from "./Utils/DatabaseHelpers.js";
-export * from "./Utils/DBUpdateMerging.js";
-export * from "./Utils/General.js";
-export * from "./Utils/MobX.js";
-export * from "./Utils/PathHelpers.js";
-export * from "./Utils/StringSplitCache.js";
-export * from "./Utils/TypeHelpers.js";
+export * from "./Utils/General/BailManager.js";
+export * from "./Utils/DB/DBDataHelpers.js";
+export * from "./Utils/DB/DBPaths.js";
+export * from "./Utils/DB/DBUpdate.js";
+export * from "./Utils/DB/DBUpdateSimplifier.js";
+export * from "./Utils/DB/StringSplitCache.js";
+export * from "./Utils/General/General.js";
+export * from "./Utils/General/MobX.js";
+export * from "./Utils/General/TypeHelpers.js";

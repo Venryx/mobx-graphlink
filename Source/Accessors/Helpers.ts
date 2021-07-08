@@ -3,7 +3,7 @@ import {reaction} from "mobx";
 import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
 import {DataStatus, TreeNode} from "../Tree/TreeNode.js";
 import {TreeRequestWatcher} from "../Tree/TreeRequestWatcher.js";
-import {MobXPathGetterToPath} from "../Utils/PathHelpers.js";
+import {MobXPathGetterToPath} from "../Utils/DB/DBPaths.js";
 
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 // (one of the rare cases where opt is not the first argument; that's because GetWait may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)

@@ -4,8 +4,9 @@ import {Assert, CE, Clone, E, FromJSON, ModifyString, ObjectCE, ToJSON, ToJSON_A
 import {observable, ObservableMap, runInAction, _getGlobalState} from "mobx";
 import {collection_docSchemaName, GetSchemaJSON} from "../Extensions/SchemaHelpers.js";
 import {Graphlink} from "../Graphlink.js";
-import {JSONStringify_NoQuotesForKeys, MaybeLog_Base} from "../Utils/General.js";
-import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "../Utils/PathHelpers.js";
+import {JSONStringify_NoQuotesForKeys, MaybeLog_Base} from "../Utils/General/General.js";
+import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "../Utils/DB/DBPaths.js";
+import {TableNameToDocSchemaName, TableNameToGraphQLDocRetrieverKey} from "../Extensions/Decorators.js";
 
 export enum TreeNodeType {
 	Root = "Root",
@@ -111,10 +112,7 @@ export class QueryParams_Linked extends QueryParams {
 		return this.treeNode.pathSegments[0];
 	}
 	get DocSchemaName() {
-		//if (ObjectCE(this.treeNode.type).IsOneOf(TreeNodeType.Collection, TreeNodeType.CollectionQuery)) {
-		const docSchemaName = collection_docSchemaName.get(this.CollectionName);
-		Assert(docSchemaName, `No schema has been associated with collection "${this.CollectionName}". Did you forget the \`@Table("DOC_SCHEMA_NAME")\` decorator?`);
-		return docSchemaName!;
+		return TableNameToDocSchemaName(this.CollectionName);
 	}
 
 	// derivatives
@@ -183,10 +181,7 @@ export class QueryParams_Linked extends QueryParams {
 			Assert(pairs.length > 0, `Cannot create GraphQL type for "${this.DocSchemaName}" without at least 1 property.`);
 			return `
 				subscription DocInCollection_${this.CollectionName}${varsDefineAsStr} {
-					${
-						//ModifyString(this.DocSchemaName, m=>[m.startUpper_to_lower, m.underscoreUpper_to_underscoreLower])
-						this.CollectionName.replace(/ies$/, "y").replace(/s$/, "")
-					}${argsAsStr} {
+					${TableNameToGraphQLDocRetrieverKey(this.CollectionName)}${argsAsStr} {
 						${pairs.map(a=>a.key).join(" ")}
 					}
 				}

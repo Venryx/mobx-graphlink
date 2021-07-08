@@ -1,5 +1,5 @@
 import { emptyArray_forLoading } from "js-vextensions";
-import { defaultGraphOptions } from "../Graphlink.js";
+import { defaultGraphOptions } from "../../Graphlink.js";
 export class BailMessage {
     constructor(message) {
         this.message = message;

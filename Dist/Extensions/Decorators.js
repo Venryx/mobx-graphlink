@@ -8,8 +8,21 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { AddSchema, collection_docSchemaName, WaitTillSchemaAdded } from "./SchemaHelpers.js";
-import { BailMessage } from "../Utils/BailManager.js";
-import { E } from "js-vextensions";
+import { BailMessage } from "../Utils/General/BailManager.js";
+import { Assert, E } from "js-vextensions";
+// metadata-retrieval helpers
+// ==========
+export function TableNameToDocSchemaName(tableName, errorIfMissing = true) {
+    //if (ObjectCE(this.treeNode.type).IsOneOf(TreeNodeType.Collection, TreeNodeType.CollectionQuery)) {
+    const docSchemaName = collection_docSchemaName.get(this.CollectionName);
+    if (errorIfMissing)
+        Assert(docSchemaName, `No schema has been associated with collection "${this.CollectionName}". Did you forget the \`@Table("DOC_SCHEMA_NAME")\` decorator?`);
+    return docSchemaName;
+}
+export function TableNameToGraphQLDocRetrieverKey(tableName) {
+    //return ModifyString(this.DocSchemaName, m=>[m.startUpper_to_lower, m.underscoreUpper_to_underscoreLower]);
+    return this.CollectionName.replace(/ies$/, "y").replace(/s$/, "");
+}
 // ui stuff
 // ==========
 export let BailHandler_loadingUI_default = () => null;

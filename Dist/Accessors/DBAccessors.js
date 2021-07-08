@@ -2,9 +2,9 @@ import { CE, E, emptyArray, emptyArray_forLoading } from "js-vextensions";
 import { runInAction } from "mobx";
 import { defaultGraphOptions } from "../Graphlink.js";
 import { DataStatus } from "../Tree/TreeNode.js";
-import { Bail } from "../Utils/BailManager.js";
-import { DoX_ComputationSafe } from "../Utils/MobX.js";
-import { PathOrPathGetterToPathSegments } from "../Utils/PathHelpers.js";
+import { Bail } from "../Utils/General/BailManager.js";
+import { DoX_ComputationSafe } from "../Utils/General/MobX.js";
+import { PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
 import { NotifyWaitingForDB } from "./Helpers.js";
 /*
 Why use explicit GetDocs, GetDoc, etc. calls instead of just Proxy's in mobx store fields?

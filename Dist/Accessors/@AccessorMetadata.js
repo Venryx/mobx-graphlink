@@ -3,7 +3,7 @@ import { computed, onBecomeUnobserved, _isComputingDerivation } from "mobx";
 //import {DeepMap} from "mobx-utils/lib/deepMap.js";
 /*import deepMap_ from "mobx-utils/lib/deepMap.js";
 const { DeepMap } = deepMap_; // wrapper for ts-node (eg. init-db scripts)*/
-import { DeepMap } from "../Utils/DeepMap.js";
+import { DeepMap } from "../Utils/General/DeepMap.js";
 // profiling
 export function LogAccessorRunTimes() {
     const accessorRunTimes_ordered = CE(CE(accessorMetadata).VValues()).OrderByDescending(a => a.totalRunTime);

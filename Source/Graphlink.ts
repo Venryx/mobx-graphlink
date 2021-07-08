@@ -1,9 +1,10 @@
 import {TreeNode} from "./Tree/TreeNode.js";
 import {TreeRequestWatcher} from "./Tree/TreeRequestWatcher.js";
-import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "./Utils/PathHelpers.js";
+import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "./Utils/DB/DBPaths.js";
 import {observable, runInAction} from "mobx";
 import {ApolloClient, NormalizedCacheObject} from "@apollo/client/core/index.js";
 import {AccessorContext} from "./Accessors/CreateAccessor.js";
+import {PoolClient} from "pg";
 
 export let defaultGraphOptions: GraphOptions;
 export function SetDefaultGraphOptions(opt: GraphOptions) {
@@ -16,6 +17,7 @@ export interface GraphOptions<RootStoreShape = any, DBShape = any> {
 export class GraphlinkInitOptions<RootStoreShape> {
 	rootStore: RootStoreShape;
 	apollo: ApolloClient<NormalizedCacheObject>;
+	pgClient?: PoolClient;
 	//initSubs = true;
 }
 
@@ -52,6 +54,7 @@ export class Graphlink<RootStoreShape, DBShape> {
 	}*/
 	subs = {} as {
 		apollo: ApolloClient<NormalizedCacheObject>;
+		pgClient?: PoolClient|null; // only used if on db-server
 	};
 
 	@observable userInfo: UserInfo|null;

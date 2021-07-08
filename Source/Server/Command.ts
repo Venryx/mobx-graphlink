@@ -1,8 +1,9 @@
 import {Clone, Assert, E, ObjectCE, ArrayCE, CE, OmitIfFalsy} from "js-vextensions";
-import {ApplyDBUpdates, ApplyDBUpdates_Local} from "../Utils/DatabaseHelpers.js";
-import {MaybeLog_Base} from "../Utils/General.js";
+import {MaybeLog_Base} from "../Utils/General/General.js";
 import {GraphOptions, defaultGraphOptions} from "../Graphlink.js";
 import {GetAsync, GetAsync_Options} from "../Accessors/Helpers.js";
+import {ApplyDBUpdates, ApplyDBUpdates_Local} from "../Utils/DB/DBUpdateApplier.js";
+import {DBUpdate, DBUpdateType} from "../Utils/DB/DBUpdate.js";
 
 export const commandsWaitingToComplete_new = [] as Command<any, any>[];
 
@@ -77,7 +78,13 @@ export abstract class Command<Payload, ReturnData = void> {
 		await GetAsync(()=>this.Validate(), E({errorHandling: "ignore", throwImmediatelyOnDBWait: true}, options));
 	}
 	/** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
-	abstract GetDBUpdates(): {}
+	GetDBUpdates() {
+		const helper = new DeclareDBUpdates_Helper();
+		this.DeclareDBUpdates(helper);
+		const dbUpdates = helper._dbUpdates;
+		return dbUpdates;
+	}
+	abstract DeclareDBUpdates(helper: DeclareDBUpdates_Helper);
 
 	async PreRun() {
 		//RemoveHelpers(this.payload);
@@ -108,7 +115,9 @@ export abstract class Command<Payload, ReturnData = void> {
 			}
 			// FixDBUpdates(dbUpdates);
 			// await store.firebase.helpers.DBRef().update(dbUpdates);
-			await ApplyDBUpdates(this.options, dbUpdates);
+			await ApplyDBUpdates(dbUpdates);
+
+			// todo: make sure the db-changes we just made are reflected in our mobx store, *before* current command is marked as "completed" (else next command may start operating on not-yet-refreshed data)
 
 			// MaybeLog(a=>a.commands, ()=>`Finishing command. @type:${this.constructor.name} @payload(${ToJSON(this.payload)}) @dbUpdates(${ToJSON(dbUpdates)})`);
 			MaybeLog_Base(a=>a.commands, l=>l("Finishing command. @type:", this.constructor.name, " @command(", this, ") @dbUpdates(", dbUpdates, ")"));
@@ -147,4 +156,21 @@ export abstract class Command<Payload, ReturnData = void> {
 		const newData = ApplyDBUpdates_Local(oldData, dbUpdates);
 		this.options.graph.ValidateDBData!(newData);
 	}
+}
+
+export class DeclareDBUpdates_Helper {
+	_dbUpdates = [] as DBUpdate[];
+	
+	// add multiple pre-made db-updates (eg. from subcommand)
+	add(dbUpdates: DBUpdate[]) {
+		this._dbUpdates.push(...dbUpdates);
+	}
+
+	// helpers for adding one db-update
+	set(path: string, value: any) {
+		this._dbUpdates.push(new DBUpdate({type: DBUpdateType.set, path, value}));
+	}
+	/*delete(path: string, value: any) {
+		this._dbUpdates.push(new DBUpdate({type: DBUpdateType.delete, path, value}));
+	}*/
 }

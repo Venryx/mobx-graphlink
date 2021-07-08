@@ -73,6 +73,10 @@ export function PathOrPathGetterToPathSegments(pathOrPathSegmentsOrPathGetter) {
         return MobXPathGetterToPathSegments(pathOrPathSegmentsOrPathGetter);
     return [];
 }
+export function AssertValidatePath(path) {
+    Assert(!path.endsWith("/"), "Path cannot end with a slash. (This may mean a path parameter is missing)");
+    Assert(!path.includes("//"), "Path cannot contain a double-slash. (This may mean a path parameter is missing)");
+}
 export function MobXPathGetterToPath(pathGetterFunc) {
     return MobXPathGetterToPathSegments(pathGetterFunc).join("/");
 }
@@ -92,4 +96,20 @@ export function MobXPathGetterToPathSegments(pathGetterFunc) {
     });
     pathGetterFunc(proxy);
     return pathSegments;
+}
+export const dbpPrefix = "[@dbp:]";
+/** When creating db-path strings, always create it using this function to construct the template-literal.
+ * It protects from typos like: dbp(`...`) (do this instead: dbp`...`) */
+export function dbp(strings, ...vars) {
+    Assert(vars.length >= 1, `The "dbp" template-literal function requires at least one variable, to protect from typos like: dbp(\`...\`) (do this instead: dbp\`...\`)`);
+    for (const expression of vars) {
+        Assert(typeof expression == "string", "DB-path-segment variables must be strings.");
+        Assert(/^([A-Za-z0-9_-.]+)$/.test(expression), `DB-path-segment variables must only contain alphanumeric, "_", "-", or "." characters.`);
+    }
+    // now just default template literal functionality
+    let result = dbpPrefix;
+    strings.forEach((str, i) => {
+        result += `${str}${i == strings.length - 1 ? "" : vars[i]}`;
+    });
+    return result;
 }

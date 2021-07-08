@@ -1,5 +1,6 @@
 import { GraphOptions } from "../Graphlink.js";
 import { GetAsync_Options } from "../Accessors/Helpers.js";
+import { DBUpdate } from "../Utils/DB/DBUpdate.js";
 export declare const commandsWaitingToComplete_new: Command<any, any>[];
 export declare abstract class Command<Payload, ReturnData = void> {
     static defaultPayload: {};
@@ -19,9 +20,15 @@ export declare abstract class Command<Payload, ReturnData = void> {
     Validate_Safe(): any;
     Validate_Async(options?: Partial<GraphOptions> & GetAsync_Options): Promise<void>;
     /** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
-    abstract GetDBUpdates(): {};
+    GetDBUpdates(): DBUpdate[];
+    abstract DeclareDBUpdates(helper: DeclareDBUpdates_Helper): any;
     PreRun(): Promise<void>;
     /** [async] Validates the data, prepares it, and executes it -- thus applying it into the database. */
     Run(): Promise<ReturnData>;
     Validate_LateHeavy(dbUpdates: any): Promise<void>;
+}
+export declare class DeclareDBUpdates_Helper {
+    _dbUpdates: DBUpdate[];
+    add(dbUpdates: DBUpdate[]): void;
+    set(path: string, value: any): void;
 }
