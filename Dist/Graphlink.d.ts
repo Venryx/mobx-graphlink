@@ -29,9 +29,6 @@ export declare class Graphlink<RootStoreShape, DBShape> {
         pgClient?: PoolClient | null | undefined;
     };
     userInfo: UserInfo | null;
-    LogIn(): Promise<null>;
-    LogIn_WithCredential(): Promise<null>;
-    LogOut(): Promise<void>;
     tree: TreeNode<DBShape>;
     treeRequestWatchers: Set<TreeRequestWatcher>;
     UnsubscribeAll(): void;
@@ -39,5 +36,4 @@ export declare class Graphlink<RootStoreShape, DBShape> {
 }
 export declare class UserInfo {
     id: string;
-    displayName: string;
 }

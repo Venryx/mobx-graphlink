@@ -63,7 +63,8 @@ export class Graphlink<RootStoreShape, DBShape> {
 	};
 
 	@observable userInfo: UserInfo|null;
-	async LogIn() {
+	// todo (probably)
+	/*async LogIn() {
 		// todo
 		return null;
 	}
@@ -73,7 +74,7 @@ export class Graphlink<RootStoreShape, DBShape> {
 	}
 	async LogOut() {
 		// todo
-	}
+	}*/
 
 	tree: TreeNode<DBShape>;
 	treeRequestWatchers = new Set<TreeRequestWatcher>();
@@ -87,5 +88,5 @@ export class Graphlink<RootStoreShape, DBShape> {
 
 export class UserInfo {
 	id: string;
-	displayName: string;
+	//displayName: string;
 }

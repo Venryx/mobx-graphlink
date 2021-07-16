@@ -1,9 +1,9 @@
 import {Assert, GetTreeNodesInObjTree, IsNumberString, ObjectCE} from "js-vextensions";
 import {SplitStringBySlash_Cached} from "../../index.js";
 
-export function IsAuthValid(auth) {
+/*export function IsAuthValid(auth) {
 	return auth && !auth.isEmpty;
-}
+}*/
 
 export function ProcessDBData(data, addHelpers: boolean, rootKey = "_root") {
 	if (data == null) return;
