@@ -68,9 +68,14 @@ export function BailHandler(...args) {
         collection_docSchemaName.set(propertyKey, docSchemaName);
     }
 }*/
+export const mglClasses = new Set();
+export function GetMGLClass(name) {
+    return [...mglClasses].find(a => a.name == name);
+}
 export function MGLClass(opts, schemaExtrasOrGetter, initFunc_pre) {
     return (constructor) => {
         var _a;
+        mglClasses.add(constructor);
         const typeName = (_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : constructor.name;
         const schemaDeps = opts === null || opts === void 0 ? void 0 : opts.schemaDeps;
         if (opts === null || opts === void 0 ? void 0 : opts.table) {
@@ -107,7 +112,7 @@ export function Field(schemaOrGetter, extras) {
         constructor["_fields"] = (_a = constructor["_fields"]) !== null && _a !== void 0 ? _a : {};
         constructor["_fields"][propertyKey] = schemaOrGetter;
         if (extras) {
-            constructor["_fieldExtras"] = (_b = constructor["_fields"]) !== null && _b !== void 0 ? _b : {};
+            constructor["_fieldExtras"] = (_b = constructor["_fieldExtras"]) !== null && _b !== void 0 ? _b : {};
             constructor["_fieldExtras"][propertyKey] = extras;
         }
     };
@@ -120,4 +125,8 @@ export function DB(initFunc) {
         constructor["_fieldDBInits"] = (_a = constructor["_fieldDBInits"]) !== null && _a !== void 0 ? _a : {};
         constructor["_fieldDBInits"][propertyKey] = initFunc;
     };
+}
+export function GetFieldDBInit(constructor, fieldName) {
+    var _a;
+    return ((_a = constructor["_fieldDBInits"]) !== null && _a !== void 0 ? _a : {})[fieldName];
 }

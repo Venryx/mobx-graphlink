@@ -2,7 +2,7 @@ import AJV from "ajv";
 export declare const ajv: AJV_Extended;
 export declare const collection_docSchemaName: Map<string, string>;
 export declare function GetTypePolicyFieldsMappingSingleDocQueriesToCache(): {};
-export declare function Schema(schema: any): any;
+export declare function NewSchema(schema: any): any;
 export declare const schemaEntryJSONs: {};
 export declare function AddSchema(name: string, schemaOrGetter: Object | (() => Object)): any;
 export declare function AddSchema(name: string, schemaDeps: string[] | undefined, schemaGetter: () => Object): any;

@@ -1,8 +1,8 @@
 import {Assert, CE, GetTreeNodesInObjTree} from "js-vextensions";
 import type Knex from "knex";
 import u from "updeep";
-import {TableNameToDocSchemaName} from "../../Extensions/Decorators.js";
-import {Schema} from "../../Extensions/SchemaHelpers.js";
+import {GetFieldDBInit, GetMGLClass, mglClasses, TableNameToDocSchemaName} from "../../Extensions/Decorators.js";
+import {GetSchemaJSON, NewSchema} from "../../Extensions/SchemaHelpers.js";
 import {defaultGraphOptions} from "../../Graphlink.js";
 import {MaybeLog_Base} from "../General/General.js";
 import {dbpPrefix} from "./DBPaths.js";
@@ -89,32 +89,46 @@ export async function ApplyDBUpdates(dbUpdates: DBUpdate[], simplifyDBUpdates = 
 		AssertDBUpdateIsValid(update);
 		const tableName = update.PathSegments[0];
 		const docSchemaName = TableNameToDocSchemaName(tableName);
-		const docSchema = Schema(docSchemaName);
+		const class_ = GetMGLClass(docSchemaName);
+		Assert(class_ != null, `Could not find class for table: ${tableName} (tried finding by name: "${docSchemaName}")`);
+		const docSchema = GetSchemaJSON(docSchemaName);
 		Assert(docSchema != null, `Could not find schema for table: ${tableName} (tried finding by name: "${docSchemaName}")`);
 		Assert(docSchema.properties != null, `Schema "${docSchemaName}" has no properties, which is invalid for a document/row type.`);
 		const docID = update.PathSegments[1];
 		
+		const FinalizeFieldValue = (rawVal: any, fieldName: string)=>{
+			let result = rawVal;
+			// if db-type for a field is "json"/"jsonb", make sure that the value is stringified
+			const fieldDBInitFunc = GetFieldDBInit(class_, fieldName);
+			if (fieldDBInitFunc.toString().includes(".json(") || fieldDBInitFunc.toString().includes(".jsonb(")) {
+				result = typeof result == "string" || result == null ? result : JSON.stringify(result);
+			}
+			return result;
+		};
+
 		const isSet = update.PathSegments.length == 2 && update.value != null;
 		const isDelete = update.PathSegments.length == 2 && update.value == null;
 		if (isSet) {
 			//const result = await knex(tableName).where({id: docID}).first().insert(update.value);
 			const docValue_final = {...update.value};
-			// make sure every column/field has a value; this way, the "onConflict, merge" behavior is the same as "set"
 			for (const column of Object.keys(docSchema.properties)) {
+				// make sure every column/field has a value; this way, the "onConflict, merge" behavior is the same as "set"
 				if (!(column in docValue_final)) {
 					docValue_final[column] = null;
 				}
+				docValue_final[column] = FinalizeFieldValue(docValue_final[column], column);
 			}
+			// if db-type is "json"/"jsonb", convert value to string before actual insertion
 			
 			const [row] = await knexTx(tableName).insert(docValue_final)
 				.onConflict("id").merge() // if row already exists, set it to the newly-passed data
 				.returning("*");
 		} else if (isDelete) {
 			const [row] = await knexTx(tableName).where({id: docID}).delete().returning("*");
-		} else {
+		} else { // else, must be within-doc update
 			const fieldName = update.PathSegments[2].slice(1);
 			const [row] = await knexTx(tableName).where({id: docID}).update({
-				[fieldName]: update.value,
+				[fieldName]: FinalizeFieldValue(update.value, fieldName),
 			}).returning("*");
 		}
 	}

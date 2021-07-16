@@ -69,12 +69,18 @@ export function BailHandler(...args) {
 	}
 }*/
 
+export const mglClasses = new Set<Function>();
+export function GetMGLClass(name: string) {
+	return [...mglClasses].find(a=>a.name == name);
+}
+
 export function MGLClass(
 	opts?: {name?: string, table?: string, schemaDeps?: string[]},
 	schemaExtrasOrGetter?: Object | (()=>Object),
 	initFunc_pre?: (t: Knex.TableBuilder)=>any,
 ) {
 	return (constructor: Function)=>{
+		mglClasses.add(constructor);
 		const typeName = opts?.name ?? constructor.name;
 		const schemaDeps = opts?.schemaDeps;
 
@@ -118,7 +124,7 @@ export function Field(schemaOrGetter: Object | (()=>Object), extras?: Field_Extr
 		constructor["_fields"][propertyKey] = schemaOrGetter;
 
 		if (extras) {
-			constructor["_fieldExtras"] = constructor["_fields"] ?? {};
+			constructor["_fieldExtras"] = constructor["_fieldExtras"] ?? {};
 			constructor["_fieldExtras"][propertyKey] = extras;
 		}
 	};
@@ -142,4 +148,7 @@ export function DB(initFunc: (t: Knex.TableBuilder, n: string)=>any) {
 		constructor["_fieldDBInits"] = constructor["_fieldDBInits"] ?? {};
 		constructor["_fieldDBInits"][propertyKey] = initFunc;
 	};
+}
+export function GetFieldDBInit(constructor: Function, fieldName: string) {
+	return (constructor["_fieldDBInits"] ?? {})[fieldName];
 }

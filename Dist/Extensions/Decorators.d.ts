@@ -14,6 +14,8 @@ export declare class BailHandler_Options {
 }
 export declare function BailHandler(targetClass: Function): any;
 export declare function BailHandler(options?: Partial<BailHandler_Options>): any;
+export declare const mglClasses: Set<Function>;
+export declare function GetMGLClass(name: string): Function | undefined;
 export declare function MGLClass(opts?: {
     name?: string;
     table?: string;
@@ -32,3 +34,4 @@ declare module "knex" {
     }
 }
 export declare function DB(initFunc: (t: Knex.TableBuilder, n: string) => any): (target: any, propertyKey: string) => void;
+export declare function GetFieldDBInit(constructor: Function, fieldName: string): any;

@@ -30,7 +30,7 @@ export function GetTypePolicyFieldsMappingSingleDocQueriesToCache() {
     }
     return result;
 }
-export function Schema(schema) {
+export function NewSchema(schema) {
     schema = E({ additionalProperties: false }, schema);
     return schema;
 }
@@ -50,7 +50,7 @@ export function AddSchema(...args) {
             }
         }
         let schema = schemaOrGetter instanceof Function ? schemaOrGetter() : schemaOrGetter;
-        schema = Schema(schema);
+        schema = NewSchema(schema);
         schemaEntryJSONs[name] = schema;
         ajv.removeSchema(name); // for hot-reloading
         const result = ajv.addSchema(schema, name);
@@ -150,7 +150,7 @@ export function AssertValidate_Full(schemaObject, schemaName, data, failureMessa
     var _a;
     opt = E(new AssertValidateOptions(), opt);
     AssertV(schemaObject, "schemaObject cannot be null.");
-    schemaObject = Schema(schemaObject); // make sure we apply schema-object defaults
+    schemaObject = NewSchema(schemaObject); // make sure we apply schema-object defaults
     if (opt.allowOptionalPropsToBeNull) {
         schemaObject = Schema_WithOptionalPropsAllowedNull(schemaObject);
     }
