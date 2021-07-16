@@ -5,9 +5,10 @@ import {SplitStringBySlash_Cached} from "../../index.js";
 	return auth && !auth.isEmpty;
 }*/
 
-export function ProcessDBData(data, addHelpers: boolean, rootKey = "_root") {
+export function ProcessDBData(data, pathInGraphlinkTree: string[]) {
 	if (data == null) return;
-	var treeNodes = GetTreeNodesInObjTree(data, true);
+
+	/*var treeNodes = GetTreeNodesInObjTree(data, true);
 	for (const treeNode of treeNodes) {
 		if (treeNode.Value == null) continue;
 
@@ -23,7 +24,14 @@ export function ProcessDBData(data, addHelpers: boolean, rootKey = "_root") {
 			Object.defineProperty(treeNode.Value, "_key", {enumerable: false, value: key});
 		}
 	}
-	return treeNodes[0].Value; // get possibly-modified wrapper.data
+	return treeNodes[0].Value; // get possibly-modified wrapper.data*/
+
+	if (Object.keys(data).includes("__typename")) {
+		const typeName = data.__typename;
+		delete data.__typename;
+		Object.defineProperty(data, "__typename", {value: typeName}); // defining it this way, makes the property non-enumerable
+	}
+	return data;
 }
 
 export function ConvertDataToValidDBUpdates(versionPath: string, versionData: any, dbUpdatesRelativeToVersionPath = true) {

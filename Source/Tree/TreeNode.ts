@@ -7,6 +7,7 @@ import {Graphlink} from "../Graphlink.js";
 import {JSONStringify_NoQuotesForKeys, MaybeLog_Base} from "../Utils/General/General.js";
 import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "../Utils/DB/DBPaths.js";
 import {TableNameToDocSchemaName, TableNameToGraphQLDocRetrieverKey} from "../Extensions/Decorators.js";
+import {ProcessDBData} from "../Utils/DB/DBDataHelpers.js";
 
 export enum TreeNodeType {
 	Root = "Root",
@@ -362,7 +363,7 @@ export class TreeNode<DataShape> {
 			//console.log("Data changed from:", this.data, " to:", data, " @node:", this);
 			//data = data ? observable(data_raw) as any : null;
 			// for graphql system, not currently needed
-			//ProcessDBData(data, true, CE(this.pathSegments).Last());
+			ProcessDBData(data, this.pathSegments);
 			this.data = data;
 			this.dataJSON = dataJSON;
 		}
