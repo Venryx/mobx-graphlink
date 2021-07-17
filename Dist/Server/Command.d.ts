@@ -1,11 +1,13 @@
 import { GraphOptions } from "../Graphlink.js";
 import { GetAsync_Options } from "../Accessors/Helpers.js";
 import { DBUpdate } from "../Utils/DB/DBUpdate.js";
+import { UserInfo } from "../index.js";
 export declare const commandsWaitingToComplete_new: Command<any, any>[];
 export declare abstract class Command<Payload, ReturnData = {}> {
     constructor(payload: Payload);
     constructor(options: Partial<GraphOptions>, payload: Payload);
-    get userInfo(): import("../Graphlink.js").UserInfo;
+    _userInfo_override: UserInfo | null | undefined;
+    get userInfo(): UserInfo;
     type: string;
     options: GraphOptions;
     payload: Payload;

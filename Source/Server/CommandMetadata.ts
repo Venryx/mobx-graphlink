@@ -59,7 +59,7 @@ export class CommandClassMetadata {
 	CalculateDerivatives() {
 		this.payloadSchema = FinalizeSchemaForClassInfos(this.payloadSchemaGetter?.() ?? {});
 		this.returnSchema = FinalizeSchemaForClassInfos(this.returnSchemaGetter?.() ?? {});
-		console.log("CommandClass:", this.commandClass.name, "@payloadInfo:", JSON.stringify(this.payloadSchema, null, 2), "@returnInfo:", JSON.stringify(this.returnSchema, null, 2));
+		//console.log("CommandClass:", this.commandClass.name, "@payloadInfo:", JSON.stringify(this.payloadSchema, null, 2), "@returnInfo:", JSON.stringify(this.returnSchema, null, 2));
 
 		/*const argsObj = {};
 		for (const [propName, propSchema] of Object.entries(payloadInfo.properties ?? {}) as [string, Object][]) {

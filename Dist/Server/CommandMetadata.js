@@ -38,7 +38,7 @@ export class CommandClassMetadata {
         var _a, _b, _c, _d;
         this.payloadSchema = FinalizeSchemaForClassInfos((_b = (_a = this.payloadSchemaGetter) === null || _a === void 0 ? void 0 : _a.call(this)) !== null && _b !== void 0 ? _b : {});
         this.returnSchema = FinalizeSchemaForClassInfos((_d = (_c = this.returnSchemaGetter) === null || _c === void 0 ? void 0 : _c.call(this)) !== null && _d !== void 0 ? _d : {});
-        console.log("CommandClass:", this.commandClass.name, "@payloadInfo:", JSON.stringify(this.payloadSchema, null, 2), "@returnInfo:", JSON.stringify(this.returnSchema, null, 2));
+        //console.log("CommandClass:", this.commandClass.name, "@payloadInfo:", JSON.stringify(this.payloadSchema, null, 2), "@returnInfo:", JSON.stringify(this.returnSchema, null, 2));
         /*const argsObj = {};
         for (const [propName, propSchema] of Object.entries(payloadInfo.properties ?? {}) as [string, Object][]) {
             const required = payloadInfo.required?.includes(propName) ?? false;

@@ -10,7 +10,7 @@ import {gql} from "@apollo/client/core/index.js";
 import {ConstructGQLArgsStr, ConstructGQLArgTypesStr} from "../Extensions/GQLSchemaHelpers.js";
 import {GetCommandClassMetadata, GetCommandClassMetadatas} from "./CommandMetadata.js";
 import {WithBrackets} from "../Tree/QueryParams.js";
-import {CleanDBData} from "../index.js";
+import {CleanDBData, UserInfo} from "../index.js";
 
 export const commandsWaitingToComplete_new = [] as Command<any, any>[];
 
@@ -44,7 +44,8 @@ export abstract class Command<Payload, ReturnData = {}> {
 		this.payload = E(Clone(this.constructor["defaultPayload"]), Clone(payload));
 	}
 	//userInfo: FireUserInfo;
-	get userInfo() { return this.options.graph.userInfo!; }
+	_userInfo_override: UserInfo|null|undefined; // for use on server (so permissions are checked against the calling user's id rather than the server's )
+	get userInfo() { return this._userInfo_override ?? this.options.graph.userInfo!; }
 	type: string;
 	options: GraphOptions;
 	payload: Payload;

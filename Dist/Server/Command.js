@@ -51,8 +51,7 @@ export class Command {
         // use Clone on the payload, so that behavior is consistent whether called locally or over the network
         this.payload = E(Clone(this.constructor["defaultPayload"]), Clone(payload));
     }
-    //userInfo: FireUserInfo;
-    get userInfo() { return this.options.graph.userInfo; }
+    get userInfo() { var _a; return (_a = this._userInfo_override) !== null && _a !== void 0 ? _a : this.options.graph.userInfo; }
     MarkAsSubcommand(parentCommand) {
         this.parentCommand = parentCommand;
         //this.Validate_Early();
