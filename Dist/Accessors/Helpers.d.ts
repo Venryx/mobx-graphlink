@@ -5,7 +5,7 @@ export declare class GetAsync_Options {
     static default: GetAsync_Options;
     /** Just meant to alert us for infinite-loop-like calls/getter-funcs. Default: 50 [pretty arbitrary] */
     maxIterations?: number | undefined;
-    errorHandling?: "ignore" | "none" | "log" | undefined;
+    errorHandling?: "none" | "log" | "ignore" | undefined;
     /** If true, db requests within dataGetterFunc that find themselves waiting for remote db-data, with throw an error immediately. (avoiding higher-level processing) */
     throwImmediatelyOnDBWait?: boolean | undefined;
 }

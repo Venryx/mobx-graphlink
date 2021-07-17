@@ -31,7 +31,7 @@ export function ConstructGQLArgsStr(argsObj, args_rawPrefixStr) {
         args_rawPrefixStr,
         argsAsStr_json.slice(1, -1), // remove "{}"
     ].filter(a => a);
-    return `(${argsStr_parts.join(", ")})`; // wrap with "()"
+    return argsStr_parts.join(", ");
 }
 /** For use in mutation-resolver declarations/types. */
 export function ConstructGQLArgTypesStr(argTypesObj, argTypes_rawPrefixStr) {

@@ -41,6 +41,7 @@
     "ajv-keywords": "^3.5.2",
     "chokidar": "^3.5.2",
     "commander": "^8.0.0",
+    "get-graphql-from-jsonschema": "^8.0.12",
     "js-vextensions": "^1.0.61",
     "knex": "^0.95.6",
     "slugid": "^2.0.0",

@@ -1,12 +1,8 @@
 import { GraphOptions } from "../Graphlink.js";
 import { GetAsync_Options } from "../Accessors/Helpers.js";
 import { DBUpdate } from "../Utils/DB/DBUpdate.js";
-import { JSONSchema7 } from "json-schema";
 export declare const commandsWaitingToComplete_new: Command<any, any>[];
-export declare abstract class Command<Payload, ReturnData = void> {
-    static _payloadInfoGetter: (() => JSONSchema7) | null | undefined;
-    static _returnInfoGetter: (() => JSONSchema7) | null | undefined;
-    static defaultPayload: {};
+export declare abstract class Command<Payload, ReturnData = {}> {
     constructor(payload: Payload);
     constructor(options: Partial<GraphOptions>, payload: Payload);
     get userInfo(): import("../Graphlink.js").UserInfo;
@@ -29,7 +25,9 @@ export declare abstract class Command<Payload, ReturnData = void> {
     abstract DeclareDBUpdates(helper: DeclareDBUpdates_Helper): any;
     PreRun(): Promise<void>;
     /** [async] Validates the data, prepares it, and executes it -- thus applying it into the database. */
-    Run(): Promise<ReturnData>;
+    RunLocally(): Promise<ReturnData>;
+    /** Same as Run(), except with the server executing the command rather than the current context. */
+    RunOnServer(): Promise<ReturnData>;
     Validate_LateHeavy(dbUpdates: any): Promise<void>;
 }
 export declare class DeclareDBUpdates_Helper {

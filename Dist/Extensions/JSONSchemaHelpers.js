@@ -122,7 +122,9 @@ export function Validate(schemaName, data) {
 }
 /** Returns null if the supplied data matches the schema. Else, returns error message. */
 export function Validate_Full(schemaObject, schemaName, data) {
-    if (data == null)
+    var _a;
+    const isEmptySchema = Object.keys((_a = schemaObject.properties) !== null && _a !== void 0 ? _a : {}).length == 0; // example: {additionalProperties: false, type: "object", properties: {}}
+    if (data == null && !isEmptySchema)
         return "Data is null/undefined!";
     const passed = ajv.validate(schemaObject, data);
     if (!passed)
@@ -136,12 +138,13 @@ export class AssertValidateOptions {
     constructor() {
         this.addErrorsText = true;
         this.addSchemaName = true;
+        this.addSchemaObject = false;
         this.addDataStr = true;
         this.allowOptionalPropsToBeNull = true;
         this.useAssertV = true;
     }
 }
-export function AssertValidate(schemaNameOrJSON, data, failureMessageOrGetter, opt = new AssertValidateOptions()) {
+export function AssertValidate(schemaNameOrJSON, data, failureMessageOrGetter, opt) {
     const schemaName = IsString(schemaNameOrJSON) ? schemaNameOrJSON : null;
     const schemaObject = IsString(schemaNameOrJSON) ? GetSchemaJSON(schemaName) : schemaNameOrJSON;
     return AssertValidate_Full(schemaObject, schemaName, data, failureMessageOrGetter, opt);
@@ -149,7 +152,7 @@ export function AssertValidate(schemaNameOrJSON, data, failureMessageOrGetter, o
 export function AssertValidate_Full(schemaObject, schemaName, data, failureMessageOrGetter, opt) {
     var _a;
     opt = E(new AssertValidateOptions(), opt);
-    AssertV(schemaObject, "schemaObject cannot be null.");
+    AssertV(schemaObject != null, "schemaObject cannot be null.");
     schemaObject = NewSchema(schemaObject); // make sure we apply schema-object defaults
     if (opt.allowOptionalPropsToBeNull) {
         schemaObject = Schema_WithOptionalPropsAllowedNull(schemaObject);
@@ -162,9 +165,9 @@ export function AssertValidate_Full(schemaObject, schemaName, data, failureMessa
     if (opt.addSchemaName && schemaName) {
         failureMessage += `\nSchemaName: "${schemaName}"`;
     }
-    /*if (opt.addSchemaObject) {
-        failureMessage += `\nSchemaObject: "${schemaObject}"`;
-    }*/
+    if (opt.addSchemaObject) {
+        failureMessage += `\nSchemaObject: "${JSON.stringify(schemaObject, null, 2)}"`;
+    }
     if (opt.addDataStr) {
         failureMessage += `\nData: ${ToJSON(data, undefined, 3)}`;
     }

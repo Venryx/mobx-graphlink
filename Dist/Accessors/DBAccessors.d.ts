@@ -1,7 +1,7 @@
 import { ObservableMap } from "mobx";
 import { GraphOptions } from "../Graphlink.js";
-import { QueryParams } from "../Tree/TreeNode.js";
 import { DBShape } from "../UserTypes.js";
+import { QueryParams } from "../Tree/QueryParams.js";
 export declare class GetDocs_Options {
     static default: GetDocs_Options;
     inLinkRoot?: boolean | undefined;

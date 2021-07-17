@@ -77,10 +77,10 @@ export class AccessorMetadata {
 				console.warn("invoking a computedFn from outside an reactive context won't be memoized, unless keepAlive is set");
 				this.memoWarned = true;
 			}
-			return this.accessor.apply(self, callArgs);
+			return this.accessor.apply(null, callArgs);
 	 	}
 		// create new entry
-		const cachedValue_wrapper = computed(()=>this.accessor.apply(self, callArgs), {
+		const cachedValue_wrapper = computed(()=>this.accessor.apply(null, callArgs), {
 			...this.mobxCacheOpts,
 			name: `computedFn(${this.accessor.name}#${++this.numberOfArgCombinationsCached})`
 		});

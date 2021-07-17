@@ -14,6 +14,10 @@ import { GetAsync } from "../Accessors/Helpers.js";
 import { ApplyDBUpdates, ApplyDBUpdates_Local } from "../Utils/DB/DBUpdateApplier.js";
 import { DBUpdate, DBUpdateType } from "../Utils/DB/DBUpdate.js";
 import { AssertValidate } from "../Extensions/JSONSchemaHelpers.js";
+import { gql } from "@apollo/client/core/index.js";
+import { GetCommandClassMetadata } from "./CommandMetadata.js";
+import { WithBrackets } from "../Tree/QueryParams.js";
+import { CleanDBData } from "../index.js";
 export const commandsWaitingToComplete_new = [];
 let currentCommandRun_listeners = [];
 function WaitTillCurrentCommandFinishes() {
@@ -32,6 +36,9 @@ function NotifyListenersThatCurrentCommandFinished() {
 }
 export class Command {
     constructor(...args) {
+        //prepareStartTime: number;
+        //runStartTime: number;
+        this.returnData = {};
         let options, payload;
         if (args.length == 1)
             [payload] = args;
@@ -53,9 +60,10 @@ export class Command {
     }
     /** Same as the command-provided Validate() function, except also validating the payload and return-data against their schemas. */
     Validate_Full() {
-        AssertValidate(this.constructor["_payloadSchema"], this.payload, "Payload is invalid.");
+        const meta = GetCommandClassMetadata(this.constructor.name);
+        AssertValidate(meta.payloadSchema, this.payload, "Payload is invalid.", { addSchemaObject: true });
         this.Validate();
-        AssertValidate(this.constructor["_returnSchema"], this.returnData, "Return-data is invalid.");
+        AssertValidate(meta.returnSchema, this.returnData, "Return-data is invalid.", { addSchemaObject: true });
     }
     Validate_Safe() {
         try {
@@ -89,7 +97,7 @@ export class Command {
         });
     }
     /** [async] Validates the data, prepares it, and executes it -- thus applying it into the database. */
-    Run() {
+    RunLocally() {
         return __awaiter(this, void 0, void 0, function* () {
             if (commandsWaitingToComplete_new.length > 0) {
                 MaybeLog_Base(a => a.commands, l => l(`Queing command, since ${commandsWaitingToComplete_new.length} ${commandsWaitingToComplete_new.length == 1 ? "is" : "are"} already waiting for completion.${""}@type:`, this.constructor.name, " @payload(", this.payload, ")"));
@@ -123,6 +131,27 @@ export class Command {
             return this.returnData;
         });
     }
+    /** Same as Run(), except with the server executing the command rather than the current context. */
+    RunOnServer() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const meta = GetCommandClassMetadata(this.constructor.name);
+            const returnDataSchema = meta.returnSchema;
+            //const returnData_propPairs = ObjectCE(returnDataSchema.properties).Pairs();
+            const fetchResult = yield this.options.graph.subs.apollo.mutate({
+                mutation: gql `
+				mutation ${this.constructor.name}${WithBrackets(meta.Args_GetVarDefsStr())} {
+					${this.constructor.name}${WithBrackets(meta.Args_GetArgsUsageStr())} {
+						${meta.Return_GetFieldsStr()}
+					}
+				}
+			`,
+                variables: this.payload,
+            });
+            const result = CleanDBData(fetchResult.data[this.constructor.name]);
+            AssertValidate(returnDataSchema, result, `Return-data for command did not match the expected shape. ReturnData: ${JSON.stringify(result, null, 2)}`);
+            return result;
+        });
+    }
     // standard validation of common paths/object-types; perhaps disable in production
     Validate_LateHeavy(dbUpdates) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -150,7 +179,6 @@ export class Command {
         });
     }
 }
-Command.defaultPayload = {};
 export class DeclareDBUpdates_Helper {
     constructor() {
         this._dbUpdates = [];

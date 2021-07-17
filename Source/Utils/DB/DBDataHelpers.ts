@@ -5,32 +5,21 @@ import {SplitStringBySlash_Cached} from "../../index.js";
 	return auth && !auth.isEmpty;
 }*/
 
-export function ProcessDBData(data, pathInGraphlinkTree: string[]) {
+export function CleanDBData(data) {
 	if (data == null) return;
-
-	/*var treeNodes = GetTreeNodesInObjTree(data, true);
-	for (const treeNode of treeNodes) {
-		if (treeNode.Value == null) continue;
-
-		// add special _key or _id prop
-		if (addHelpers && typeof treeNode.Value == "object") {
-			const key = treeNode.prop == "_root" ? rootKey : treeNode.prop;
-			if (IsNumberString(key)) {
-				Object.defineProperty(treeNode.Value, "_id", {enumerable: false, value: parseInt(key)});
-			}
-
-			// actually, always set "_key" (in case it's a "_key" that also happens to look like an "_id"/integer)
-			//else {
-			Object.defineProperty(treeNode.Value, "_key", {enumerable: false, value: key});
-		}
-	}
-	return treeNodes[0].Value; // get possibly-modified wrapper.data*/
 
 	if (Object.keys(data).includes("__typename")) {
 		const typeName = data.__typename;
 		delete data.__typename;
 		Object.defineProperty(data, "__typename", {value: typeName}); // defining it this way, makes the property non-enumerable
 	}
+
+	if (Object.keys(data).includes("_")) {
+		const typeName = data._;
+		delete data._;
+		Object.defineProperty(data, "_", {value: typeName}); // defining it this way, makes the property non-enumerable
+	}
+
 	return data;
 }
 

@@ -6,6 +6,11 @@ import {ApplyDBUpdates, ApplyDBUpdates_Local} from "../Utils/DB/DBUpdateApplier.
 import {DBUpdate, DBUpdateType} from "../Utils/DB/DBUpdate.js";
 import {AssertValidate} from "../Extensions/JSONSchemaHelpers.js";
 import {JSONSchema7} from "json-schema";
+import {gql} from "@apollo/client/core/index.js";
+import {ConstructGQLArgsStr, ConstructGQLArgTypesStr} from "../Extensions/GQLSchemaHelpers.js";
+import {GetCommandClassMetadata, GetCommandClassMetadatas} from "./CommandMetadata.js";
+import {WithBrackets} from "../Tree/QueryParams.js";
+import {CleanDBData} from "../index.js";
 
 export const commandsWaitingToComplete_new = [] as Command<any, any>[];
 
@@ -23,11 +28,7 @@ function NotifyListenersThatCurrentCommandFinished() {
 	}
 }
 
-export abstract class Command<Payload, ReturnData = void> {
-	static _payloadInfoGetter: (()=>JSONSchema7)|null|undefined; // set by @CommandMeta
-	static _returnInfoGetter: (()=>JSONSchema7)|null|undefined; // set by @CommandMeta
-	static defaultPayload = {};
-
+export abstract class Command<Payload, ReturnData = {}> {
 	constructor(payload: Payload);
 	constructor(options: Partial<GraphOptions>, payload: Payload);
 	constructor(...args) {
@@ -50,7 +51,7 @@ export abstract class Command<Payload, ReturnData = void> {
 
 	//prepareStartTime: number;
 	//runStartTime: number;
-	returnData;
+	returnData = {} as any;
 
 	// these methods are executed on the server (well, will be later)
 	// ==========
@@ -67,9 +68,10 @@ export abstract class Command<Payload, ReturnData = void> {
 	protected abstract Validate(): void;
 	/** Same as the command-provided Validate() function, except also validating the payload and return-data against their schemas. */
 	Validate_Full() {
-		AssertValidate(this.constructor["_payloadSchema"], this.payload, "Payload is invalid.");
+		const meta = GetCommandClassMetadata(this.constructor.name);
+		AssertValidate(meta.payloadSchema, this.payload, "Payload is invalid.", {addSchemaObject: true});
 		this.Validate();
-		AssertValidate(this.constructor["_returnSchema"], this.returnData, "Return-data is invalid.");
+		AssertValidate(meta.returnSchema, this.returnData, "Return-data is invalid.", {addSchemaObject: true});
 	}
 
 	/** Last validation error, from calling Validate_Safe(). */
@@ -104,7 +106,7 @@ export abstract class Command<Payload, ReturnData = void> {
 	}
 
 	/** [async] Validates the data, prepares it, and executes it -- thus applying it into the database. */
-	async Run(): Promise<ReturnData> {
+	async RunLocally(): Promise<ReturnData> {
 		if (commandsWaitingToComplete_new.length > 0) {
 			MaybeLog_Base(a=>a.commands, l=>l(`Queing command, since ${commandsWaitingToComplete_new.length} ${commandsWaitingToComplete_new.length == 1 ? "is" : "are"} already waiting for completion.${""
 				}@type:`, this.constructor.name, " @payload(", this.payload, ")"));
@@ -141,6 +143,26 @@ export abstract class Command<Payload, ReturnData = void> {
 
 		// later on (once set up on server), this will send the data back to the client, rather than return it
 		return this.returnData;
+	}
+	/** Same as Run(), except with the server executing the command rather than the current context. */
+	async RunOnServer(): Promise<ReturnData> {
+		const meta = GetCommandClassMetadata(this.constructor.name);
+		const returnDataSchema = meta.returnSchema;
+		//const returnData_propPairs = ObjectCE(returnDataSchema.properties).Pairs();
+
+		const fetchResult = await this.options.graph.subs.apollo.mutate({
+			mutation: gql`
+				mutation ${this.constructor.name}${WithBrackets(meta.Args_GetVarDefsStr())} {
+					${this.constructor.name}${WithBrackets(meta.Args_GetArgsUsageStr())} {
+						${meta.Return_GetFieldsStr()}
+					}
+				}
+			`,
+			variables: this.payload,
+		});
+		const result = CleanDBData(fetchResult.data[this.constructor.name]);
+		AssertValidate(returnDataSchema, result, `Return-data for command did not match the expected shape. ReturnData: ${JSON.stringify(result, null, 2)}`);
+		return result as ReturnData;
 	}
 
 	// standard validation of common paths/object-types; perhaps disable in production

@@ -1,6 +1,7 @@
 import AJV from "ajv";
 import AJVKeywords from "ajv-keywords";
 import {Clone, ToJSON, IsString, Assert, IsObject, E, CE, IsArray, DEL} from "js-vextensions";
+import {JSONSchema7, JSONSchema7Type} from "json-schema";
 import {AssertV} from "../Accessors/Helpers.js";
 import {UUID_regex} from "./KeyGenerator.js";
 //import {RemoveHelpers, WithoutHelpers} from "./DatabaseHelpers.js";
@@ -31,8 +32,8 @@ export function NewSchema(schema) {
 }
 
 export const schemaEntryJSONs = {};
-export async function AddSchema(name: string, schemaOrGetter: Object | (()=>Object));
-export async function AddSchema(name: string, schemaDeps: string[] | undefined, schemaGetter: ()=>Object); // only accept schema-getter, since otherwise there's no point to adding the dependency-schemas
+export async function AddSchema(name: string, schemaOrGetter: JSONSchema7 | (()=>JSONSchema7));
+export async function AddSchema(name: string, schemaDeps: string[] | undefined, schemaGetter: ()=>JSONSchema7); // only accept schema-getter, since otherwise there's no point to adding the dependency-schemas
 export async function AddSchema(...args: any[]) {
 	let name: string, schemaDeps: string[], schemaOrGetter: any;
 	if (args.length == 2) [name, schemaOrGetter] = args;
@@ -62,7 +63,7 @@ export async function AddSchema(...args: any[]) {
 	return result;
 }
 
-export function GetSchemaJSON(name: string): any {
+export function GetSchemaJSON(name: string): JSONSchema7 {
 	return Clone(schemaEntryJSONs[name]);
 }
 
@@ -158,8 +159,9 @@ export function Validate(schemaName: string, data: any) {
 	return Validate_Full(GetSchemaJSON(schemaName), schemaName, data);
 }
 /** Returns null if the supplied data matches the schema. Else, returns error message. */
-export function Validate_Full(schemaObject: Object, schemaName: string|null, data: any) {
-	if (data == null) return "Data is null/undefined!";
+export function Validate_Full(schemaObject: JSONSchema7, schemaName: string|null, data: any) {
+	const isEmptySchema = Object.keys(schemaObject.properties ?? {}).length == 0; // example: {additionalProperties: false, type: "object", properties: {}}
+	if (data == null && !isEmptySchema) return "Data is null/undefined!";
 
 	const passed = ajv.validate(schemaObject, data);
 	if (!passed) return ajv.FullErrorsText();
@@ -173,18 +175,19 @@ export function Validate_Full(schemaObject: Object, schemaName: string|null, dat
 export class AssertValidateOptions {
 	addErrorsText = true;
 	addSchemaName = true;
+	addSchemaObject = false;
 	addDataStr = true;
 	allowOptionalPropsToBeNull = true;
 	useAssertV = true;
 }
-export function AssertValidate(schemaNameOrJSON: string | Object, data, failureMessageOrGetter: string | ((errorsText: string)=>string), opt = new AssertValidateOptions()) {
+export function AssertValidate(schemaNameOrJSON: string | JSONSchema7, data, failureMessageOrGetter: string | ((errorsText: string)=>string), opt?: Partial<AssertValidateOptions>) {
 	const schemaName = IsString(schemaNameOrJSON) ? schemaNameOrJSON : null;
 	const schemaObject = IsString(schemaNameOrJSON) ? GetSchemaJSON(schemaName!) : schemaNameOrJSON;
 	return AssertValidate_Full(schemaObject, schemaName, data, failureMessageOrGetter, opt);
 }
-export function AssertValidate_Full(schemaObject: Object, schemaName: string|null, data, failureMessageOrGetter: string | ((errorsText: string|undefined)=>string), opt?: Partial<AssertValidateOptions>) {
+export function AssertValidate_Full(schemaObject: JSONSchema7, schemaName: string|null, data, failureMessageOrGetter: string | ((errorsText: string|undefined)=>string), opt?: Partial<AssertValidateOptions>) {
 	opt = E(new AssertValidateOptions(), opt);
-	AssertV(schemaObject, "schemaObject cannot be null.");
+	AssertV(schemaObject != null, "schemaObject cannot be null.");
 	schemaObject = NewSchema(schemaObject); // make sure we apply schema-object defaults
 	if (opt.allowOptionalPropsToBeNull) {
 		schemaObject = Schema_WithOptionalPropsAllowedNull(schemaObject);
@@ -199,9 +202,9 @@ export function AssertValidate_Full(schemaObject: Object, schemaName: string|nul
 	if (opt.addSchemaName && schemaName) {
 		failureMessage += `\nSchemaName: "${schemaName}"`;
 	}
-	/*if (opt.addSchemaObject) {
-		failureMessage += `\nSchemaObject: "${schemaObject}"`;
-	}*/
+	if (opt.addSchemaObject) {
+		failureMessage += `\nSchemaObject: "${JSON.stringify(schemaObject, null, 2)}"`;
+	}
 	if (opt.addDataStr) {
 		failureMessage += `\nData: ${ToJSON(data, undefined, 3)}`;
 	}
