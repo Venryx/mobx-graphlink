@@ -8,7 +8,7 @@ declare global {
     interface Function {
         /** The function itself, unchanged. */
         normal<Func extends ((..._: any) => any)>(this: Func, ..._: ArgumentsType<Func>): ReturnType<Func>;
-        /** Short for "bail if null". */
+        /** Short for "bail if null". (in commands, generally use .NN instead, as bailing is for "still-loading" situations, which the db-accessors already handle) */
         BIN<Func extends ((..._: any) => any)>(this: Func, ..._: ArgumentsType<Func>): NonNullable<ReturnType<Func>>;
         /** Short for "bail if loading-array", ie. emptyArray_loading. */
         BILA<Func extends ((..._: any) => any)>(this: Func, ..._: ArgumentsType<Func>): NonNullable<ReturnType<Func>>;

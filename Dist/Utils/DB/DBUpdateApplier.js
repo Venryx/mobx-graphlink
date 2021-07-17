@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { Assert, CE, GetTreeNodesInObjTree } from "js-vextensions";
 import u from "updeep";
 import { GetFieldDBInit, GetMGLClass, TableNameToDocSchemaName } from "../../Extensions/Decorators.js";
-import { GetSchemaJSON } from "../../Extensions/SchemaHelpers.js";
+import { GetSchemaJSON } from "../../Extensions/JSONSchemaHelpers.js";
 import { defaultGraphOptions } from "../../Graphlink.js";
 import { MaybeLog_Base } from "../General/General.js";
 import { dbpPrefix } from "./DBPaths.js";

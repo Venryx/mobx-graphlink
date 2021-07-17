@@ -7,11 +7,12 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 import { gql } from "@apollo/client/core/index.js";
 import { Assert, CE, Clone, E, FromJSON, ToJSON } from "js-vextensions";
 import { observable, runInAction, _getGlobalState } from "mobx";
-import { GetSchemaJSON } from "../Extensions/SchemaHelpers.js";
-import { JSONStringify_NoQuotesForKeys, MaybeLog_Base } from "../Utils/General/General.js";
+import { GetSchemaJSON } from "../Extensions/JSONSchemaHelpers.js";
+import { MaybeLog_Base } from "../Utils/General/General.js";
 import { PathOrPathGetterToPath, PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
 import { TableNameToDocSchemaName, TableNameToGraphQLDocRetrieverKey } from "../Extensions/Decorators.js";
 import { ProcessDBData } from "../Utils/DB/DBDataHelpers.js";
+import { ConstructGQLArgsStr } from "../Extensions/GQLSchemaHelpers.js";
 export var TreeNodeType;
 (function (TreeNodeType) {
     TreeNodeType["Root"] = "Root";
@@ -125,13 +126,7 @@ export class QueryParams_Linked extends QueryParams {
             for (const key of nonNullAutoArgs) {
                 argsObj[key] = this[key];
             }
-            //const argsAsStr_json = Object.keys(argsObj).length ? JSON.stringify(argsObj) : "";
-            const argsAsStr_json = Object.keys(argsObj).length ? JSONStringify_NoQuotesForKeys(argsObj) : "";
-            const argsStr_parts = [
-                this.args_rawPrefixStr,
-                argsAsStr_json.slice(1, -1), // remove "{}"
-            ].filter(a => a);
-            argsAsStr = `(${argsStr_parts.join(", ")})`; // wrap with "()"
+            argsAsStr = ConstructGQLArgsStr(argsObj, this.args_rawPrefixStr);
         }
         if (this.treeNode.type == TreeNodeType.Document) {
             const pairs = CE(docSchema.properties).Pairs();

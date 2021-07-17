@@ -23,10 +23,12 @@ export * from "./DBShape/Constructs.js";
 
 // these "extensions" are separable from mobx-graphlink, but are included for convenience, since I use them everywhere I use mobx-graphlink
 export * from "./Extensions/KeyGenerator.js";
-export * from "./Extensions/SchemaHelpers.js";
 export * from "./Extensions/Decorators.js";
+export * from "./Extensions/GQLSchemaHelpers.js";
+export * from "./Extensions/JSONSchemaHelpers.js";
 
 export * from "./Server/Command.js";
+export * from "./Server/CommandDecorators.js";
 
 export * from "./Tree/TreeNode.js";
 

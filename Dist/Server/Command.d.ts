@@ -1,8 +1,11 @@
 import { GraphOptions } from "../Graphlink.js";
 import { GetAsync_Options } from "../Accessors/Helpers.js";
 import { DBUpdate } from "../Utils/DB/DBUpdate.js";
+import { JSONSchema7 } from "json-schema";
 export declare const commandsWaitingToComplete_new: Command<any, any>[];
 export declare abstract class Command<Payload, ReturnData = void> {
+    static _payloadInfoGetter: (() => JSONSchema7) | null | undefined;
+    static _returnInfoGetter: (() => JSONSchema7) | null | undefined;
     static defaultPayload: {};
     constructor(payload: Payload);
     constructor(options: Partial<GraphOptions>, payload: Payload);
@@ -14,7 +17,9 @@ export declare abstract class Command<Payload, ReturnData = void> {
     parentCommand: Command<any, any>;
     MarkAsSubcommand(parentCommand: Command<any, any>): this;
     /** Transforms the payload data (eg. combining it with existing db-data) in preparation for constructing the db-updates-map, while also validating user permissions and such along the way. */
-    abstract Validate(): void;
+    protected abstract Validate(): void;
+    /** Same as the command-provided Validate() function, except also validating the payload and return-data against their schemas. */
+    Validate_Full(): void;
     /** Last validation error, from calling Validate_Safe(). */
     validateError: string | null;
     Validate_Safe(): any;

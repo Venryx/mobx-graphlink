@@ -2,12 +2,13 @@ import {DocumentNode, FetchResult, gql} from "@apollo/client/core/index.js";
 import {Observable} from "@apollo/client/utilities/index.js";
 import {Assert, CE, Clone, E, FromJSON, ModifyString, ObjectCE, ToJSON, ToJSON_Advanced} from "js-vextensions";
 import {observable, ObservableMap, runInAction, _getGlobalState} from "mobx";
-import {collection_docSchemaName, GetSchemaJSON} from "../Extensions/SchemaHelpers.js";
+import {collection_docSchemaName, GetSchemaJSON} from "../Extensions/JSONSchemaHelpers.js";
 import {Graphlink} from "../Graphlink.js";
 import {JSONStringify_NoQuotesForKeys, MaybeLog_Base} from "../Utils/General/General.js";
 import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "../Utils/DB/DBPaths.js";
 import {TableNameToDocSchemaName, TableNameToGraphQLDocRetrieverKey} from "../Extensions/Decorators.js";
 import {ProcessDBData} from "../Utils/DB/DBDataHelpers.js";
+import {ConstructGQLArgsStr} from "../Extensions/GQLSchemaHelpers.js";
 
 export enum TreeNodeType {
 	Root = "Root",
@@ -168,13 +169,7 @@ export class QueryParams_Linked extends QueryParams {
 				argsObj[key] = this[key];
 			}
 
-			//const argsAsStr_json = Object.keys(argsObj).length ? JSON.stringify(argsObj) : "";
-			const argsAsStr_json = Object.keys(argsObj).length ? JSONStringify_NoQuotesForKeys(argsObj) : "";
-			const argsStr_parts = [
-				this.args_rawPrefixStr,
-				argsAsStr_json.slice(1, -1), // remove "{}"
-			].filter(a=>a);
-			argsAsStr = `(${argsStr_parts.join(", ")})`; // wrap with "()"
+			argsAsStr = ConstructGQLArgsStr(argsObj, this.args_rawPrefixStr);
 		}
 		
 		if (this.treeNode.type == TreeNodeType.Document) {

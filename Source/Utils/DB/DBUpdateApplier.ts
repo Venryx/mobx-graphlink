@@ -2,7 +2,7 @@ import {Assert, CE, GetTreeNodesInObjTree} from "js-vextensions";
 import type Knex from "knex";
 import u from "updeep";
 import {GetFieldDBInit, GetMGLClass, mglClasses, TableNameToDocSchemaName} from "../../Extensions/Decorators.js";
-import {GetSchemaJSON, NewSchema} from "../../Extensions/SchemaHelpers.js";
+import {GetSchemaJSON, NewSchema} from "../../Extensions/JSONSchemaHelpers.js";
 import {defaultGraphOptions} from "../../Graphlink.js";
 import {MaybeLog_Base} from "../General/General.js";
 import {dbpPrefix} from "./DBPaths.js";

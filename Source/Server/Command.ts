@@ -4,6 +4,8 @@ import {GraphOptions, defaultGraphOptions} from "../Graphlink.js";
 import {GetAsync, GetAsync_Options} from "../Accessors/Helpers.js";
 import {ApplyDBUpdates, ApplyDBUpdates_Local} from "../Utils/DB/DBUpdateApplier.js";
 import {DBUpdate, DBUpdateType} from "../Utils/DB/DBUpdate.js";
+import {AssertValidate} from "../Extensions/JSONSchemaHelpers.js";
+import {JSONSchema7} from "json-schema";
 
 export const commandsWaitingToComplete_new = [] as Command<any, any>[];
 
@@ -22,7 +24,10 @@ function NotifyListenersThatCurrentCommandFinished() {
 }
 
 export abstract class Command<Payload, ReturnData = void> {
+	static _payloadInfoGetter: (()=>JSONSchema7)|null|undefined; // set by @CommandMeta
+	static _returnInfoGetter: (()=>JSONSchema7)|null|undefined; // set by @CommandMeta
 	static defaultPayload = {};
+
 	constructor(payload: Payload);
 	constructor(options: Partial<GraphOptions>, payload: Payload);
 	constructor(...args) {
@@ -59,12 +64,19 @@ export abstract class Command<Payload, ReturnData = void> {
 	}
 
 	/** Transforms the payload data (eg. combining it with existing db-data) in preparation for constructing the db-updates-map, while also validating user permissions and such along the way. */
-	abstract Validate(): void;
+	protected abstract Validate(): void;
+	/** Same as the command-provided Validate() function, except also validating the payload and return-data against their schemas. */
+	Validate_Full() {
+		AssertValidate(this.constructor["_payloadSchema"], this.payload, "Payload is invalid.");
+		this.Validate();
+		AssertValidate(this.constructor["_returnSchema"], this.returnData, "Return-data is invalid.");
+	}
+
 	/** Last validation error, from calling Validate_Safe(). */
 	validateError: string|null;
 	Validate_Safe() {
 		try {
-			this.Validate();
+			this.Validate_Full();
 			this.validateError = null;
 			return null;
 		} catch (ex) {
@@ -75,7 +87,7 @@ export abstract class Command<Payload, ReturnData = void> {
 	async Validate_Async(options?: Partial<GraphOptions> & GetAsync_Options) {
 		//await GetAsync(()=>this.Validate(), E({errorHandling: "ignore"}, IsNumber(maxIterations) && {maxIterations}));
 		//await GetAsync(()=>this.Validate(), {errorHandling: "ignore", maxIterations: OmitIfFalsy(maxIterations)});
-		await GetAsync(()=>this.Validate(), E({errorHandling: "ignore", throwImmediatelyOnDBWait: true}, options));
+		await GetAsync(()=>this.Validate_Full(), E({errorHandling: "ignore", throwImmediatelyOnDBWait: true}, options));
 	}
 	/** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
 	GetDBUpdates() {

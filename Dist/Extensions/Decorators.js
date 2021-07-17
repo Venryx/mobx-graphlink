@@ -7,7 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { AddSchema, collection_docSchemaName, WaitTillSchemaAdded } from "./SchemaHelpers.js";
+import { AddSchema, collection_docSchemaName, WaitTillSchemaAdded } from "./JSONSchemaHelpers.js";
 import { BailMessage } from "../Utils/General/BailManager.js";
 import { Assert, E } from "js-vextensions";
 // metadata-retrieval helpers
@@ -68,14 +68,15 @@ export function BailHandler(...args) {
         collection_docSchemaName.set(propertyKey, docSchemaName);
     }
 }*/
-export const mglClasses = new Set();
+export const mglClasses = new Array();
 export function GetMGLClass(name) {
-    return [...mglClasses].find(a => a.name == name);
+    return mglClasses.find(a => a.name == name);
 }
 export function MGLClass(opts, schemaExtrasOrGetter, initFunc_pre) {
     return (constructor) => {
         var _a;
-        mglClasses.add(constructor);
+        Assert(!mglClasses.includes(constructor));
+        mglClasses.push(constructor);
         const typeName = (_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : constructor.name;
         const schemaDeps = opts === null || opts === void 0 ? void 0 : opts.schemaDeps;
         if (opts === null || opts === void 0 ? void 0 : opts.table) {

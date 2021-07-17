@@ -1,4 +1,4 @@
-import {AddSchema, collection_docSchemaName, WaitTillSchemaAdded} from "./SchemaHelpers.js";
+import {AddSchema, collection_docSchemaName, WaitTillSchemaAdded} from "./JSONSchemaHelpers.js";
 import type {Knex} from "knex";
 import {BailMessage} from "../Utils/General/BailManager.js";
 import {Assert, E} from "js-vextensions";
@@ -69,9 +69,9 @@ export function BailHandler(...args) {
 	}
 }*/
 
-export const mglClasses = new Set<Function>();
+export const mglClasses = new Array<Function>();
 export function GetMGLClass(name: string) {
-	return [...mglClasses].find(a=>a.name == name);
+	return mglClasses.find(a=>a.name == name);
 }
 
 export function MGLClass(
@@ -80,7 +80,8 @@ export function MGLClass(
 	initFunc_pre?: (t: Knex.TableBuilder)=>any,
 ) {
 	return (constructor: Function)=>{
-		mglClasses.add(constructor);
+		Assert(!mglClasses.includes(constructor));
+		mglClasses.push(constructor);
 		const typeName = opts?.name ?? constructor.name;
 		const schemaDeps = opts?.schemaDeps;
 

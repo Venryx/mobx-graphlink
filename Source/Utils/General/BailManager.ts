@@ -17,6 +17,9 @@ The process of "bailing", within a store-accessor stack:
 3.B) If it doesn't add a bail-catcher, then the accessor will check if there is a "bailResult" specified for it (eg: the "X" in "{onBail: X}"); if so, that is returned.
 3.C) If no bail-catcher, and no bail-result specified, then the "bail error" is passed on to the level above.
 4) If the bubbling-up continues all the way to a root-level accessor (eg. just below the React component or Command class), then:
+4.A) Interpret this as meaning there is data "still loading", and show a loading UI.
+
+Old:
 4.A) Check if there are any db-requests that are still in-progress; if so, ignore the "bail error", as it's probably just due to not all data being loaded yet.
 4.B) If there *aren't* any db-requests left, then there's probably an actual error/missing-db-data; so probably log/show the details then (to the user and/or devs).
 */
@@ -29,7 +32,7 @@ declare global {
 		/*#* Short for "bail unless". */
 		//BU<Func extends ((..._: any)=>any)>(this: Func, ..._: ArgumentsType<Func>): NonNullable<ReturnType<Func>>;
 
-		/** Short for "bail if null". */
+		/** Short for "bail if null". (in commands, generally use .NN instead, as bailing is for "still-loading" situations, which the db-accessors already handle) */
 		BIN<Func extends ((..._: any)=>any)>(this: Func, ..._: ArgumentsType<Func>): NonNullable<ReturnType<Func>>;
 
 		/** Short for "bail if loading-array", ie. emptyArray_loading. */

@@ -14,7 +14,7 @@ export declare class BailHandler_Options {
 }
 export declare function BailHandler(targetClass: Function): any;
 export declare function BailHandler(options?: Partial<BailHandler_Options>): any;
-export declare const mglClasses: Set<Function>;
+export declare const mglClasses: Function[];
 export declare function GetMGLClass(name: string): Function | undefined;
 export declare function MGLClass(opts?: {
     name?: string;

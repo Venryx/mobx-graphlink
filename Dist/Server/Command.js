@@ -13,6 +13,7 @@ import { defaultGraphOptions } from "../Graphlink.js";
 import { GetAsync } from "../Accessors/Helpers.js";
 import { ApplyDBUpdates, ApplyDBUpdates_Local } from "../Utils/DB/DBUpdateApplier.js";
 import { DBUpdate, DBUpdateType } from "../Utils/DB/DBUpdate.js";
+import { AssertValidate } from "../Extensions/JSONSchemaHelpers.js";
 export const commandsWaitingToComplete_new = [];
 let currentCommandRun_listeners = [];
 function WaitTillCurrentCommandFinishes() {
@@ -50,9 +51,15 @@ export class Command {
         //this.Validate_Early();
         return this;
     }
+    /** Same as the command-provided Validate() function, except also validating the payload and return-data against their schemas. */
+    Validate_Full() {
+        AssertValidate(this.constructor["_payloadSchema"], this.payload, "Payload is invalid.");
+        this.Validate();
+        AssertValidate(this.constructor["_returnSchema"], this.returnData, "Return-data is invalid.");
+    }
     Validate_Safe() {
         try {
-            this.Validate();
+            this.Validate_Full();
             this.validateError = null;
             return null;
         }
@@ -65,7 +72,7 @@ export class Command {
         return __awaiter(this, void 0, void 0, function* () {
             //await GetAsync(()=>this.Validate(), E({errorHandling: "ignore"}, IsNumber(maxIterations) && {maxIterations}));
             //await GetAsync(()=>this.Validate(), {errorHandling: "ignore", maxIterations: OmitIfFalsy(maxIterations)});
-            yield GetAsync(() => this.Validate(), E({ errorHandling: "ignore", throwImmediatelyOnDBWait: true }, options));
+            yield GetAsync(() => this.Validate_Full(), E({ errorHandling: "ignore", throwImmediatelyOnDBWait: true }, options));
         });
     }
     /** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
