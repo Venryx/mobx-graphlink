@@ -87,7 +87,7 @@ export class Command {
         return __awaiter(this, void 0, void 0, function* () {
             //await GetAsync(()=>this.Validate(), E({errorHandling: "ignore"}, IsNumber(maxIterations) && {maxIterations}));
             //await GetAsync(()=>this.Validate(), {errorHandling: "ignore", maxIterations: OmitIfFalsy(maxIterations)});
-            yield GetAsync(() => this.Validate_Full(), E({ errorHandling: "ignore", throwImmediatelyOnDBWait: true }, options));
+            yield GetAsync(() => this.Validate_Full(), E({ throwImmediatelyOnDBWait: true }, options));
         });
     }
     /** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
@@ -128,7 +128,9 @@ export class Command {
                 // todo: make sure the db-changes we just made are reflected in our mobx store, *before* current command is marked as "completed" (else next command may start operating on not-yet-refreshed data)
                 // MaybeLog(a=>a.commands, ()=>`Finishing command. @type:${this.constructor.name} @payload(${ToJSON(this.payload)}) @dbUpdates(${ToJSON(dbUpdates)})`);
                 MaybeLog_Base(a => a.commands, l => l("Finishing command. @type:", this.constructor.name, " @command(", this, ") @dbUpdates(", dbUpdates, ")"));
-            }
+            } /*catch (ex) {
+                console.error(`Hit error while executing command of type "${this.constructor.name}". @error:`, ex, "@payload:", this.payload);
+            }*/
             finally {
                 //const areOtherCommandsBuffered = currentCommandRun_listeners.length > 0;
                 ArrayCE(commandsWaitingToComplete_new).Remove(this);

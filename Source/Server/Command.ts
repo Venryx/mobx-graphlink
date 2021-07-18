@@ -98,7 +98,7 @@ export abstract class Command<Payload, ReturnData = {}> {
 	async Validate_Async(options?: Partial<GraphOptions> & GetAsync_Options) {
 		//await GetAsync(()=>this.Validate(), E({errorHandling: "ignore"}, IsNumber(maxIterations) && {maxIterations}));
 		//await GetAsync(()=>this.Validate(), {errorHandling: "ignore", maxIterations: OmitIfFalsy(maxIterations)});
-		await GetAsync(()=>this.Validate_Full(), E({errorHandling: "ignore", throwImmediatelyOnDBWait: true}, options));
+		await GetAsync(()=>this.Validate_Full(), E({throwImmediatelyOnDBWait: true} as Partial<GetAsync_Options>, options));
 	}
 	/** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
 	GetDBUpdates() {
@@ -144,7 +144,9 @@ export abstract class Command<Payload, ReturnData = {}> {
 
 			// MaybeLog(a=>a.commands, ()=>`Finishing command. @type:${this.constructor.name} @payload(${ToJSON(this.payload)}) @dbUpdates(${ToJSON(dbUpdates)})`);
 			MaybeLog_Base(a=>a.commands, l=>l("Finishing command. @type:", this.constructor.name, " @command(", this, ") @dbUpdates(", dbUpdates, ")"));
-		} finally {
+		} /*catch (ex) {
+			console.error(`Hit error while executing command of type "${this.constructor.name}". @error:`, ex, "@payload:", this.payload);
+		}*/ finally {
 			//const areOtherCommandsBuffered = currentCommandRun_listeners.length > 0;
 			ArrayCE(commandsWaitingToComplete_new).Remove(this);
 			NotifyListenersThatCurrentCommandFinished();

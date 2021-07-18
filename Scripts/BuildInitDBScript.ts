@@ -6,38 +6,42 @@ import fs from "fs";
 import strip from "strip-comments";
 import { Command } from "commander";
 
-type __ = typeof import("../node_modules/js-vextensions/Helpers/@ApplyCETypes");
+type __ = typeof import("js-vextensions/Helpers/@ApplyCETypes");
 import "js-vextensions/Helpers/@ApplyCECode.js";
 
 const program = new Command();
 program
 	.option("--classesFolder <path>", "Path (from cwd) to folder in which all @MGLClass code files can be found.")
 	.option("--templateFile <path>", `Path  (from cwd) to folder containing "Template.ts", and where to place the db-init output script.`)
-	.option("--outFile <path>", `Path  (from cwd) to folder containing "Template.ts", and where to place the db-init output script.`);
+	.option("--outFile <path>", `Path  (from cwd) to folder containing "Template.ts", and where to place the db-init output script.`)
+	.option("--watch", `If set, will use "watch mode" -- rebuilding the init-db script whenever the db-shape files are modified.`);
 program.parse(process.argv);
-const programOpts = program.opts() as {classesFolder: string, templateFile: string, outFile: string};
+const programOpts = program.opts() as {classesFolder: string, templateFile: string, outFile: string, watch: boolean};
 
 const repoRoot = process.cwd();
 const classesFolderPath = paths.join(repoRoot, programOpts.classesFolder);
 const templateFilePath = paths.join(repoRoot, programOpts.templateFile);
 const outFilePath = paths.join(repoRoot, programOpts.outFile);
+const watch = programOpts.watch;
 //console.log("Args:", process.argv, "@watchPath:", watchPath);
 
 // watch classes-folder and template-file
-chokidar.watch([classesFolderPath, templateFilePath]).on("all", (event, path) => {
-	if (path == templateFilePath) {
-		if (event == "change") {
-			console.log(event, path);
-			BuildDBShapeFile();
+if (watch) {
+	chokidar.watch([classesFolderPath, templateFilePath]).on("all", (event, path) => {
+		if (path == templateFilePath) {
+			if (event == "change") {
+				console.log(event, path);
+				BuildDBShapeFile();
+			}
+		} else {
+			if (event == "change" && paths.basename(path).startsWith("@")) {
+				console.log(event, path);
+				BuildDBShapeFile();
+			}
 		}
-	} else {
-		if (event == "change" && paths.basename(path).startsWith("@")) {
-			console.log(event, path);
-			BuildDBShapeFile();
-		}
-	}
-});
-console.log(`Watching: "${classesFolderPath}", "${templateFilePath}"`);
+	});
+	console.log(`Watching: "${classesFolderPath}", "${templateFilePath}"`);
+}
 
 class TableInfo {
 	name: string;

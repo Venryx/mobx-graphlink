@@ -39,11 +39,17 @@ export function GetWait<T>(dataGetterFunc: ()=>T, options?: Partial<GraphOptions
 	return result;
 }
 
+/** reject: caller of "await GetAsync()" receives the error, log: catch error and log it, ignore: catch error */
+export type GetAsync_ErrorHandleType = "reject" | "log" | "ignore";
+
 export class GetAsync_Options {
 	static default = new GetAsync_Options();
 	/** Just meant to alert us for infinite-loop-like calls/getter-funcs. Default: 50 [pretty arbitrary] */
 	maxIterations? = 50; // todo: maybe replace this with system that tracks the list of paths accessed, and which halts if it "senses no progression" [eg. max-iterations-without-change-to-access-paths]
-	errorHandling? = "none" as "none" | "log" | "ignore";
+	/** How to handle errors that occur in accessor, when there are still db-requests in progress. (ie. when accessor is still progressing) */
+	errorHandling_during? = "ignore" as GetAsync_ErrorHandleType;
+	/** How to handle errors that occur in accessor, when no db-requests are still in progress. (ie. on final accessor call) */
+	errorHandling_final? = "reject" as GetAsync_ErrorHandleType;
 	/** If true, db requests within dataGetterFunc that find themselves waiting for remote db-data, with throw an error immediately. (avoiding higher-level processing) */
 	throwImmediatelyOnDBWait? = false;
 }
@@ -96,20 +102,24 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<Graph
 			storeAccessorCachingTempDisabled = true;
 			let result;
 
-			// execute getter-func
-			let error;
-			// if last iteration, never catch -- we want to see the error, as it's likely the cause of the seemingly-infinite iteration
-			if (opt.errorHandling == "none" || iterationIndex >= opt.maxIterations! - 1) {
-				result = dataGetterFunc();
-			} else {
-				try {
-					result = dataGetterFunc();
-				} catch (ex) {
-					error = ex;
-					if (opt.errorHandling == "log") {
-						console.error(ex);
-					}
+			let accessor_lastError;
+			function HandleAccessorError(ex: Error, handling: GetAsync_ErrorHandleType) {
+				accessor_lastError = ex;
+
+				// if last iteration, never catch -- we want to see the error, as it's likely the cause of the seemingly-infinite iteration
+				if (handling == "reject") {
+					reject(ex); // call reject, so that caller of GetAsync() can receives/can-catch the error (rather than the global mobx "reaction()" catching it)
+					throw ex; // also rethrow it, so reaction stops, and we see error message in server log
+				} else if (handling == "log") {
+					console.error(ex);
 				}
+			}
+
+			// execute getter-func
+			try {
+				result = dataGetterFunc();
+			} catch (ex) {
+				HandleAccessorError(ex, opt.errorHandling_during!);
 			}
 			
 			// cleanup for getter-func
@@ -121,33 +131,39 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<Graph
 			//let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status == DataStatus.Waiting);
 			//let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status != DataStatus.Received);
 			let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status != DataStatus.Received_Full);
-			let done = requestsBeingWaitedFor.length == 0;
-			if (done && error != null) {
+			const dbRequestsAllResolved = requestsBeingWaitedFor.length == 0;
+			const maxIterationsReached = iterationIndex >= opt.maxIterations! - 1;
+			
+			let finalCall = dbRequestsAllResolved || maxIterationsReached;
+			if (finalCall && accessor_lastError != null) {
 				//Assert(error == null, `Error occurred during final GetAsync iteration: ${error}`);
 				AssertV_triggerDebugger = true;
 				try {
 					//result = dataGetterFunc();
+					//dataGetterFunc();
 					dataGetterFunc();
+				} catch (ex) {
+					HandleAccessorError(ex, opt.errorHandling_final!);
 				} finally {
 					AssertV_triggerDebugger = false;
 				}
 			}
 
-			if (iterationIndex + 1 > opt.maxIterations!) {
+			if (maxIterationsReached && !dbRequestsAllResolved) {
 				reject(StringCE(`
-					GetAsync exceeded the maxIterations (${opt.maxIterations}).
+					GetAsync reached the maxIterations (${opt.maxIterations}) without completely resolving. Call was cancelled/rejected.
 					
 					Setting "window.logTypes.subscriptions = true" in console may help with debugging.
 				`).AsMultiline(0));
 			}
 
-			return {result, nodesRequested_array, done};
+			return {result, nodesRequested_array, fullyResolved: dbRequestsAllResolved};
 		}, data=> {
 			 // if data is null, it means an error occured in the computation-func above
 			if (data == null) return;
 
-			let {result, nodesRequested_array, done} = data;
-			if (!done) return;
+			let {result, nodesRequested_array, fullyResolved} = data;
+			if (!fullyResolved) return;
 
 			//Assert(result != null, "GetAsync should not usually return null.");
 			WaitXThenRun(0, ()=>dispose()); // wait a bit, so dispose-func is ready (for when fired immediately)
