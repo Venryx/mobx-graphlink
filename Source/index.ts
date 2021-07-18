@@ -29,6 +29,7 @@ export * from "./Extensions/JSONSchemaHelpers.js";
 
 export * from "./Server/Command.js";
 export * from "./Server/CommandMetadata.js";
+export * from "./Server/CommandsPlugin.js";
 
 export * from "./Tree/TreeNode.js";
 export * from "./Tree/TreeRequestWatcher.js";
