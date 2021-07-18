@@ -202,15 +202,13 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 
 		return GetWait(()=>wrapperAccessor(...callArgs), graphOpt);
 	};
-	wrapperAccessor.CatchBail = (...callArgs)=>{
-		const bailResultOrGetter = callArgs[0];
-		return CatchBail(bailResultOrGetter, wrapperAccessor);
+	wrapperAccessor.CatchBail = (bailResultOrGetter, ...callArgs)=>{
+		return CatchBail(bailResultOrGetter, wrapperAccessor, callArgs);
 	};
-	wrapperAccessor.CatchItemBails = (...callArgs)=>{
-		const bailResult = callArgs[0];
+	wrapperAccessor.CatchItemBails = (bailResult, ...callArgs)=>{
 		meta.nextCall_catchItemBails = true;
 		meta.nextCall_catchItemBails_asX = bailResult;
-		return CatchBail(bailResult, wrapperAccessor);
+		return CatchBail(bailResult, wrapperAccessor, callArgs);
 	};
 
 	if (name) CE(wrapperAccessor).SetName(name);

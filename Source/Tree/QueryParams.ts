@@ -30,6 +30,7 @@ export class QueryParams {
 				}
 			}
 			this.filter = filterObj_final;
+			console.log("BeforeFilter:", this.filter, "AfterFilter:", filterObj_final);
 		}
 		return this;
 	}
@@ -137,6 +138,7 @@ export class QueryParams_Linked extends QueryParams {
 				argsObj[key] = this[key];
 			}
 
+			console.log("ArgsObj:", JSON.stringify(argsObj));
 			argsStr = ConstructGQLArgsStr(argsObj, this.args_rawPrefixStr);
 		}
 		

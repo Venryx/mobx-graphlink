@@ -23,10 +23,10 @@ export class BailContext {
         this.onBail_triggerDebugger = false;
     }
 }
-export function CatchBail(bailResultOrGetter, func) {
+export function CatchBail(bailResultOrGetter, func, args, thisArg) {
     let result;
     try {
-        result = func();
+        result = func.apply(thisArg, args);
     }
     catch (ex) {
         if (ex instanceof BailMessage) {
