@@ -41,11 +41,19 @@ export abstract class Command<Payload, ReturnData = {}> {
 		this.options = opt;
 		//this.payload = E(this.constructor["defaultPayload"], payload);
 		// use Clone on the payload, so that behavior is consistent whether called locally or over the network
-		this.payload = E(Clone(this.constructor["defaultPayload"]), Clone(payload));
+		const meta = GetCommandClassMetadata(this.constructor.name);
+		this.payload = E(Clone(meta.defaultPayload), Clone(payload));
 	}
 	//userInfo: FireUserInfo;
 	_userInfo_override: UserInfo|null|undefined; // for use on server (so permissions are checked against the calling user's id rather than the server's )
-	get userInfo() { return this._userInfo_override ?? this.options.graph.userInfo!; }
+	_userInfo_override_set = false;
+	get userInfo() {
+		if (this._userInfo_override_set) {
+			Assert(this._userInfo_override != null, "For commands being run on the server, user-info must be supplied.");
+			return this._userInfo_override;
+		}
+		return this.options.graph.userInfo!;
+	}
 	type: string;
 	options: GraphOptions;
 	payload: Payload;

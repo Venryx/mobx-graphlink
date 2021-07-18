@@ -7,7 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { Clone, E, ArrayCE } from "js-vextensions";
+import { Clone, Assert, E, ArrayCE } from "js-vextensions";
 import { MaybeLog_Base } from "../Utils/General/General.js";
 import { defaultGraphOptions } from "../Graphlink.js";
 import { GetAsync } from "../Accessors/Helpers.js";
@@ -36,6 +36,7 @@ function NotifyListenersThatCurrentCommandFinished() {
 }
 export class Command {
     constructor(...args) {
+        this._userInfo_override_set = false;
         //prepareStartTime: number;
         //runStartTime: number;
         this.returnData = {};
@@ -49,9 +50,16 @@ export class Command {
         this.options = opt;
         //this.payload = E(this.constructor["defaultPayload"], payload);
         // use Clone on the payload, so that behavior is consistent whether called locally or over the network
-        this.payload = E(Clone(this.constructor["defaultPayload"]), Clone(payload));
+        const meta = GetCommandClassMetadata(this.constructor.name);
+        this.payload = E(Clone(meta.defaultPayload), Clone(payload));
     }
-    get userInfo() { var _a; return (_a = this._userInfo_override) !== null && _a !== void 0 ? _a : this.options.graph.userInfo; }
+    get userInfo() {
+        if (this._userInfo_override_set) {
+            Assert(this._userInfo_override != null, "For commands being run on the server, user-info must be supplied.");
+            return this._userInfo_override;
+        }
+        return this.options.graph.userInfo;
+    }
     MarkAsSubcommand(parentCommand) {
         this.parentCommand = parentCommand;
         //this.Validate_Early();

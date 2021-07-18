@@ -7,6 +7,7 @@ export declare abstract class Command<Payload, ReturnData = {}> {
     constructor(payload: Payload);
     constructor(options: Partial<GraphOptions>, payload: Payload);
     _userInfo_override: UserInfo | null | undefined;
+    _userInfo_override_set: boolean;
     get userInfo(): UserInfo;
     type: string;
     options: GraphOptions;
