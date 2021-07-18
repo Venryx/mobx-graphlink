@@ -4,6 +4,11 @@ export declare const ajv: AJV_Extended;
 export declare const collection_docSchemaName: Map<string, string>;
 export declare function GetTypePolicyFieldsMappingSingleDocQueriesToCache(): {};
 export declare function NewSchema(schema: any): any;
+declare type JSONSchemaProperties = {
+    [k: string]: JSONSchema7;
+};
+/** Specify required props by adding a "$" to the start of the prop name. */
+export declare function SimpleSchema(props: JSONSchemaProperties): any;
 export declare const schemaEntryJSONs: {};
 export declare function AddSchema(name: string, schemaOrGetter: JSONSchema7 | (() => JSONSchema7)): any;
 export declare function AddSchema(name: string, schemaDeps: string[] | undefined, schemaGetter: () => JSONSchema7): any;

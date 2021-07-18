@@ -1,7 +1,7 @@
 import AJV from "ajv";
 import AJVKeywords from "ajv-keywords";
 import {Clone, ToJSON, IsString, Assert, IsObject, E, CE, IsArray, DEL} from "js-vextensions";
-import {JSONSchema7, JSONSchema7Type} from "json-schema";
+import {JSONSchema4, JSONSchema7, JSONSchema7Object, JSONSchema7Type} from "json-schema";
 import {AssertV} from "../Accessors/Helpers.js";
 import {UUID_regex} from "./KeyGenerator.js";
 //import {RemoveHelpers, WithoutHelpers} from "./DatabaseHelpers.js";
@@ -29,6 +29,29 @@ export function GetTypePolicyFieldsMappingSingleDocQueriesToCache() {
 export function NewSchema(schema) {
 	schema = E({additionalProperties: false}, schema);
 	return schema;
+}
+type JSONSchemaProperties = {[k: string]: JSONSchema7}; // taken from @types/json-schema
+/*export function SimpleSchema(props: JSONSchemaProperties, required?: string[]) {
+	const schema: JSONSchema7 = {
+		properties: props,
+	};
+	if (required) schema.required = required;
+	return NewSchema(schema);
+}*/
+/** Specify required props by adding a "$" to the start of the prop name. */
+export function SimpleSchema(props: JSONSchemaProperties) {
+	const schema: JSONSchema7 = {
+		properties: {},
+		required: [],
+	};
+	for (const [key, value] of Object.entries(props)) {
+		const key_final = key.replace("$", "");
+		schema.properties![key_final] = value;
+		if (key.startsWith("$")) {
+			schema.required?.push(key_final);
+		}
+	}
+	return NewSchema(schema);
 }
 
 export const schemaEntryJSONs = {};

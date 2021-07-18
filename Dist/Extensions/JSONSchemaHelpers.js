@@ -34,6 +34,29 @@ export function NewSchema(schema) {
     schema = E({ additionalProperties: false }, schema);
     return schema;
 }
+/*export function SimpleSchema(props: JSONSchemaProperties, required?: string[]) {
+    const schema: JSONSchema7 = {
+        properties: props,
+    };
+    if (required) schema.required = required;
+    return NewSchema(schema);
+}*/
+/** Specify required props by adding a "$" to the start of the prop name. */
+export function SimpleSchema(props) {
+    var _a;
+    const schema = {
+        properties: {},
+        required: [],
+    };
+    for (const [key, value] of Object.entries(props)) {
+        const key_final = key.replace("$", "");
+        schema.properties[key_final] = value;
+        if (key.startsWith("$")) {
+            (_a = schema.required) === null || _a === void 0 ? void 0 : _a.push(key_final);
+        }
+    }
+    return NewSchema(schema);
+}
 export const schemaEntryJSONs = {};
 export function AddSchema(...args) {
     return __awaiter(this, void 0, void 0, function* () {
