@@ -86,7 +86,6 @@ Wrap a function with CreateAccessor if it's under the "Store/" path, and one of 
 3) It involves a transformation of data into a new wrapper (ie. breaking reference equality), such that it's worth caching the processing. (to not trigger unnecessary child-ui re-renders)
 */
 export const CreateAccessor = (...args) => {
-    var _a;
     let name, options, accessorGetter;
     if (typeof args[0] == "function" && args.length == 1)
         [accessorGetter] = args;
@@ -96,7 +95,12 @@ export const CreateAccessor = (...args) => {
         [name, accessorGetter] = args;
     else
         [name, options, accessorGetter] = args;
-    name = (_a = name) !== null && _a !== void 0 ? _a : "[name missing]";
+    if (name == null) {
+        //name = "[name missing]";
+        const accessor_temp = accessorGetter(); // calling just to retrieve the inner accessor-func; fine since doesn't actually run anything
+        name = accessor_temp.toString();
+        Assert(name != null);
+    }
     const meta = new AccessorMetadata({ name });
     accessorMetadata.set(name, meta);
     const wrapperAccessor = (...callArgs) => {

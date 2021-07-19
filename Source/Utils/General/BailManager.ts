@@ -79,13 +79,8 @@ export function Bail(messageOrMessageFunc?: string | Function | null, triggerDeb
 		const {accessorCallStack} = defaultGraphOptions.graph.accessorContext;
 		// if in accessor-call-stack, use that to make a more informative bail-message
 		if (accessorCallStack.length) {
-			message = `[generic bail error, at: ${accessorCallStack.map(a=>{
-				let accessorName = a.meta.accessor.name;
-				if (accessorName == "[name missing]") {
-					accessorName = a.meta.accessor.toString();
-				}
-				return accessorName;
-			}).join("->")}]`
+			//message = `[generic bail error, at: ${accessorCallStack.map(a=>GetAccessorName(a.meta.accessor)).join("->")}]`
+			message = `[generic bail error, at: ${accessorCallStack.map(a=>a.meta.accessor.name).join("->")}]`
 		} else {
 			message = "[generic bail error]";
 		}
