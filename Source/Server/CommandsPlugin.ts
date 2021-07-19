@@ -21,7 +21,19 @@ function GQL_BetterErrorHandling(str: string) {
 	}
 }
 
-export const CreateCommandsPlugin = ()=>{
+class CommandRunInfo {
+	parent: any;
+	args: any[];
+	context: Context;
+	info: any;
+	command: Command<any>;
+};
+class CreateCommandPlugin_Options {
+	preCommandRun?: (info: CommandRunInfo)=>any;
+	postCommandRun?: (info: CommandRunInfo & {returnData: any})=>any;
+}
+
+export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 	return makeExtendSchemaPlugin(build=>{
 		const commandClassMetas = GetCommandClassMetadatas();
 
@@ -59,11 +71,16 @@ export const CreateCommandsPlugin = ()=>{
 				Assert(context.req.user != null, "Cannot run command on server unless logged in.");
 				command._userInfo_override = context.req.user;
 				command._userInfo_override_set = true;
-				console.log("User in command resolver:", context.req.user);
-				debugger;
-				const returnData = await command.RunLocally();
-				console.log(`Command "${CommandClass.name}" done! @args:`, args, `@returnData:`, returnData);
 
+				opts.preCommandRun?.({parent, args, context, info, command});
+				let returnData: any;
+				try {
+					returnData = await command.RunLocally();
+					console.log(`Command "${CommandClass.name}" done! @args:`, args, `@returnData:`, returnData);
+				} finally {
+					opts.postCommandRun?.({parent, args, context, info, command, returnData});
+				}
+				
 				return returnData;
 			};
 		});

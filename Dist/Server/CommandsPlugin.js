@@ -22,7 +22,12 @@ function GQL_BetterErrorHandling(str) {
         throw ex;
     }
 }
-export const CreateCommandsPlugin = () => {
+class CommandRunInfo {
+}
+;
+class CreateCommandPlugin_Options {
+}
+export const CreateCommandsPlugin = (opts) => {
     return makeExtendSchemaPlugin(build => {
         const commandClassMetas = GetCommandClassMetadatas();
         const allNewTypeDefs_strings = [];
@@ -48,16 +53,22 @@ export const CreateCommandsPlugin = () => {
                     sqlText, // e.g. "select * from users where id = $1"
                     optionalVariables // e.g. [27]
                 );*/
+                var _a, _b;
                 //context.pgClient.query()
                 const CommandClass = classInfo.commandClass;
                 const command = new CommandClass(args);
                 Assert(context.req.user != null, "Cannot run command on server unless logged in.");
                 command._userInfo_override = context.req.user;
                 command._userInfo_override_set = true;
-                console.log("User in command resolver:", context.req.user);
-                debugger;
-                const returnData = yield command.RunLocally();
-                console.log(`Command "${CommandClass.name}" done! @args:`, args, `@returnData:`, returnData);
+                (_a = opts.preCommandRun) === null || _a === void 0 ? void 0 : _a.call(opts, { parent, args, context, info, command });
+                let returnData;
+                try {
+                    returnData = yield command.RunLocally();
+                    console.log(`Command "${CommandClass.name}" done! @args:`, args, `@returnData:`, returnData);
+                }
+                finally {
+                    (_b = opts.postCommandRun) === null || _b === void 0 ? void 0 : _b.call(opts, { parent, args, context, info, command, returnData });
+                }
                 return returnData;
             });
         });
