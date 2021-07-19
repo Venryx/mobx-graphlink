@@ -2,6 +2,7 @@ import {Assert, CE, string, WaitXThenRun} from "js-vextensions";
 import {Command} from "./Command.js";
 import {JSONSchema7, JSONSchema7Type} from "json-schema";
 import {getGraphqlSchemaFromJsonSchema} from "get-graphql-from-jsonschema";
+import {GetGQLSchemaFromJSONSchema} from "../Extensions/GQLSchemaHelpers.js";
 
 export function CommandMeta(opts: {
 	payloadSchema: ()=>JSONSchema7,
@@ -71,7 +72,7 @@ export class CommandClassMetadata {
 			argsObj[propName] = 
 		}*/
 
-		const payload_graphqlSchemaInfo = getGraphqlSchemaFromJsonSchema({
+		const payload_graphqlSchemaInfo = GetGQLSchemaFromJSONSchema({
 			rootName: this.commandClass.name,
 			schema: this.payloadSchema as any,
 			direction: "input",
@@ -79,7 +80,7 @@ export class CommandClassMetadata {
 		this.payload_typeName = payload_graphqlSchemaInfo.typeName;
 		this.payload_typeDefs = AugmentTypeDefs(payload_graphqlSchemaInfo.typeDefinitions);
 
-		const returnData_graphqlSchemaInfo = getGraphqlSchemaFromJsonSchema({
+		const returnData_graphqlSchemaInfo = GetGQLSchemaFromJSONSchema({
 			rootName: `${this.commandClass.name}_ReturnData`,
 			schema: this.returnSchema as any,
 		});

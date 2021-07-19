@@ -13,6 +13,10 @@ export declare const schemaEntryJSONs: {};
 export declare function AddSchema(name: string, schemaOrGetter: JSONSchema7 | (() => JSONSchema7)): any;
 export declare function AddSchema(name: string, schemaDeps: string[] | undefined, schemaGetter: () => JSONSchema7): any;
 export declare function GetSchemaJSON(name: string): JSONSchema7;
+export declare type SchemaModifiers = {
+    includeOnly?: string[];
+};
+export declare function DeriveJSONSchema(typeName: string, modifiers: SchemaModifiers): Object;
 export declare function WaitTillSchemaAdded(schemaName: string): Promise<void> | null;
 declare type AJV_Extended = AJV.Ajv & {
     FullErrorsText(): string;

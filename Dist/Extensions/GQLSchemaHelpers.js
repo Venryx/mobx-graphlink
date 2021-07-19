@@ -1,19 +1,29 @@
-import { Clone } from "js-vextensions";
+import { getGraphqlSchemaFromJsonSchema } from "get-graphql-from-jsonschema";
+import { Clone, GetTreeNodesInObjTree } from "js-vextensions";
 import { JSONStringify_NoQuotesForKeys } from "../Utils/General/General.js";
 import { GetSchemaJSON } from "./JSONSchemaHelpers.js";
-export function DeriveJSONSchema(typeName, modifiers) {
-    const result = Clone(GetSchemaJSON(typeName));
-    if (modifiers.includeOnly) {
-        for (const key of Object.keys(result.properties)) {
-            if (!modifiers.includeOnly.includes(key)) {
-                delete result.properties[key];
-            }
+export function GetGQLSchemaFromJSONSchema(opts) {
+    const { rootName, schema, direction } = opts;
+    const jsonSchema_final = Clone(opts.schema);
+    // resolve {$ref: "XXX"} entries to the referenced schemas
+    for (const node of GetTreeNodesInObjTree(jsonSchema_final, true)) {
+        if (node.Value.$ref != null) {
+            node.obj[node.prop] = GetSchemaJSON(node.Value.$ref);
         }
-        if (result.required)
-            result.required = result.required.Including(...modifiers.includeOnly);
     }
-    return result;
+    try {
+        return getGraphqlSchemaFromJsonSchema({ rootName, schema: jsonSchema_final, direction });
+    }
+    catch (ex) {
+        ex.message += `\n\n@schema:${JSON.stringify(jsonSchema_final, null, 2)}`;
+        throw ex;
+    }
 }
+/*export function JSONSchemaFieldInfoToGQLTypeName(fieldInfo: Object, required: boolean) {
+    if (fieldInfo["type"] == "string") return "String";
+    if (fieldInfo["type"] == "number") return "Float";
+    if (fieldInfo["type"] == "boolean") return "Boolean";
+}*/
 /*export function DeriveGQLSchema(typeName: string, modifiers: SchemaModifiers): string {
     return {};
 }

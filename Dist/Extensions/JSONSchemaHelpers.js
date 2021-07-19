@@ -89,6 +89,19 @@ export function AddSchema(...args) {
 export function GetSchemaJSON(name) {
     return Clone(schemaEntryJSONs[name]);
 }
+export function DeriveJSONSchema(typeName, modifiers) {
+    const result = Clone(GetSchemaJSON(typeName));
+    if (modifiers.includeOnly) {
+        for (const key of Object.keys(result.properties)) {
+            if (!modifiers.includeOnly.includes(key)) {
+                delete result.properties[key];
+            }
+        }
+        if (result.required)
+            result.required = result.required.Including(...modifiers.includeOnly);
+    }
+    return result;
+}
 /*export type DataWrapper<T> = {data: T};
 export function DataWrapper(dataSchema: any) {
     return {

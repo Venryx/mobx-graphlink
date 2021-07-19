@@ -1,5 +1,5 @@
 import { Assert, CE, WaitXThenRun } from "js-vextensions";
-import { getGraphqlSchemaFromJsonSchema } from "get-graphql-from-jsonschema";
+import { GetGQLSchemaFromJSONSchema } from "../Extensions/GQLSchemaHelpers.js";
 export function CommandMeta(opts) {
     return (constructor) => {
         Assert(!commandClasses.includes(constructor));
@@ -48,14 +48,14 @@ export class CommandClassMetadata {
             }
             argsObj[propName] =
         }*/
-        const payload_graphqlSchemaInfo = getGraphqlSchemaFromJsonSchema({
+        const payload_graphqlSchemaInfo = GetGQLSchemaFromJSONSchema({
             rootName: this.commandClass.name,
             schema: this.payloadSchema,
             direction: "input",
         });
         this.payload_typeName = payload_graphqlSchemaInfo.typeName;
         this.payload_typeDefs = AugmentTypeDefs(payload_graphqlSchemaInfo.typeDefinitions);
-        const returnData_graphqlSchemaInfo = getGraphqlSchemaFromJsonSchema({
+        const returnData_graphqlSchemaInfo = GetGQLSchemaFromJSONSchema({
             rootName: `${this.commandClass.name}_ReturnData`,
             schema: this.returnSchema,
         });
