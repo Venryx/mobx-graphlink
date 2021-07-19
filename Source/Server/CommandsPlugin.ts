@@ -30,7 +30,7 @@ class CommandRunInfo {
 };
 class CreateCommandPlugin_Options {
 	preCommandRun?: (info: CommandRunInfo)=>any;
-	postCommandRun?: (info: CommandRunInfo & {returnData: any})=>any;
+	postCommandRun?: (info: CommandRunInfo & {returnData: any, error: any})=>any;
 }
 
 export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
@@ -74,11 +74,14 @@ export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 
 				opts.preCommandRun?.({parent, args, context, info, command});
 				let returnData: any;
+				let error: any;
 				try {
 					returnData = await command.RunLocally();
-					console.log(`Command "${CommandClass.name}" done! @args:`, args, `@returnData:`, returnData);
+				} catch (ex) {
+					error = ex;
+					throw ex;
 				} finally {
-					opts.postCommandRun?.({parent, args, context, info, command, returnData});
+					opts.postCommandRun?.({parent, args, context, info, command, returnData, error});
 				}
 				
 				return returnData;

@@ -15,6 +15,7 @@ declare class CreateCommandPlugin_Options {
     preCommandRun?: (info: CommandRunInfo) => any;
     postCommandRun?: (info: CommandRunInfo & {
         returnData: any;
+        error: any;
     }) => any;
 }
 export declare const CreateCommandsPlugin: (opts: CreateCommandPlugin_Options) => import("postgraphile").Plugin;

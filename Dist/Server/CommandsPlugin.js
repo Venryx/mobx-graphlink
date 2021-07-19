@@ -62,12 +62,16 @@ export const CreateCommandsPlugin = (opts) => {
                 command._userInfo_override_set = true;
                 (_a = opts.preCommandRun) === null || _a === void 0 ? void 0 : _a.call(opts, { parent, args, context, info, command });
                 let returnData;
+                let error;
                 try {
                     returnData = yield command.RunLocally();
-                    console.log(`Command "${CommandClass.name}" done! @args:`, args, `@returnData:`, returnData);
+                }
+                catch (ex) {
+                    error = ex;
+                    throw ex;
                 }
                 finally {
-                    (_b = opts.postCommandRun) === null || _b === void 0 ? void 0 : _b.call(opts, { parent, args, context, info, command, returnData });
+                    (_b = opts.postCommandRun) === null || _b === void 0 ? void 0 : _b.call(opts, { parent, args, context, info, command, returnData, error });
                 }
                 return returnData;
             });
