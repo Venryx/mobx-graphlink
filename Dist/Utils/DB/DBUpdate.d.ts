@@ -1,3 +1,4 @@
+import { DBPPath } from "./DBPaths.js";
 export declare class DBValueWrapper {
     value: any;
     merge: boolean;
@@ -9,7 +10,7 @@ export declare enum DBUpdateType {
 export declare class DBUpdate {
     constructor(data: Omit<DBUpdate, "PathSegments">);
     type: DBUpdateType;
-    path: string;
+    path: DBPPath;
     get PathSegments(): string[];
     value?: any;
 }

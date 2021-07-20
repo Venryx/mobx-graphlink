@@ -1,9 +1,8 @@
 import {Assert, CE, SleepAsync, string, WaitXThenRun} from "js-vextensions";
 import {Command} from "./Command.js";
 import {JSONSchema7, JSONSchema7Definition, JSONSchema7Type} from "json-schema";
-import {getGraphqlSchemaFromJsonSchema} from "get-graphql-from-jsonschema";
-import {GetGQLSchemaInfoFromJSONSchema, GraphQLSchemaInfo} from "../Extensions/GQLSchemaHelpers.js";
-import {schemaEntryJSONs} from "../Extensions/JSONSchemaHelpers.js";
+import {GetGQLSchemaInfoFromJSONSchema, GraphQLSchemaInfo, NormalizeGQLTypeName} from "../Extensions/GQLSchemaHelpers.js";
+import {GetSchemaJSON, IsJSONSchemaOfTypeScalar, IsJSONSchemaScalar, JSONSchemaScalarTypeToGraphQLScalarType, schemaEntryJSONs} from "../Extensions/JSONSchemaHelpers.js";
 
 export function CommandMeta(opts: {
 	payloadSchema: ()=>JSONSchema7,
@@ -21,16 +20,18 @@ export function CommandMeta(opts: {
 			defaultPayload: opts.defaultPayload,
 		});
 		commandClassMetadata.set(constructor.name, metadata);
+
 		// wait a moment before calculating derivatives (we need to make sure all schema-deps are added first)
 		WaitXThenRun(0, ()=>metadata.CalculateDerivatives());
 		/*(async()=>{
-			// wait a few ticks (so all schemas finish getting added)
-			/*for (let i = 0; i < 3; i++) {
+			// wait a few ticks (so all schemas finish getting added, even those depending-on/waiting-for others)
+			for (let i = 0; i < 3; i++) {
 				await SleepAsync(100);
-			}*#/
-			await SleepAsync(0);
+			}
+			//await SleepAsync(0);
 			//console.log("Test1:", schemaEntryJSONs.get("MapNode_Partial"));
 			if (!schemaEntryJSONs.get("MapNode_Partial")) throw "test1";
+			if (!schemaEntryJSONs.get("MapNodeView")) throw "test2";
 			metadata.CalculateDerivatives();
 		})();*/
 	};
@@ -82,7 +83,7 @@ export class CommandClassMetadata {
 		}*/
 
 		this.payload_graphqlInfo = GetGQLSchemaInfoFromJSONSchema({
-			rootName: this.commandClass.name,
+			rootName: `${this.commandClass.name}_Payload`,
 			jsonSchema: this.payloadSchema as any,
 			direction: "input",
 		});
@@ -95,42 +96,48 @@ export class CommandClassMetadata {
 	// eslint-disable-next-line no-loop-func
 	FindGQLTypeName(opts: {group: "payload" | "return", typeName?: string, propName?: string, propSchema?: JSONSchema7}) {
 		if (opts.propName) {
-			if (opts.propSchema?.$ref != null) return opts.propSchema.$ref;
+			if (opts.propSchema?.$ref != null) {
+				const schemaName = opts.propSchema.$ref;
+				const schema = GetSchemaJSON(schemaName);
+				if (IsJSONSchemaOfTypeScalar(schema)) {
+					// graphql types can't represent scalars (eg. with constraints) as separate types; so replace a ref to such a type with its scalar type
+					return JSONSchemaScalarTypeToGraphQLScalarType(schema.type as string)!;
+				}
+				return `${schemaName}T0`; // to match with "get-graphql-from-jsonschema" output
+			}
 
 			const groupInfo = opts.group == "payload" ? this.payloadSchema : this.returnSchema;
 			const fieldJSONSchema = groupInfo.properties?.[opts.propName] as JSONSchema7;
-			
-			let type_normalized = fieldJSONSchema?.type;
-			if (type_normalized instanceof Array) {
-				const nonNullTypes = type_normalized.filter(a=>a != "null");
-				if (nonNullTypes.length == 1) type_normalized = nonNullTypes[0];
+			if (fieldJSONSchema.type) {
+				let type_normalized: string|undefined;
+				if (typeof fieldJSONSchema.type == "string") type_normalized = fieldJSONSchema.type;
+				else if (fieldJSONSchema.type instanceof Array) {
+					const nonNullTypes = fieldJSONSchema.type.filter(a=>a != "null");
+					if (nonNullTypes.length == 1) type_normalized = nonNullTypes[0];
+				}
+				if (type_normalized && IsJSONSchemaScalar(type_normalized)) {
+					return JSONSchemaScalarTypeToGraphQLScalarType(type_normalized)!;
+				}
 			}
-			if (type_normalized == "string") return "String";
-			if (type_normalized == "number") return "Float";
-			if (type_normalized == "boolean") return "Boolean";
-		}
-
-		function NormalizeTypeName(typeName: string) {
-			return typeName.toLowerCase().replace(/[^a-z]/g, ""); // to match with "jsonschema2graphql"
 		}
 
 		const typeName = opts.typeName
 			? opts.typeName // eg. UpdateTerm_ReturnData
-			: `${this.commandClass.name}.${opts.propName}`; // eg. UpdateTerm.id
-		const typeName_normalized = NormalizeTypeName(typeName);
+			: `${this.commandClass.name}_Payload.${opts.propName}`; // eg. UpdateTerm_Payload.id
+		const typeName_normalized = NormalizeGQLTypeName(typeName);
 
 		const schemaInfo = opts.group == "payload" ? this.payload_graphqlInfo : this.return_graphqlInfo;
 		const typeDefNames_normalized = schemaInfo.typeDefs.map(typeDef=>{
 			//return typeDef.name?.replace(/(T0)+/g, ".").toLowerCase().slice(0, -1); // UpdateTermT0UpdatesT0 -> updateterm.updates
 			//return typeDef.name?.toLowerCase(); // UpdateTermUpdates -> updatetermupdates
-			return NormalizeTypeName(typeDef.name);
+			return NormalizeGQLTypeName(typeDef.name);
 		});
 
 		const result = schemaInfo.typeDefs[typeDefNames_normalized.findIndex(a=>a == typeName_normalized)];
 		Assert(result, `Could not find type-def for type/prop name "${opts.typeName ?? opts.propName}".${""
 			}\n@typeName_normalized:${typeName_normalized
 			}\n@typeDefNames_normalized:${typeDefNames_normalized.join(",")
-			}\n@lastTypeDef_str:${schemaInfo.typeDefs.slice(-1)[0].str}`);
+			}\n@typeDefStrings:${schemaInfo.typeDefs.map(a=>a.str)}`);
 		return result.name;
 	}
 

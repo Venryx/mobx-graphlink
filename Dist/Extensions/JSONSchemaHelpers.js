@@ -32,6 +32,12 @@ export function GetTypePolicyFieldsMappingSingleDocQueriesToCache() {
 }
 export function NewSchema(schema) {
     schema = E({ additionalProperties: false }, schema);
+    // temp; makes-so schemas are understandable by get-graphql-from-jsonschema
+    /*if (convertEnumToOneOfConst && schema.enum) {
+        schema.type = "string";
+        schema.oneOf = schema.enum.map(val=>({const: val}));
+        delete schema.enum;
+    }*/
     return schema;
 }
 /*export function SimpleSchema(props: JSONSchemaProperties, required?: string[]) {
@@ -59,32 +65,47 @@ export function SimpleSchema(props) {
 }
 export const schemaEntryJSONs = new Map();
 export function AddSchema(...args) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let name, schemaDeps, schemaOrGetter;
-        if (args.length == 2)
-            [name, schemaOrGetter] = args;
-        else
-            [name, schemaDeps, schemaOrGetter] = args;
-        if (schemaDeps != null) {
-            const schemaDep_waitPromises = schemaDeps.map(schemaName => WaitTillSchemaAdded(schemaName));
-            // only await promises if there actually are schema-deps that need waiting for (avoid promises if possible, so AddSchema has chance to synchronously complete)
-            if (schemaDep_waitPromises.find(a => a != null)) {
-                yield Promise.all(schemaDep_waitPromises);
-            }
+    var _a;
+    let name, schemaDeps, schemaOrGetter;
+    if (args.length == 2)
+        [name, schemaOrGetter] = args;
+    else
+        [name, schemaDeps, schemaOrGetter] = args;
+    schemaDeps = (_a = schemaDeps) !== null && _a !== void 0 ? _a : [];
+    /*if (schemaDeps! != null) {
+        const schemaDep_waitPromises = schemaDeps.map(schemaName=>WaitTillSchemaAdded(schemaName));
+        // only await promises if there actually are schema-deps that need waiting for (avoid promises if possible, so AddSchema has chance to synchronously complete)
+        if (schemaDep_waitPromises.find(a=>a != null)) {
+            await Promise.all(schemaDep_waitPromises);
         }
+    }*/
+    let ajvResult;
+    const proceed = () => {
         let schema = schemaOrGetter instanceof Function ? schemaOrGetter() : schemaOrGetter;
         schema = NewSchema(schema);
         schemaEntryJSONs.set(name, schema);
         ajv.removeSchema(name); // for hot-reloading
-        const result = ajv.addSchema(schema, name);
-        if (schemaAddListeners[name]) {
-            for (const listener of schemaAddListeners[name]) {
+        ajvResult = ajv.addSchema(schema, name);
+        if (schemaAddListeners.has(name)) {
+            for (const listener of schemaAddListeners.get(name)) {
                 listener();
             }
-            delete schemaAddListeners[name];
+            schemaAddListeners.delete(name);
         }
-        return result;
-    });
+    };
+    // if schema cannot be added just yet (due to a schema-dependency not yet being added)
+    if (!schemaDeps.every(dep => schemaEntryJSONs.has(dep))) {
+        // set up schema-adding func to run as soon as possible (without even leaving call-stack)
+        RunXOnceSchemasAdded(schemaDeps, proceed);
+        // return promise that then provides the ajv instance as this func's return-value (this part can have slight delay)
+        return new Promise((resolve) => __awaiter(this, void 0, void 0, function* () {
+            yield WaitTillSchemaAdded(name);
+            resolve(ajvResult);
+        }));
+    }
+    // if schema *can* be completed added synchronously, then do so and return the ajv instance (no need for promise)
+    proceed();
+    return ajvResult;
 }
 export function GetSchemaJSON(name, errorOnMissing = true) {
     const schemaJSON = schemaEntryJSONs.get(name);
@@ -116,19 +137,29 @@ export function DataWrapper(dataSchema: any) {
 export function WrapData<T>(data: T) {
     return { data } as DataWrapper<T>;
 }*/
-var schemaAddListeners = {};
+var schemaAddListeners = new Map();
+export function RunXOnceSchemasAdded(schemaDeps, funcX) {
+    const schemasLeftToWaitFor = new Set(schemaDeps);
+    for (const schemaDep of schemaDeps) {
+        if (!schemaAddListeners.has(schemaDep))
+            schemaAddListeners.set(schemaDep, []);
+        schemaAddListeners.get(schemaDep).push(() => {
+            schemasLeftToWaitFor.delete(schemaDep);
+            if (schemasLeftToWaitFor.size == 0) {
+                funcX();
+            }
+        });
+    }
+}
+/*export function RunXOnceSchemaAdded(schemaName: string, funcX: ()=>void) {
+    RunXOnceSchemasAdded([schemaName], funcX);
+}*/
 export function WaitTillSchemaAdded(schemaName) {
     // if schema is already added, return right away (avoid promises if possible, so AddSchema has chance to synchronously complete)
     if (schemaEntryJSONs.has(schemaName))
         return null;
     return new Promise((resolve, reject) => {
-        // if schema is already added, run right away (avoid ajv.getSchema, since it errors on not-yet-resolvable refs)
-        //if (ajv.getSchema(schemaName)) {
-        if (schemaEntryJSONs.has(schemaName)) {
-            resolve();
-            return;
-        }
-        schemaAddListeners[schemaName] = (schemaAddListeners[schemaName] || []).concat(resolve);
+        RunXOnceSchemasAdded([schemaName], resolve);
     });
 }
 /* AJV.prototype.AddSchema = function(this: AJV_Extended, schema, name: string) {
@@ -263,6 +294,22 @@ export function GetInvalidPropPaths(data, schemaObject) {
         }
         return { propPath, error };
     });
+}
+export function IsJSONSchemaScalar(typeStr) {
+    return ["boolean", "integer", "number", "string"].includes(typeStr);
+}
+export function IsJSONSchemaOfTypeScalar(jsonSchema) {
+    return ["boolean", "integer", "number", "string"].includes(jsonSchema === null || jsonSchema === void 0 ? void 0 : jsonSchema.type);
+}
+export function JSONSchemaScalarTypeToGraphQLScalarType(jsonSchemaScalarType) {
+    if (jsonSchemaScalarType == "string")
+        return "String";
+    if (jsonSchemaScalarType == "integer")
+        return "Int";
+    if (jsonSchemaScalarType == "number")
+        return "Float";
+    if (jsonSchemaScalarType == "boolean")
+        return "Boolean";
 }
 // hoisted schema definitions (eg. so other files, eg. KeyGenerator.ts, can be imported standalone)
 // ==========

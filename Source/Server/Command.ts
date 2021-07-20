@@ -11,6 +11,7 @@ import {ConstructGQLArgsStr, ConstructGQLArgTypesStr} from "../Extensions/GQLSch
 import {GetCommandClassMetadata, GetCommandClassMetadatas} from "./CommandMetadata.js";
 import {WithBrackets} from "../Tree/QueryParams.js";
 import {CleanDBData, UserInfo} from "../index.js";
+import {DBPPath} from "../Utils/DB/DBPaths.js";
 
 export const commandsWaitingToComplete_new = [] as Command<any, any>[];
 
@@ -28,7 +29,8 @@ function NotifyListenersThatCurrentCommandFinished() {
 	}
 }
 
-export abstract class Command<Payload, ReturnData = {}> {
+// require command return-value to always be an object; this provides more schema stability (eg. lets you change the return-data of a mutation, without breaking the contents of "legacy" keys)
+export abstract class Command<Payload, ReturnData extends {[key: string]: any} = {}> {
 	constructor(payload: Payload);
 	constructor(options: Partial<GraphOptions>, payload: Payload);
 	constructor(...args) {
@@ -60,7 +62,8 @@ export abstract class Command<Payload, ReturnData = {}> {
 
 	//prepareStartTime: number;
 	//runStartTime: number;
-	returnData = {} as any;
+	//returnData = {} as any;
+	returnData = {} as ReturnData;
 
 	// these methods are executed on the server (well, will be later)
 	// ==========
@@ -102,12 +105,12 @@ export abstract class Command<Payload, ReturnData = {}> {
 	}
 	/** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
 	GetDBUpdates() {
-		const helper = new DeclareDBUpdates_Helper();
+		const helper = new DBHelper();
 		this.DeclareDBUpdates(helper);
 		const dbUpdates = helper._dbUpdates;
 		return dbUpdates;
 	}
-	abstract DeclareDBUpdates(helper: DeclareDBUpdates_Helper);
+	abstract DeclareDBUpdates(helper: DBHelper);
 
 	async PreRun() {
 		//RemoveHelpers(this.payload);
@@ -203,7 +206,7 @@ export abstract class Command<Payload, ReturnData = {}> {
 	}
 }
 
-export class DeclareDBUpdates_Helper {
+export class DBHelper {
 	_dbUpdates = [] as DBUpdate[];
 	
 	// add multiple pre-made db-updates (eg. from subcommand)
@@ -212,7 +215,7 @@ export class DeclareDBUpdates_Helper {
 	}
 
 	// helpers for adding one db-update
-	set(path: string, value: any) {
+	set(path: DBPPath, value: any) {
 		this._dbUpdates.push(new DBUpdate({type: DBUpdateType.set, path, value}));
 	}
 	/*delete(path: string, value: any) {

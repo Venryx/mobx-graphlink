@@ -34,11 +34,13 @@ function NotifyListenersThatCurrentCommandFinished() {
         listener.resolve();
     }
 }
+// require command return-value to always be an object; this provides more schema stability (eg. lets you change the return-data of a mutation, without breaking the contents of "legacy" keys)
 export class Command {
     constructor(...args) {
         this._userInfo_override_set = false;
         //prepareStartTime: number;
         //runStartTime: number;
+        //returnData = {} as any;
         this.returnData = {};
         let options, payload;
         if (args.length == 1)
@@ -92,7 +94,7 @@ export class Command {
     }
     /** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
     GetDBUpdates() {
-        const helper = new DeclareDBUpdates_Helper();
+        const helper = new DBHelper();
         this.DeclareDBUpdates(helper);
         const dbUpdates = helper._dbUpdates;
         return dbUpdates;
@@ -188,7 +190,7 @@ export class Command {
         });
     }
 }
-export class DeclareDBUpdates_Helper {
+export class DBHelper {
     constructor() {
         this._dbUpdates = [];
         /*delete(path: string, value: any) {

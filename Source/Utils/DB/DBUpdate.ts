@@ -1,4 +1,5 @@
 import {Assert, CE} from "js-vextensions";
+import {DBPPath} from "./DBPaths.js";
 import {SplitStringBySlash_Cached} from "./StringSplitCache.js";
 
 export class DBValueWrapper {
@@ -23,7 +24,7 @@ export class DBUpdate {
 	}
 	
 	type: DBUpdateType;
-	path: string;
+	path: DBPPath;
 	get PathSegments() {
 		//return SplitStringBySlash_Cached(this.path);
 		return this.path.split("/");

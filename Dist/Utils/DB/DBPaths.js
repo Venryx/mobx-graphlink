@@ -98,6 +98,7 @@ export function MobXPathGetterToPathSegments(pathGetterFunc) {
     return pathSegments;
 }
 export const dbpPrefix = "[@dbp:]";
+export const DBPPath_Symbol = Symbol("test");
 /** When creating db-path strings, always create it using this function to construct the template-literal.
  * It protects from typos like: dbp(`...`) (do this instead: dbp`...`) */
 export function dbp(strings, ...vars) {

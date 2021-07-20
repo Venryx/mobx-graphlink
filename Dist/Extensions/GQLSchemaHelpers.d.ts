@@ -1,16 +1,18 @@
 import { JSONSchema7 } from "json-schema";
-export declare function FinalizeSchemaForConversionToGraphQL(schema: JSONSchema7): JSONSchema7;
+export declare function FinalizeSchemaForConversionToGraphQL(schema: JSONSchema7, refPath?: string[]): void;
 export declare class TypeDef {
-    type: "type" | "input" | "union";
+    type: "type" | "input" | "union" | "rootTypeExtension";
     name: string;
     str: string;
-    strIndexInSchemaStr: number;
+    strIndexInSchemaStr?: number;
 }
 export declare class GraphQLSchemaInfo {
+    constructor(data?: Partial<GraphQLSchemaInfo>);
     typeName: string;
-    schemaAsStr: string;
     typeDefs: TypeDef[];
+    get TypeDefs_AsSchemaStr(): string;
 }
+export declare function NormalizeGQLTypeName(typeName: string): string;
 export declare function GetGQLSchemaInfoFromJSONSchema(opts: {
     rootName: string;
     jsonSchema: JSONSchema7;

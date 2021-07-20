@@ -20,7 +20,7 @@ export function FinalizeDBUpdates(dbUpdates, simplifyDBUpdates = true) {
     // confirm that all db-updates' paths were constructed using dbp, then remove the marker/prefix
     for (const update of dbUpdates) {
         Assert(update.path.startsWith(dbpPrefix), `A db-path was apparently not constructed using the dbp template-literal function: ${update.path}`);
-        update.path = update.path.slice(dbpPrefix.length);
+        update.path = update.path.slice(dbpPrefix.length); // if a string *was* a valid DBPPath (ie. injection-safe, because vars/slots were escaped), then it will remain so after we remove the prefix
     }
     for (const update of dbUpdates)
         AssertDBUpdateIsValid(update);

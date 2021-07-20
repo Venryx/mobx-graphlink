@@ -10,13 +10,14 @@ declare type JSONSchemaProperties = {
 /** Specify required props by adding a "$" to the start of the prop name. */
 export declare function SimpleSchema(props: JSONSchemaProperties): any;
 export declare const schemaEntryJSONs: Map<string, JSONSchema7>;
-export declare function AddSchema(name: string, schemaOrGetter: JSONSchema7 | (() => JSONSchema7)): any;
-export declare function AddSchema(name: string, schemaDeps: string[] | undefined, schemaGetter: () => JSONSchema7): any;
+export declare function AddSchema(name: string, schemaOrGetter: JSONSchema7 | (() => JSONSchema7)): AJV.Ajv | Promise<AJV.Ajv>;
+export declare function AddSchema(name: string, schemaDeps: string[] | null | undefined, schemaGetter: () => JSONSchema7): AJV.Ajv | Promise<AJV.Ajv>;
 export declare function GetSchemaJSON(name: string, errorOnMissing?: boolean): JSONSchema7;
 export declare type SchemaModifiers = {
     includeOnly?: string[];
 };
 export declare function DeriveJSONSchema(typeName: string, modifiers: SchemaModifiers): Object;
+export declare function RunXOnceSchemasAdded(schemaDeps: string[], funcX: () => void): void;
 export declare function WaitTillSchemaAdded(schemaName: string): Promise<void> | null;
 declare type AJV_Extended = AJV.Ajv & {
     FullErrorsText(): string;
@@ -46,4 +47,7 @@ export declare function GetInvalidPropPaths(data: Object, schemaObject: Object):
     propPath: string;
     error: AJV.ErrorObject;
 }[];
+export declare function IsJSONSchemaScalar(typeStr: string | undefined): boolean;
+export declare function IsJSONSchemaOfTypeScalar(jsonSchema: JSONSchema7): boolean;
+export declare function JSONSchemaScalarTypeToGraphQLScalarType(jsonSchemaScalarType: string): "Int" | "Float" | "String" | "Boolean" | undefined;
 export {};

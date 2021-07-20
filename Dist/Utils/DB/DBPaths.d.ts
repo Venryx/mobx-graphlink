@@ -15,6 +15,11 @@ export declare function AssertValidatePath(path: string): void;
 export declare function MobXPathGetterToPath(pathGetterFunc: (dbRoot: DBShape) => any): string;
 export declare function MobXPathGetterToPathSegments(pathGetterFunc: (dbRoot: DBShape) => any): string[];
 export declare const dbpPrefix = "[@dbp:]";
+export declare const DBPPath_Symbol: unique symbol;
+/** This is actually just a string with a special prefix; but we pretend it's a unique type, so that TS will warn about basic-strings being put in places where only dbp-template-literals should be. */
+export declare type DBPPath = string & {
+    _: typeof DBPPath_Symbol;
+};
 /** When creating db-path strings, always create it using this function to construct the template-literal.
  * It protects from typos like: dbp(`...`) (do this instead: dbp`...`) */
-export declare function dbp(strings: TemplateStringsArray, ...vars: string[]): string;
+export declare function dbp(strings: TemplateStringsArray, ...vars: string[]): DBPPath;

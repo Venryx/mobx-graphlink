@@ -103,9 +103,13 @@ export function MobXPathGetterToPathSegments(pathGetterFunc: (dbRoot: DBShape)=>
 }
 
 export const dbpPrefix = "[@dbp:]";
+export const DBPPath_Symbol = Symbol("test");
+/** This is actually just a string with a special prefix; but we pretend it's a unique type, so that TS will warn about basic-strings being put in places where only dbp-template-literals should be. */
+export type DBPPath = string & {_: typeof DBPPath_Symbol};
+
 /** When creating db-path strings, always create it using this function to construct the template-literal.
  * It protects from typos like: dbp(`...`) (do this instead: dbp`...`) */
-export function dbp(strings: TemplateStringsArray, ...vars: string[]) {
+export function dbp(strings: TemplateStringsArray, ...vars: string[]): DBPPath {
 	Assert(vars.length >= 1, `The "dbp" template-literal function requires at least one variable, to protect from typos like: dbp(\`...\`) (do this instead: dbp\`...\`)`);
 	for (const expression of vars) {
 		Assert(typeof expression == "string", "DB-path-segment variables must be strings.");
@@ -117,5 +121,5 @@ export function dbp(strings: TemplateStringsArray, ...vars: string[]) {
 	strings.forEach((str, i) => {
 		result += `${str}${i == strings.length - 1 ? "" : vars[i]}`;
 	});
-	return result;
+	return result as any as DBPPath;
 }
