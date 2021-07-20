@@ -9,10 +9,10 @@ declare type JSONSchemaProperties = {
 };
 /** Specify required props by adding a "$" to the start of the prop name. */
 export declare function SimpleSchema(props: JSONSchemaProperties): any;
-export declare const schemaEntryJSONs: {};
+export declare const schemaEntryJSONs: Map<string, JSONSchema7>;
 export declare function AddSchema(name: string, schemaOrGetter: JSONSchema7 | (() => JSONSchema7)): any;
 export declare function AddSchema(name: string, schemaDeps: string[] | undefined, schemaGetter: () => JSONSchema7): any;
-export declare function GetSchemaJSON(name: string): JSONSchema7;
+export declare function GetSchemaJSON(name: string, errorOnMissing?: boolean): JSONSchema7;
 export declare type SchemaModifiers = {
     includeOnly?: string[];
 };

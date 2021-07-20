@@ -12,6 +12,10 @@ declare class CommandRunInfo {
     command: Command<any>;
 }
 declare class CreateCommandPlugin_Options {
+    schemaDeps_auto?: boolean;
+    schemaDeps_auto_exclude?: string[];
+    schemaDeps?: string[];
+    typeDefStrFinalizer?: (str: string) => string;
     preCommandRun?: (info: CommandRunInfo) => any;
     postCommandRun?: (info: CommandRunInfo & {
         returnData: any;

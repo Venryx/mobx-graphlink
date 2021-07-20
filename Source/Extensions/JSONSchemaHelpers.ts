@@ -54,7 +54,7 @@ export function SimpleSchema(props: JSONSchemaProperties) {
 	return NewSchema(schema);
 }
 
-export const schemaEntryJSONs = {};
+export const schemaEntryJSONs = new Map<string, JSONSchema7>();
 export async function AddSchema(name: string, schemaOrGetter: JSONSchema7 | (()=>JSONSchema7));
 export async function AddSchema(name: string, schemaDeps: string[] | undefined, schemaGetter: ()=>JSONSchema7); // only accept schema-getter, since otherwise there's no point to adding the dependency-schemas
 export async function AddSchema(...args: any[]) {
@@ -72,7 +72,7 @@ export async function AddSchema(...args: any[]) {
 	let schema = schemaOrGetter instanceof Function ? schemaOrGetter() : schemaOrGetter;
 
 	schema = NewSchema(schema);
-	schemaEntryJSONs[name] = schema;
+	schemaEntryJSONs.set(name, schema);
 	ajv.removeSchema(name); // for hot-reloading
 	const result = ajv.addSchema(schema, name);
 
@@ -86,8 +86,10 @@ export async function AddSchema(...args: any[]) {
 	return result;
 }
 
-export function GetSchemaJSON(name: string): JSONSchema7 {
-	return Clone(schemaEntryJSONs[name]);
+export function GetSchemaJSON(name: string, errorOnMissing = true): JSONSchema7 {
+	const schemaJSON = schemaEntryJSONs.get(name);
+	Assert(schemaJSON != null || !errorOnMissing, `Could not find schema "${name}".`);
+	return Clone(schemaJSON);
 }
 
 export type SchemaModifiers = {
@@ -122,12 +124,12 @@ export function WrapData<T>(data: T) {
 var schemaAddListeners = {};
 export function WaitTillSchemaAdded(schemaName: string): Promise<void> | null {
 	// if schema is already added, return right away (avoid promises if possible, so AddSchema has chance to synchronously complete)
-	if (schemaEntryJSONs[schemaName] != null) return null;
+	if (schemaEntryJSONs.has(schemaName)) return null;
 
 	return new Promise((resolve, reject)=>{
 		// if schema is already added, run right away (avoid ajv.getSchema, since it errors on not-yet-resolvable refs)
 		//if (ajv.getSchema(schemaName)) {
-		if (schemaEntryJSONs[schemaName] != null) {
+		if (schemaEntryJSONs.has(schemaName)) {
 			resolve();
 			return;
 		}

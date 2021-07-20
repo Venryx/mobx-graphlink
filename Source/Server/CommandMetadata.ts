@@ -1,8 +1,9 @@
-import {Assert, CE, string, WaitXThenRun} from "js-vextensions";
+import {Assert, CE, SleepAsync, string, WaitXThenRun} from "js-vextensions";
 import {Command} from "./Command.js";
-import {JSONSchema7, JSONSchema7Type} from "json-schema";
+import {JSONSchema7, JSONSchema7Definition, JSONSchema7Type} from "json-schema";
 import {getGraphqlSchemaFromJsonSchema} from "get-graphql-from-jsonschema";
-import {GetGQLSchemaFromJSONSchema} from "../Extensions/GQLSchemaHelpers.js";
+import {GetGQLSchemaInfoFromJSONSchema, GraphQLSchemaInfo} from "../Extensions/GQLSchemaHelpers.js";
+import {schemaEntryJSONs} from "../Extensions/JSONSchemaHelpers.js";
 
 export function CommandMeta(opts: {
 	payloadSchema: ()=>JSONSchema7,
@@ -22,6 +23,16 @@ export function CommandMeta(opts: {
 		commandClassMetadata.set(constructor.name, metadata);
 		// wait a moment before calculating derivatives (we need to make sure all schema-deps are added first)
 		WaitXThenRun(0, ()=>metadata.CalculateDerivatives());
+		/*(async()=>{
+			// wait a few ticks (so all schemas finish getting added)
+			/*for (let i = 0; i < 3; i++) {
+				await SleepAsync(100);
+			}*#/
+			await SleepAsync(0);
+			//console.log("Test1:", schemaEntryJSONs.get("MapNode_Partial"));
+			if (!schemaEntryJSONs.get("MapNode_Partial")) throw "test1";
+			metadata.CalculateDerivatives();
+		})();*/
 	};
 }
 
@@ -52,14 +63,12 @@ export class CommandClassMetadata {
 	// derivatives
 	payloadSchema: JSONSchema7;
 	returnSchema: JSONSchema7;
-	payload_typeName: string;
-	payload_typeDefs: {name: string, str: string}[];
-	return_typeName: string;
-	return_typeDefs: {name: string, str: string}[];
+	payload_graphqlInfo: GraphQLSchemaInfo;
+	return_graphqlInfo: GraphQLSchemaInfo;
 
 	CalculateDerivatives() {
-		this.payloadSchema = FinalizeSchemaForClassInfos(this.payloadSchemaGetter?.() ?? {});
-		this.returnSchema = FinalizeSchemaForClassInfos(this.returnSchemaGetter?.() ?? {});
+		this.payloadSchema = this.payloadSchemaGetter?.() ?? {};
+		this.returnSchema = this.returnSchemaGetter?.() ?? {};
 		//console.log("CommandClass:", this.commandClass.name, "@payloadInfo:", JSON.stringify(this.payloadSchema, null, 2), "@returnInfo:", JSON.stringify(this.returnSchema, null, 2));
 
 		/*const argsObj = {};
@@ -72,59 +81,64 @@ export class CommandClassMetadata {
 			argsObj[propName] = 
 		}*/
 
-		const payload_graphqlSchemaInfo = GetGQLSchemaFromJSONSchema({
+		this.payload_graphqlInfo = GetGQLSchemaInfoFromJSONSchema({
 			rootName: this.commandClass.name,
-			schema: this.payloadSchema as any,
+			jsonSchema: this.payloadSchema as any,
 			direction: "input",
 		});
-		this.payload_typeName = payload_graphqlSchemaInfo.typeName;
-		this.payload_typeDefs = AugmentTypeDefs(payload_graphqlSchemaInfo.typeDefinitions);
-
-		const returnData_graphqlSchemaInfo = GetGQLSchemaFromJSONSchema({
+		this.return_graphqlInfo = GetGQLSchemaInfoFromJSONSchema({
 			rootName: `${this.commandClass.name}_ReturnData`,
-			schema: this.returnSchema as any,
+			jsonSchema: this.returnSchema as any,
 		});
-		this.return_typeName = returnData_graphqlSchemaInfo.typeName;
-		this.return_typeDefs = AugmentTypeDefs(returnData_graphqlSchemaInfo.typeDefinitions);
-
-		function AugmentTypeDefs(typeDefs: string[]) {
-			return typeDefs.map(typeDef=>{
-				//const typeName = typeDef.match(/type (.+?) {/)?.[1];
-				//const typeName = typeDef.match(/type (.+?)( |$)/)?.[1];
-				const typeName = typeDef.match(/(type|input) (.+?)( |$)/)?.[2];
-				Assert(typeName, `Could not find type-name in type-def: ${typeDef}`);
-				return {name: typeName, str: typeDef};
-			});
-		}
 	}
 
 	// eslint-disable-next-line no-loop-func
-	FindGQLTypeName(opts: {group: "payload" | "return", typeName?: string, propName?: string}) {
+	FindGQLTypeName(opts: {group: "payload" | "return", typeName?: string, propName?: string, propSchema?: JSONSchema7}) {
 		if (opts.propName) {
+			if (opts.propSchema?.$ref != null) return opts.propSchema.$ref;
+
 			const groupInfo = opts.group == "payload" ? this.payloadSchema : this.returnSchema;
 			const fieldJSONSchema = groupInfo.properties?.[opts.propName] as JSONSchema7;
-			if (fieldJSONSchema?.type == "string") return "String";
-			if (fieldJSONSchema?.type == "number") return "Float";
-			if (fieldJSONSchema?.type == "boolean") return "Boolean";
+			
+			let type_normalized = fieldJSONSchema?.type;
+			if (type_normalized instanceof Array) {
+				const nonNullTypes = type_normalized.filter(a=>a != "null");
+				if (nonNullTypes.length == 1) type_normalized = nonNullTypes[0];
+			}
+			if (type_normalized == "string") return "String";
+			if (type_normalized == "number") return "Float";
+			if (type_normalized == "boolean") return "Boolean";
 		}
 
-		const typeName_normalized = opts.typeName
-			? opts.typeName.toLowerCase() // UpdateTerm_Return -> updateterm_return
-			: `${this.commandClass.name}.${opts.propName}`.toLowerCase(); // id -> updateterm.id
-		const typeDefs = opts.group == "payload" ? this.payload_typeDefs : this.return_typeDefs;
-		const typeDefNames_normalized = typeDefs.map(typeDef=>{
-			return typeDef.name?.replace(/(T0)+/g, ".").toLowerCase().slice(0, -1); // UpdateTermT0UpdatesT0 -> updateterm.updates
+		function NormalizeTypeName(typeName: string) {
+			return typeName.toLowerCase().replace(/[^a-z]/g, ""); // to match with "jsonschema2graphql"
+		}
+
+		const typeName = opts.typeName
+			? opts.typeName // eg. UpdateTerm_ReturnData
+			: `${this.commandClass.name}.${opts.propName}`; // eg. UpdateTerm.id
+		const typeName_normalized = NormalizeTypeName(typeName);
+
+		const schemaInfo = opts.group == "payload" ? this.payload_graphqlInfo : this.return_graphqlInfo;
+		const typeDefNames_normalized = schemaInfo.typeDefs.map(typeDef=>{
+			//return typeDef.name?.replace(/(T0)+/g, ".").toLowerCase().slice(0, -1); // UpdateTermT0UpdatesT0 -> updateterm.updates
+			//return typeDef.name?.toLowerCase(); // UpdateTermUpdates -> updatetermupdates
+			return NormalizeTypeName(typeDef.name);
 		});
-		const result = typeDefs[typeDefNames_normalized.findIndex(a=>a == typeName_normalized)];
-		Assert(result, `Could not find type-def for type/prop name "${opts.typeName ?? opts.propName}". @typeName_normalized:${typeName_normalized} @typeDefNames_normalized:${typeDefNames_normalized.join(",")}`);
+
+		const result = schemaInfo.typeDefs[typeDefNames_normalized.findIndex(a=>a == typeName_normalized)];
+		Assert(result, `Could not find type-def for type/prop name "${opts.typeName ?? opts.propName}".${""
+			}\n@typeName_normalized:${typeName_normalized
+			}\n@typeDefNames_normalized:${typeDefNames_normalized.join(",")
+			}\n@lastTypeDef_str:${schemaInfo.typeDefs.slice(-1)[0].str}`);
 		return result.name;
 	}
 
 	GetArgTypes() {
 		const meta = GetCommandClassMetadata(this.commandClass.name);
 		const argGQLTypeNames = [] as {name: string, type: string}[];
-		for (const propName of Object.keys(meta.payloadSchema.properties ?? {})) {
-			argGQLTypeNames.push({name: propName, type: this.FindGQLTypeName({group: "payload", propName})});
+		for (const [propName, propSchema] of Object.entries(meta.payloadSchema.properties ?? {})) {
+			argGQLTypeNames.push({name: propName, type: this.FindGQLTypeName({group: "payload", propName, propSchema: propSchema as JSONSchema7})});
 		}
 		return argGQLTypeNames;
 	}
@@ -147,8 +161,8 @@ export class CommandClassMetadata {
 	Return_GetFieldTypes() {
 		const meta = GetCommandClassMetadata(this.commandClass.name);
 		const fieldTypes = [] as {name: string, type: string}[];
-		for (const fieldName of Object.keys(meta.returnSchema.properties ?? {})) {
-			fieldTypes.push({name: fieldName, type: this.FindGQLTypeName({group: "return", propName: fieldName})});
+		for (const [fieldName, fieldSchema] of Object.entries(meta.returnSchema.properties ?? {})) {
+			fieldTypes.push({name: fieldName, type: this.FindGQLTypeName({group: "return", propName: fieldName, propSchema: fieldSchema as JSONSchema7})});
 		}
 		return fieldTypes;
 	}
@@ -167,34 +181,3 @@ export interface CombinedObjectSchema {
 	[key: string]: CombinedFieldSchema;
 	required: string[];
 }*/
-
-export function FinalizeSchemaForClassInfos(schema: JSONSchema7) {
-	// make sure "type" is specified
-	if (schema.type == null) {
-		if (schema.$ref == "UUID") schema.type = "string";
-		else schema.type = "object";
-	}
-	// make sure type does not contain "null" as an option
-	if (schema.type instanceof Array && schema.type.includes("null")) {
-		schema.type = CE(schema.type).Except("null");
-	}
-
-	// if type:array, make sure "items" is specified
-	if (schema.type == "array" && schema.items == null) {
-		schema.items = FinalizeSchemaForClassInfos({});
-	}
-
-	// if type:object, make sure "properties" is specified
-	if (schema.type == "object" && schema.properties == null) {
-		schema.properties = {};
-	}
-
-	// apply the same fixes for sub-schemas
-	for (const [propName, propSchema] of Object.entries(schema.properties ?? {})) {
-		if (typeof propSchema == "object") {
-			FinalizeSchemaForClassInfos(propSchema);
-		}
-	}
-
-	return schema;
-}

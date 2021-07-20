@@ -57,7 +57,7 @@ export function SimpleSchema(props) {
     }
     return NewSchema(schema);
 }
-export const schemaEntryJSONs = {};
+export const schemaEntryJSONs = new Map();
 export function AddSchema(...args) {
     return __awaiter(this, void 0, void 0, function* () {
         let name, schemaDeps, schemaOrGetter;
@@ -74,7 +74,7 @@ export function AddSchema(...args) {
         }
         let schema = schemaOrGetter instanceof Function ? schemaOrGetter() : schemaOrGetter;
         schema = NewSchema(schema);
-        schemaEntryJSONs[name] = schema;
+        schemaEntryJSONs.set(name, schema);
         ajv.removeSchema(name); // for hot-reloading
         const result = ajv.addSchema(schema, name);
         if (schemaAddListeners[name]) {
@@ -86,8 +86,10 @@ export function AddSchema(...args) {
         return result;
     });
 }
-export function GetSchemaJSON(name) {
-    return Clone(schemaEntryJSONs[name]);
+export function GetSchemaJSON(name, errorOnMissing = true) {
+    const schemaJSON = schemaEntryJSONs.get(name);
+    Assert(schemaJSON != null || !errorOnMissing, `Could not find schema "${name}".`);
+    return Clone(schemaJSON);
 }
 export function DeriveJSONSchema(typeName, modifiers) {
     const result = Clone(GetSchemaJSON(typeName));
@@ -117,12 +119,12 @@ export function WrapData<T>(data: T) {
 var schemaAddListeners = {};
 export function WaitTillSchemaAdded(schemaName) {
     // if schema is already added, return right away (avoid promises if possible, so AddSchema has chance to synchronously complete)
-    if (schemaEntryJSONs[schemaName] != null)
+    if (schemaEntryJSONs.has(schemaName))
         return null;
     return new Promise((resolve, reject) => {
         // if schema is already added, run right away (avoid ajv.getSchema, since it errors on not-yet-resolvable refs)
         //if (ajv.getSchema(schemaName)) {
-        if (schemaEntryJSONs[schemaName] != null) {
+        if (schemaEntryJSONs.has(schemaName)) {
             resolve();
             return;
         }

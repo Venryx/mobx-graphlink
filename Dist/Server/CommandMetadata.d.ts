@@ -1,5 +1,6 @@
 import { Command } from "./Command.js";
 import { JSONSchema7 } from "json-schema";
+import { GraphQLSchemaInfo } from "../Extensions/GQLSchemaHelpers.js";
 export declare function CommandMeta(opts: {
     payloadSchema: () => JSONSchema7;
     returnSchema?: () => JSONSchema7;
@@ -18,21 +19,14 @@ export declare class CommandClassMetadata {
     defaultPayload: {};
     payloadSchema: JSONSchema7;
     returnSchema: JSONSchema7;
-    payload_typeName: string;
-    payload_typeDefs: {
-        name: string;
-        str: string;
-    }[];
-    return_typeName: string;
-    return_typeDefs: {
-        name: string;
-        str: string;
-    }[];
+    payload_graphqlInfo: GraphQLSchemaInfo;
+    return_graphqlInfo: GraphQLSchemaInfo;
     CalculateDerivatives(): void;
     FindGQLTypeName(opts: {
         group: "payload" | "return";
         typeName?: string;
         propName?: string;
+        propSchema?: JSONSchema7;
     }): string;
     GetArgTypes(): {
         name: string;
@@ -47,4 +41,3 @@ export declare class CommandClassMetadata {
     }[];
     Return_GetFieldsStr(): string;
 }
-export declare function FinalizeSchemaForClassInfos(schema: JSONSchema7): JSONSchema7;
