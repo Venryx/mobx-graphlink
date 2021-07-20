@@ -18,6 +18,7 @@ declare class CreateCommandPlugin_Options {
     schemaDeps?: string[];
     typeDefFinalizer?: (typeDef: TypeDef) => TypeDef;
     typeDefStrFinalizer?: (str: string) => string;
+    logTypeDefs?: boolean;
     preCommandRun?: (info: CommandRunInfo) => any;
     postCommandRun?: (info: CommandRunInfo & {
         returnData: any;

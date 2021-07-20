@@ -38,6 +38,8 @@ class CreateCommandPlugin_Options {
 	schemaDeps?: string[];
 	typeDefFinalizer?: (typeDef: TypeDef)=>TypeDef;
 	typeDefStrFinalizer?: (str: string)=>string;
+	logTypeDefs?: boolean;
+
 	preCommandRun?: (info: CommandRunInfo)=>any;
 	postCommandRun?: (info: CommandRunInfo & {returnData: any, error: any})=>any;
 }
@@ -187,16 +189,18 @@ export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 		}
 		const typeDefGroups_gql = typeDefGroupStrings.map(str=>GQL_BetterErrorHandling(str));
 
-		/*console.log("CommandsPlugin init done.",
-			//"@typeDefGroups:\n==========\n", typeDefGroupStrings.join("\n\n"),
-			"@typeDefs:\n==========\n", allNewTypeDefs.map(typeDef=>{
-				let result = "";
-				result += (typeDef.name + (typeDef.type == "rootTypeExtension" ? "(...)" : "") + ":   ").padEnd(70, " ");
-				result += typeDef.str.replace(/\n/g, " ").replace(/\s+/g, " ").trimStart().slice(0, 200);
-				return result;
-			}).join("\n"),
-			"\n==========\n@mutationResolvers:", mutationResolvers,
-		);*/
+		if (opts.logTypeDefs) {
+			console.log("CommandsPlugin init done.",
+				//"@typeDefGroups:\n==========\n", typeDefGroupStrings.join("\n\n"),
+				"@typeDefs:\n==========\n", allNewTypeDefs.map(typeDef=>{
+					let result = "";
+					result += (typeDef.name + (typeDef.type == "rootTypeExtension" ? "(...)" : "") + ":   ").padEnd(70, " ");
+					result += typeDef.str.replace(/\n/g, " ").replace(/\s+/g, " ").trimStart().slice(0, 200);
+					return result;
+				}).join("\n"),
+				"\n==========\n@mutationResolvers:", mutationResolvers,
+			);
+		}
 		return {
 			typeDefs: typeDefGroups_gql,
 			resolvers: {
