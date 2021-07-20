@@ -61,7 +61,7 @@ export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 
 				// if can't find schema already added to graphql, add it now
 				const gqlSchemaMatch = build.getTypeByName(name);
-				console.log("@name:", name, "@match:", gqlSchemaMatch);
+				//console.log("@name:", name, "@match:", gqlSchemaMatch);
 				if (gqlSchemaMatch == null) {
 					schemaDeps.push(name);
 				}
@@ -71,7 +71,7 @@ export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 			schemaDeps.push(...opts.schemaDeps);
 		}
 		let startTime = Date.now();
-		console.log("SchemaDeps:", schemaDeps, "@start:", startTime);
+		//console.log("SchemaDeps:", schemaDeps, "@start:", startTime);
 		for (const dep of schemaDeps) {
 			const depJSONSchema = GetSchemaJSON(dep);
 			Assert(depJSONSchema, `Could not find schema-json for schema-dep "${dep}".`);
@@ -187,7 +187,7 @@ export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 		}
 		const typeDefGroups_gql = typeDefGroupStrings.map(str=>GQL_BetterErrorHandling(str));
 
-		console.log("CommandsPlugin init done.",
+		/*console.log("CommandsPlugin init done.",
 			//"@typeDefGroups:\n==========\n", typeDefGroupStrings.join("\n\n"),
 			"@typeDefs:\n==========\n", allNewTypeDefs.map(typeDef=>{
 				let result = "";
@@ -196,7 +196,7 @@ export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 				return result;
 			}).join("\n"),
 			"\n==========\n@mutationResolvers:", mutationResolvers,
-		);
+		);*/
 		return {
 			typeDefs: typeDefGroups_gql,
 			resolvers: {

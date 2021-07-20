@@ -47,7 +47,7 @@ export const CreateCommandsPlugin = (opts) => {
                     continue; // graphql types can't represent scalars (eg. with constraints) as separate types; ignore these
                 // if can't find schema already added to graphql, add it now
                 const gqlSchemaMatch = build.getTypeByName(name);
-                console.log("@name:", name, "@match:", gqlSchemaMatch);
+                //console.log("@name:", name, "@match:", gqlSchemaMatch);
                 if (gqlSchemaMatch == null) {
                     schemaDeps.push(name);
                 }
@@ -57,7 +57,7 @@ export const CreateCommandsPlugin = (opts) => {
             schemaDeps.push(...opts.schemaDeps);
         }
         let startTime = Date.now();
-        console.log("SchemaDeps:", schemaDeps, "@start:", startTime);
+        //console.log("SchemaDeps:", schemaDeps, "@start:", startTime);
         for (const dep of schemaDeps) {
             const depJSONSchema = GetSchemaJSON(dep);
             Assert(depJSONSchema, `Could not find schema-json for schema-dep "${dep}".`);
@@ -160,14 +160,16 @@ export const CreateCommandsPlugin = (opts) => {
             typeDefGroupStrings.push(groupStr);
         }
         const typeDefGroups_gql = typeDefGroupStrings.map(str => GQL_BetterErrorHandling(str));
-        console.log("CommandsPlugin init done.", 
-        //"@typeDefGroups:\n==========\n", typeDefGroupStrings.join("\n\n"),
-        "@typeDefs:\n==========\n", allNewTypeDefs.map(typeDef => {
-            let result = "";
-            result += (typeDef.name + (typeDef.type == "rootTypeExtension" ? "(...)" : "") + ":   ").padEnd(70, " ");
-            result += typeDef.str.replace(/\n/g, " ").replace(/\s+/g, " ").trimStart().slice(0, 200);
-            return result;
-        }).join("\n"), "\n==========\n@mutationResolvers:", mutationResolvers);
+        /*console.log("CommandsPlugin init done.",
+            //"@typeDefGroups:\n==========\n", typeDefGroupStrings.join("\n\n"),
+            "@typeDefs:\n==========\n", allNewTypeDefs.map(typeDef=>{
+                let result = "";
+                result += (typeDef.name + (typeDef.type == "rootTypeExtension" ? "(...)" : "") + ":   ").padEnd(70, " ");
+                result += typeDef.str.replace(/\n/g, " ").replace(/\s+/g, " ").trimStart().slice(0, 200);
+                return result;
+            }).join("\n"),
+            "\n==========\n@mutationResolvers:", mutationResolvers,
+        );*/
         return {
             typeDefs: typeDefGroups_gql,
             resolvers: {
