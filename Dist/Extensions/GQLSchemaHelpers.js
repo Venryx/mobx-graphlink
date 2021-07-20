@@ -1,31 +1,11 @@
-import { Assert, CE, Clone, GetTreeNodesInObjTree, FancyFormat } from "js-vextensions";
+import { Assert, CE, Clone, FancyFormat } from "js-vextensions";
 import { JSONStringify_NoQuotesForKeys } from "../Utils/General/General.js";
-import { GetSchemaJSON } from "./JSONSchemaHelpers.js";
+import { GetSchemaJSON, IsJSONSchemaOfTypeScalar, JSONSchemaScalarTypeToGraphQLScalarType } from "./JSONSchemaHelpers.js";
 //import convert_ from "jsonschema2graphql";
 import { getGraphqlSchemaFromJsonSchema } from "@vforks/get-graphql-from-jsonschema";
 //const convert = convert_["default"] as typeof convert_;
 export function FinalizeSchemaForConversionToGraphQL(schema, refPath = []) {
     var _a, _b, _c;
-    const treeNodes = GetTreeNodesInObjTree(schema);
-    // for each "{$ref: XXX}" entry, find actual schema and include it inline
-    for (const treeNode of treeNodes.filter(a => a.prop == "$ref")) {
-        const refSchemaName = treeNode.Value;
-        // if we've hit a loop (ie. a ref whose type-subtree refers back to itself), leave that self-reference empty (and assume those self-ref paths will not actually be used)
-        if (refPath.includes(refSchemaName)) {
-            console.warn("During schema-finalization (for conversion to graphql), a $ref cycle was detected:", refPath.concat(refSchemaName));
-            continue;
-        }
-        let targetSchema = GetSchemaJSON(refSchemaName);
-        FinalizeSchemaForConversionToGraphQL(targetSchema, refPath.concat(refSchemaName));
-        CE(treeNode.ancestorNodes).Last().Value = targetSchema;
-        /*const targetSchemaValidAsSeparateGQLType = targetSchema.type != "string";
-        if (targetSchemaValidAsSeparateGQLType) {
-            CE(treeNode.ancestorNodes).Last().Value = targetSchema;
-        } else {
-            delete treeNode.obj["$ref"];
-            treeNode.obj["type"] = "string";
-        }*/
-    }
     // make sure "type" is specified
     if (schema.type == null) {
         //const needsType = (schema.oneOf ?? schema.allOf ?? schema.anyOf) == null;
@@ -142,7 +122,18 @@ export function GetGQLSchemaInfoFromJSONSchema(opts) {
         throw ex;
     }*/
     try {
-        const gqlSchemaInfo = getGraphqlSchemaFromJsonSchema({ rootName, schema: jsonSchema_final, direction });
+        const gqlSchemaInfo = getGraphqlSchemaFromJsonSchema({
+            rootName,
+            schema: jsonSchema_final,
+            direction,
+            refToTypeName: refName => {
+                const schema = GetSchemaJSON(refName);
+                if (IsJSONSchemaOfTypeScalar(schema)) {
+                    return JSONSchemaScalarTypeToGraphQLScalarType(schema.type);
+                }
+                return `${refName}T0`;
+            },
+        });
         const gqlSchemaStr_temp = gqlSchemaInfo.typeDefinitions.join("\n\n");
         const typeDefs = ExtractTypeDefs(gqlSchemaStr_temp, true, jsonSchema_final);
         /*const typeDefs_indexForLastDep = typeDefs.findIndex(a=>NormalizeTypeName(a.name) == NormalizeTypeName(CE(placeholdersForExistingSchemas).Last().$id));
