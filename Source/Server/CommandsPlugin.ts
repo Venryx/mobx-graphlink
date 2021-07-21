@@ -25,26 +25,29 @@ function GQL_BetterErrorHandling(str: string) {
 	}
 }
 
-class CommandRunInfo {
+export class CommandRunInfo {
 	parent: any;
 	args: any[];
 	context: Context;
 	info: any;
 	command: Command<any>;
 };
-class CreateCommandPlugin_Options {
+export class CreateCommandPlugin_Options {
 	schemaDeps_auto?: boolean;
 	schemaDeps_auto_exclude?: string[];
 	schemaDeps?: string[];
 	typeDefFinalizer?: (typeDef: TypeDef)=>TypeDef;
 	typeDefStrFinalizer?: (str: string)=>string;
 	logTypeDefs?: boolean;
+	logTypeDefs_detailed?: string[];
 
 	preCommandRun?: (info: CommandRunInfo)=>any;
 	postCommandRun?: (info: CommandRunInfo & {returnData: any, error: any})=>any;
 }
 
+export let CommandsPlugin_opts: CreateCommandPlugin_Options;
 export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
+	CommandsPlugin_opts = opts;
 	return makeExtendSchemaPlugin((build, schemaOptions)=>{
 		const commandClassMetas = GetCommandClassMetadatas();
 

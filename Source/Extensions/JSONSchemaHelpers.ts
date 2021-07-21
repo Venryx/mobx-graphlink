@@ -61,6 +61,10 @@ export function SimpleSchema(props: JSONSchemaProperties) {
 }
 
 export const schemaEntryJSONs = new Map<string, JSONSchema7>();
+/**
+Adds the given schema to the schema collection.
+Note that the "requiredness" of properties should be based on what's valid for an entry when being submitted for addition to the database. (ie. within the payload of AddXXX commands)
+*/
 export function AddSchema(name: string, schemaOrGetter: JSONSchema7 | (()=>JSONSchema7)): AJV.Ajv | Promise<AJV.Ajv>;
 export function AddSchema(name: string, schemaDeps: string[] | null | undefined, schemaGetter: ()=>JSONSchema7): AJV.Ajv | Promise<AJV.Ajv>; // only accept schema-getter, since otherwise there's no point to adding the dependency-schemas
 export function AddSchema(...args: any[]) {

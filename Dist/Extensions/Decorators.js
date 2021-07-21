@@ -1,13 +1,4 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-import { AddSchema, collection_docSchemaName, WaitTillSchemaAdded } from "./JSONSchemaHelpers.js";
+import { AddSchema, collection_docSchemaName } from "./JSONSchemaHelpers.js";
 import { BailMessage } from "../Utils/General/BailManager.js";
 import { Assert, E } from "js-vextensions";
 // metadata-retrieval helpers
@@ -85,26 +76,27 @@ export function MGLClass(opts, schemaExtrasOrGetter, initFunc_pre) {
             if (initFunc_pre)
                 constructor["_initFunc_pre"] = initFunc_pre;
         }
-        // schema-adding logic (do at end, so rest can complete synchronously)
-        // ==========
-        (() => __awaiter(this, void 0, void 0, function* () {
-            var _b, _c, _d, _e;
-            if (schemaDeps != null)
-                yield Promise.all(schemaDeps.map(schemaName => WaitTillSchemaAdded(schemaName)));
+        AddSchema(typeName, schemaDeps, () => {
+            var _a, _b, _c, _d;
             let schema = schemaExtrasOrGetter instanceof Function ? schemaExtrasOrGetter() : (schemaExtrasOrGetter !== null && schemaExtrasOrGetter !== void 0 ? schemaExtrasOrGetter : {});
-            schema.properties = (_b = schema.properties) !== null && _b !== void 0 ? _b : {};
-            for (const [key, fieldSchemaOrGetter] of Object.entries((_c = constructor["_fields"]) !== null && _c !== void 0 ? _c : [])) {
+            schema.properties = (_a = schema.properties) !== null && _a !== void 0 ? _a : {};
+            for (const [key, fieldSchemaOrGetter] of Object.entries((_b = constructor["_fields"]) !== null && _b !== void 0 ? _b : [])) {
                 schema.properties[key] = fieldSchemaOrGetter instanceof Function ? fieldSchemaOrGetter() : fieldSchemaOrGetter;
-                const extras = (_d = constructor["_fieldExtras"]) === null || _d === void 0 ? void 0 : _d[key];
-                if (extras === null || extras === void 0 ? void 0 : extras.required) {
-                    schema.required = (_e = schema.required) !== null && _e !== void 0 ? _e : [];
+                const extras = (_c = constructor["_fieldExtras"]) === null || _c === void 0 ? void 0 : _c[key];
+                if (!(extras === null || extras === void 0 ? void 0 : extras.opt)) {
+                    schema.required = (_d = schema.required) !== null && _d !== void 0 ? _d : [];
                     schema.required.push(key);
                 }
             }
-            AddSchema(typeName, schemaDeps, schema);
-        }))();
+            return schema;
+        });
     };
 }
+/**
+Marks the given field to be part of the json-schema for the current class.
+Note that the "requiredness" of properties should be based on what's valid for an entry when being submitted for addition to the database (ie. within the payload of AddXXX commands);
+    this is different than the TS "?" marker, which should match with the requiredness of the property when already in the db. (for new entries, the TS constructors already make all props optional)
+*/
 export function Field(schemaOrGetter, extras) {
     //return function(target: Function, propertyKey: string, descriptor: PropertyDescriptor) {
     return function (target, propertyKey) {
@@ -118,6 +110,10 @@ export function Field(schemaOrGetter, extras) {
         }
     };
 }
+/**
+Marks the given field to be a database column for the current class. (ie. in its generated table definition)
+Note that "notNullable()" is called for these fields automatically; if you want it to be optional/nullable within the db, add ".nullable()" to the chain.
+*/
 export function DB(initFunc) {
     //return function(target: Function, propertyKey: string, descriptor: PropertyDescriptor) {
     return function (target, propertyKey) {

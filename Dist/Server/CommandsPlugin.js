@@ -24,12 +24,14 @@ function GQL_BetterErrorHandling(str) {
         throw ex;
     }
 }
-class CommandRunInfo {
+export class CommandRunInfo {
 }
 ;
-class CreateCommandPlugin_Options {
+export class CreateCommandPlugin_Options {
 }
+export let CommandsPlugin_opts;
 export const CreateCommandsPlugin = (opts) => {
+    CommandsPlugin_opts = opts;
     return makeExtendSchemaPlugin((build, schemaOptions) => {
         var _a;
         const commandClassMetas = GetCommandClassMetadatas();

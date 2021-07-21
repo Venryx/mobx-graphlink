@@ -3,6 +3,7 @@ import { JSONStringify_NoQuotesForKeys } from "../Utils/General/General.js";
 import { GetSchemaJSON, IsJSONSchemaOfTypeScalar, JSONSchemaScalarTypeToGraphQLScalarType } from "./JSONSchemaHelpers.js";
 //import convert_ from "jsonschema2graphql";
 import { getGraphqlSchemaFromJsonSchema } from "@vforks/get-graphql-from-jsonschema";
+import { CommandsPlugin_opts } from "../Server/CommandsPlugin.js";
 //const convert = convert_["default"] as typeof convert_;
 export function FinalizeSchemaForConversionToGraphQL(schema, refPath = []) {
     var _a, _b, _c;
@@ -72,6 +73,7 @@ export function NormalizeGQLTypeName(typeName) {
     return typeName;
 }
 export function GetGQLSchemaInfoFromJSONSchema(opts) {
+    var _a;
     const { rootName, jsonSchema, direction } = opts;
     // only used by "graphql2jsonschema"
     /*let placeholdersForExistingSchemas = [...schemaEntryJSONs.entries()].map(([name, oldSchema])=>{
@@ -82,45 +84,6 @@ export function GetGQLSchemaInfoFromJSONSchema(opts) {
     let jsonSchema_final = Clone(opts.jsonSchema);
     //jsonSchema_final.$id = opts.rootName; // only used by "graphql2jsonschema"
     FinalizeSchemaForConversionToGraphQL(jsonSchema_final);
-    // resolve {$ref: "XXX"} entries to the referenced schemas
-    /*for (const node of GetTreeNodesInObjTree(jsonSchema_final, true)) {
-        if (node.Value.$ref != null) {
-            node.obj[node.prop] = GetSchemaJSON(node.Value.$ref);
-        }
-    }*/
-    /*try {
-        const gqlSchema = convert({jsonSchema: [...placeholdersForExistingSchemas, jsonSchema_final]}) as any as GraphQLSchema;
-        const gqlSchemaStr = printSchema(gqlSchema);
-        const typeDefs = ExtractTypeDefs(gqlSchemaStr);
-        const typeDefs_indexForLastDep = typeDefs.findIndex(a=>NormalizeTypeName(a.name) == NormalizeTypeName(CE(placeholdersForExistingSchemas).Last().$id));
-        const typeDefs_new = typeDefs_indexForLastDep != -1 ? typeDefs.slice(typeDefs_indexForLastDep + 1) : [];
-        Assert(typeDefs_new.length, `Could not find/generate type-def for "${opts.rootName}". @typeDefs:${""/*JSON.stringify(typeDefs, null, 2)*#/} @jsonSchema:${JSON.stringify(jsonSchema, null, 2)}`);
-        //const gqlSchemaStr_newPart = gqlSchemaStr.slice(typeDefs_new[0].strIndexInSchemaStr);
-        //console.log("TypeDefs_New:", typeDefs_new);
-        
-        for (const typeDef of typeDefs_new) {
-            if (typeDef.type == "type" && direction == "input") {
-                typeDef.type = "input";
-                Assert([...typeDef.str.matchAll(/type /g)].length == 1, `More than one type definition in entry. Str:${typeDef.str}`);
-                //typeDef.str = typeDef.str.replace(/type /g, "input ");
-                typeDef.str = typeDef.str.replace("type ", "input ");
-            }
-        }
-        const gqlSchemaStr_newPart_final = typeDefs_new.map(a=>a.str).join();
-
-        return {
-            //typeName: opts.rootName,
-            typeName: typeDefs_new[0].name,
-            //schema: gqlSchema,
-            //schemaAsStr: printSchema(gqlSchema),
-            //schemaAsStr: gqlSchemaStr_newPart,
-            schemaAsStr: gqlSchemaStr_newPart_final,
-            typeDefs: typeDefs_new,
-        };
-    } catch (ex) {
-        ex.message += `\n\n@schema:${JSON.stringify(jsonSchema_final, null, 2)}`;
-        throw ex;
-    }*/
     try {
         const gqlSchemaInfo = getGraphqlSchemaFromJsonSchema({
             rootName,
@@ -140,6 +103,9 @@ export function GetGQLSchemaInfoFromJSONSchema(opts) {
         const typeDefs_new = typeDefs_indexForLastDep != -1 ? typeDefs.slice(typeDefs_indexForLastDep + 1) : [];*/
         Assert(typeDefs.length, `Could not find/generate type-def for "${opts.rootName}". @typeDefs:${"" /*JSON.stringify(typeDefs, null, 2)*/}`);
         //console.log("TypeDefs_New:", typeDefs_new);
+        if ((_a = CommandsPlugin_opts === null || CommandsPlugin_opts === void 0 ? void 0 : CommandsPlugin_opts.logTypeDefs_detailed) === null || _a === void 0 ? void 0 : _a.includes(opts.rootName)) {
+            console.log("Type-definition details info:\n----------\n", "schema:", jsonSchema_final, "gqlSchemaStr:", gqlSchemaStr_temp);
+        }
         return new GraphQLSchemaInfo({
             //typeName: opts.rootName,
             typeName: typeDefs[0].name,

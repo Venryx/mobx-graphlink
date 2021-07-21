@@ -91,32 +91,31 @@ export function MGLClass(
 			if (initFunc_pre) constructor["_initFunc_pre"] = initFunc_pre;
 		}
 
-		// schema-adding logic (do at end, so rest can complete synchronously)
-		// ==========
-		
-		(async()=>{
-			if (schemaDeps! != null) await Promise.all(schemaDeps.map(schemaName=>WaitTillSchemaAdded(schemaName)));
-
+		AddSchema(typeName, schemaDeps, ()=>{
 			let schema = schemaExtrasOrGetter instanceof Function ? schemaExtrasOrGetter() : (schemaExtrasOrGetter ?? {} as any);
 			schema.properties = schema.properties ?? {};
 			for (const [key, fieldSchemaOrGetter] of Object.entries(constructor["_fields"] ?? [])) {
 				schema.properties[key] = fieldSchemaOrGetter instanceof Function ? fieldSchemaOrGetter() : fieldSchemaOrGetter;
-				const extras = constructor["_fieldExtras"]?.[key];
-				if (extras?.required) {
+				const extras = constructor["_fieldExtras"]?.[key] as Field_Extras;
+				if (!extras?.opt) {
 					schema.required = schema.required ?? [];
 					schema.required.push(key);
 				}
 			}
-	
-			AddSchema(typeName, schemaDeps, schema);
-		})();
+			return schema;
+		});
 	};
 }
 
 export type Field_Extras = {
-	/** If true, field will be added to the list of required properties. */
-	req?: boolean;
+	/** If true, field will be removed from list of required properties. (fields are required by default) */
+	opt?: boolean;
 };
+/**
+Marks the given field to be part of the json-schema for the current class.
+Note that the "requiredness" of properties should be based on what's valid for an entry when being submitted for addition to the database (ie. within the payload of AddXXX commands);
+	this is different than the TS "?" marker, which should match with the requiredness of the property when already in the db. (for new entries, the TS constructors already make all props optional)
+*/
 export function Field(schemaOrGetter: Object | (()=>Object), extras?: Field_Extras) {
 	//return function(target: Function, propertyKey: string, descriptor: PropertyDescriptor) {
 	return function(target: any, propertyKey: string) {
@@ -142,6 +141,10 @@ declare module "knex" {
 		}
 	}
 }
+/**
+Marks the given field to be a database column for the current class. (ie. in its generated table definition)
+Note that "notNullable()" is called for these fields automatically; if you want it to be optional/nullable within the db, add ".nullable()" to the chain.
+*/
 export function DB(initFunc: (t: Knex.TableBuilder, n: string)=>any) {
 	//return function(target: Function, propertyKey: string, descriptor: PropertyDescriptor) {
 	return function(target: any, propertyKey: string) {

@@ -22,9 +22,14 @@ export declare function MGLClass(opts?: {
     schemaDeps?: string[];
 }, schemaExtrasOrGetter?: Object | (() => Object), initFunc_pre?: (t: Knex.TableBuilder) => any): (constructor: Function) => void;
 export declare type Field_Extras = {
-    /** If true, field will be added to the list of required properties. */
-    req?: boolean;
+    /** If true, field will be removed from list of required properties. (fields are required by default) */
+    opt?: boolean;
 };
+/**
+Marks the given field to be part of the json-schema for the current class.
+Note that the "requiredness" of properties should be based on what's valid for an entry when being submitted for addition to the database (ie. within the payload of AddXXX commands);
+    this is different than the TS "?" marker, which should match with the requiredness of the property when already in the db. (for new entries, the TS constructors already make all props optional)
+*/
 export declare function Field(schemaOrGetter: Object | (() => Object), extras?: Field_Extras): (target: any, propertyKey: string) => void;
 declare module "knex" {
     namespace Knex {
@@ -33,5 +38,9 @@ declare module "knex" {
         }
     }
 }
+/**
+Marks the given field to be a database column for the current class. (ie. in its generated table definition)
+Note that "notNullable()" is called for these fields automatically; if you want it to be optional/nullable within the db, add ".nullable()" to the chain.
+*/
 export declare function DB(initFunc: (t: Knex.TableBuilder, n: string) => any): (target: any, propertyKey: string) => void;
 export declare function GetFieldDBInit(constructor: Function, fieldName: string): any;
