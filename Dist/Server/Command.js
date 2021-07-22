@@ -42,6 +42,8 @@ export class Command {
         //runStartTime: number;
         //returnData = {} as any;
         this.returnData = {};
+        /** Last validation error, from calling Validate_Safe(). */
+        this.validateError = null;
         let options, payload;
         if (args.length == 1)
             [payload] = args;
@@ -73,6 +75,10 @@ export class Command {
         AssertValidate(meta.payloadSchema, this.payload, "Payload is invalid.", { addSchemaObject: true });
         this.Validate();
         AssertValidate(meta.returnSchema, this.returnData, "Return-data is invalid.", { addSchemaObject: true });
+    }
+    get ValidateErrorStr() {
+        var _a, _b;
+        return (_b = (_a = this.validateError) === null || _a === void 0 ? void 0 : _a.toString()) !== null && _b !== void 0 ? _b : null;
     }
     Validate_Safe() {
         try {

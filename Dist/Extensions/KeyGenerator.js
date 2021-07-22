@@ -1,7 +1,5 @@
-// import uuidV4 from 'uuid/v4';
-import slugid from "slugid";
-//import {AddSchema} from "./SchemaHelpers.js";
 import { CE } from "js-vextensions";
+import { slugid_v4 } from "./KeyGenerator_LL.js";
 export const UUID_regex_partial = "[A-Za-z0-9_-]{22}";
 export const UUID_regex = `^${UUID_regex_partial}$`;
 //AddSchema("UUID", {type: "string", pattern: UUID_regex}); // moved to "SchemaHelpers.ts" file, so this file can be imported standalone
@@ -14,11 +12,11 @@ export function LastUUID(indexAdjustment = 0) {
     return generatedUUIDHistory[(generatedUUIDHistory.length - 1) + indexAdjustment];
 }
 export function GenerateUUID(avoidUnpleasantStartChars = true) {
-    // return uuidV4(options);
-    let result = slugid.v4();
+    //return uuidV4(options);
+    let result = slugid_v4();
     if (avoidUnpleasantStartChars) {
         while (CE(unpleasant2Chars).Contains(result.toLowerCase().slice(0, 2))) {
-            result = slugid.v4();
+            result = slugid_v4();
         }
     }
     generatedUUIDHistory.push(result);

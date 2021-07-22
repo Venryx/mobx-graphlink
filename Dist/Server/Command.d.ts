@@ -23,7 +23,8 @@ export declare abstract class Command<Payload, ReturnData extends {
     /** Same as the command-provided Validate() function, except also validating the payload and return-data against their schemas. */
     Validate_Full(): void;
     /** Last validation error, from calling Validate_Safe(). */
-    validateError: string | null;
+    validateError: Error | string | null;
+    get ValidateErrorStr(): string | null;
     Validate_Safe(): any;
     Validate_Async(options?: Partial<GraphOptions> & GetAsync_Options): Promise<void>;
     /** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */

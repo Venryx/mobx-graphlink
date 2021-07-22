@@ -87,7 +87,10 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	}
 
 	/** Last validation error, from calling Validate_Safe(). */
-	validateError: string|null;
+	validateError: Error|string|null = null;
+	get ValidateErrorStr(): string|null {
+		return this.validateError?.toString() ?? null;
+	}
 	Validate_Safe() {
 		try {
 			this.Validate_Full();
