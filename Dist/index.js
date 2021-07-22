@@ -10,6 +10,8 @@ if (vLibCounts["mobx-graphlink"] >= 2) {
 export * from "./Graphlink.js"; // main
 // subfolders
 // ==========
+export * from "./Accessors/@AccessorMetadata.js";
+export * from "./Accessors/@AccessorCallPlan.js";
 export * from "./Accessors/CreateAccessor.js";
 export * from "./Accessors/DBAccessors.js";
 export * from "./Accessors/Helpers.js";
@@ -25,6 +27,7 @@ export * from "./Server/CommandsPlugin.js";
 export * from "./Tree/TreeNode.js";
 export * from "./Tree/TreeRequestWatcher.js";
 export * from "./Tree/QueryParams.js";
+//export * from "./UserTypes.js"; // for testing
 export * from "./Utils/General/BailManager.js";
 export * from "./Utils/DB/DBDataHelpers.js";
 export * from "./Utils/DB/DBPaths.js";

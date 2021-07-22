@@ -17,8 +17,9 @@ export function WithStore<T>(options: Partial<GraphOptions>, store: any, accesso
 	return result;
 }
 
-
-
+/*type Func_WithoutThis<Func> = Func extends ((this: any, ..._: infer Args)=>infer ReturnTypeX)
+	? (..._: Args)=>ReturnTypeX
+	: never;*/
 type FuncExtensions<Func> = {
 	Async: Func extends ((..._: infer Args)=>infer ReturnTypeX)
 		? (..._: Args)=>Promise<ReturnTypeX>
@@ -36,11 +37,12 @@ type FuncExtensions<Func> = {
 // I want to use these to extract out the typing, but then it makes the metadata harder to understand for library users
 /*type CA_Accessor<Func, RootState> = (context: AccessorContext<RootState>)=>Func;
 type CA_ReturnType<Func> = Func & FuncExtensions<Func>;*/
-interface CreateAccessor_Shape<RootState_PreSet = UT_StoreShape> {
-	<Func extends Function, RootState = RootState_PreSet>(																	accessorGetter: (context: AccessorCallPlan)=>Func): Func & FuncExtensions<Func>;
-	<Func extends Function, RootState = RootState_PreSet>(options: AccessorOptions<RootState>,					accessorGetter: (context: AccessorCallPlan)=>Func): Func & FuncExtensions<Func>;
-	<Func extends Function, RootState = RootState_PreSet>(name: string,													accessorGetter: (context: AccessorCallPlan)=>Func): Func & FuncExtensions<Func>;
-	<Func extends Function, RootState = RootState_PreSet>(name: string, options: AccessorOptions<RootState>,	accessorGetter: (context: AccessorCallPlan)=>Func): Func & FuncExtensions<Func>;
+interface CreateAccessor_Shape<StoreShape_PreSet = UT_StoreShape> {
+	// the "AccessorCallPlan|void" is needed so that we can have the return-type base be the plain "Func"; otherwise it strips the types of "paramName = defaultVal" entries, and param comments
+	<Func extends (this: AccessorCallPlan|void, ...args: any[])=>any, StoreShape = StoreShape_PreSet>(																						accessor: Func): Func & FuncExtensions<Func>;
+	<Func extends (this: AccessorCallPlan|void, ...args: any[])=>any, StoreShape = StoreShape_PreSet>(options: Partial<AccessorOptions<StoreShape>>,						accessor: Func): Func & FuncExtensions<Func>;
+	<Func extends (this: AccessorCallPlan|void, ...args: any[])=>any, StoreShape = StoreShape_PreSet>(name: string,																	accessor: Func): Func & FuncExtensions<Func>;
+	<Func extends (this: AccessorCallPlan|void, ...args: any[])=>any, StoreShape = StoreShape_PreSet>(name: string, options: Partial<AccessorOptions<StoreShape>>,		accessor: Func): Func & FuncExtensions<Func>;
 }
 // I want to use the approach below, but the TS type-inference for args (after removing the 1st one) is still not perfect; it strips the types of "paramName = defaultVal" entries, and param comments
 /*export declare type ArgumentsType_ExceptFirst<F extends (firstArg: any, ...args: any[]) => any> = F extends (firstArg: any, ...args: infer A) => any ? A : never;
@@ -56,13 +58,13 @@ Probably temp. Usage:
 export const CreateAccessor_Typed = Create_CreateAccessor_Typed<RootStoreShape>();
 export const GetPerson = CreateAccessor_Typed({}, ...);
 */
-export function Create_CreateAccessor_Typed<RootState>() {
+export function Create_CreateAccessor_Typed<StoreShape>() {
 	// for TS testing of interfaces
 	//const a = CreateAccessor(c=>(/** Keep this... */ name: string, /** Keep this 2... */ others = 4)=>"hi");
 
 	//return State_Base as typeof State_Base<RootStateType, any>;
 	//return State_Base as StateFunc_WithWatch<RootState>;
-	return CreateAccessor as CreateAccessor_Shape<RootState>;
+	return CreateAccessor as CreateAccessor_Shape<StoreShape>;
 }
 
 /**
@@ -72,25 +74,23 @@ Wrap a function with CreateAccessor if it's under the "Store/" path, and one of 
 3) It involves a transformation of data into a new wrapper (ie. breaking reference equality), such that it's worth caching the processing. (to not trigger unnecessary child-ui re-renders)
 */
 export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
-	let name: string|undefined, options: AccessorOptions<any>|null, accessorGetter: Function;
-	if (typeof args[0] == "function" && args.length == 1) [accessorGetter] = args;
-	else if (typeof args[0] == "object" && args.length == 2) [options, accessorGetter] = args;
-	else if (args.length == 2) [name, accessorGetter] = args;
-	else [name, options, accessorGetter] = args;
+	let name: string|undefined, options: Partial<AccessorOptions<any>>|null, accessor: Function;
+	if (typeof args[0] == "function" && args.length == 1) [accessor] = args;
+	else if (typeof args[0] == "object" && args.length == 2) [options, accessor] = args;
+	else if (args.length == 2) [name, accessor] = args;
+	else [name, options, accessor] = args;
 
-	if (name == null) {
-		//name = "[name missing]";
-		const accessor_temp = accessorGetter(); // calling just to retrieve the inner accessor-func; fine since doesn't actually run anything
-		name = accessor_temp.toString();
-		Assert(name != null);
-	}
-
-	const meta = new AccessorMetadata({name, options: options!});
+	name = name ?? accessor.toString();
+	const meta = new AccessorMetadata({
+		name,
+		options: E(AccessorOptions.default, options!),
+		accessor,
+	});
 	accessorMetadata.set(name, meta);
+	const opt = meta.options;
 
 	const wrapperAccessor = (...callArgs)=>{
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
-		const opt = E(AccessorOptions.default, options!) as Partial<GraphOptions> & AccessorOptions;
 		let graphOpt = E(defaultGraphOptions, CE(opt).IncludeKeys("graph"));
 		const graph = graphOpt.graph;
 
@@ -99,18 +99,11 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 		const callPlan = meta.GetCallPlan(graph, store, meta.nextCall_catchItemBails, meta.nextCall_catchItemBails_asX, callArgs, allowCacheGetOrSet);
 		meta.ResetNextCallFields();
 
-		// now that we have the context/call-plan object, obtain the actual accessor-func (with that context/call-plan object sent in)
-		// break point
-		if (meta.accessor == null) {
-			meta.accessor = accessorGetter(callPlan) as Function;
-			if (name) CE(meta.accessor).SetName(name);
-		}
-
 		let result;
 		const startTime = performance.now();
 		//const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
 		try {
-			result = callPlan.Call_OrReturnCache(callArgs);
+			result = callPlan.Call_OrReturnCache();
 		}
 		/*catch (ex) {
 			if (ex instanceof BailMessage && isRootAccessor) {

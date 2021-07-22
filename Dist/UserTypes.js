@@ -3,12 +3,12 @@ The interfaces below should be extended by the user project.
 
 Example:
 ==========
-import MyRootStoreShape from "some/path/to/project/type";
+import MyStoreShape from "some/path/to/project/type";
 import MyDBShape from "some/path/to/project/type";
 
 declare module 'mobx-graphlink/Dist/UserTypes' {
-    interface RootStoreShape extends MyRootStoreShape {}
-    interface DBShape extends MyDBShape {}
+    interface UT_StoreShape extends MStoreShape {}
+    interface UT_DBShape extends MyDBShape {}
 }
 ==========
 

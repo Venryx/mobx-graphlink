@@ -6,22 +6,22 @@ import type Knex from "knex";
 import { AccessorMetadata } from "./Accessors/@AccessorMetadata.js";
 export declare let defaultGraphOptions: GraphOptions;
 export declare function SetDefaultGraphOptions(opt: GraphOptions): void;
-export interface GraphOptions<RootStoreShape = any, DBShape = any> {
-    graph: Graphlink<RootStoreShape, DBShape>;
+export interface GraphOptions<StoreShape = any, DBShape = any> {
+    graph: Graphlink<StoreShape, DBShape>;
 }
-export declare class GraphlinkInitOptions<RootStoreShape> {
-    rootStore: RootStoreShape;
+export declare class GraphlinkInitOptions<StoreShape> {
+    rootStore: StoreShape;
     apollo: ApolloClient<NormalizedCacheObject>;
     knexModule?: typeof Knex;
     pgClient?: PoolClient;
 }
-export declare class Graphlink<RootStoreShape, DBShape> {
+export declare class Graphlink<StoreShape, DBShape> {
     static instances: Graphlink<any, any>[];
-    constructor(initOptions?: GraphlinkInitOptions<RootStoreShape>);
+    constructor(initOptions?: GraphlinkInitOptions<StoreShape>);
     initialized: boolean;
-    Initialize(initOptions: GraphlinkInitOptions<RootStoreShape>): void;
-    rootStore: RootStoreShape;
-    storeOverridesStack: RootStoreShape[];
+    Initialize(initOptions: GraphlinkInitOptions<StoreShape>): void;
+    rootStore: StoreShape;
+    storeOverridesStack: StoreShape[];
     storeAccessorCachingTempDisabled: boolean;
     lastRunAccessor_meta: AccessorMetadata | undefined;
     subs: {

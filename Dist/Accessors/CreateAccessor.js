@@ -1,4 +1,4 @@
-import { Assert, CE, E } from "js-vextensions";
+import { CE, E } from "js-vextensions";
 import { defaultGraphOptions } from "../Graphlink.js";
 import { CatchBail } from "../Utils/General/BailManager.js";
 import { AccessorMetadata, accessorMetadata, AccessorOptions } from "./@AccessorMetadata.js";
@@ -41,44 +41,36 @@ Wrap a function with CreateAccessor if it's under the "Store/" path, and one of 
 3) It involves a transformation of data into a new wrapper (ie. breaking reference equality), such that it's worth caching the processing. (to not trigger unnecessary child-ui re-renders)
 */
 export const CreateAccessor = (...args) => {
-    let name, options, accessorGetter;
+    let name, options, accessor;
     if (typeof args[0] == "function" && args.length == 1)
-        [accessorGetter] = args;
+        [accessor] = args;
     else if (typeof args[0] == "object" && args.length == 2)
-        [options, accessorGetter] = args;
+        [options, accessor] = args;
     else if (args.length == 2)
-        [name, accessorGetter] = args;
+        [name, accessor] = args;
     else
-        [name, options, accessorGetter] = args;
-    if (name == null) {
-        //name = "[name missing]";
-        const accessor_temp = accessorGetter(); // calling just to retrieve the inner accessor-func; fine since doesn't actually run anything
-        name = accessor_temp.toString();
-        Assert(name != null);
-    }
-    const meta = new AccessorMetadata({ name, options: options });
+        [name, options, accessor] = args;
+    name = name !== null && name !== void 0 ? name : accessor.toString();
+    const meta = new AccessorMetadata({
+        name,
+        options: E(AccessorOptions.default, options),
+        accessor,
+    });
     accessorMetadata.set(name, meta);
+    const opt = meta.options;
     const wrapperAccessor = (...callArgs) => {
         // initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
-        const opt = E(AccessorOptions.default, options);
         let graphOpt = E(defaultGraphOptions, CE(opt).IncludeKeys("graph"));
         const graph = graphOpt.graph;
         const store = graph.storeOverridesStack.length == 0 ? graph.rootStore : graph.storeOverridesStack.slice(-1)[0];
         const allowCacheGetOrSet = opt.cache && !graph.storeAccessorCachingTempDisabled;
         const callPlan = meta.GetCallPlan(graph, store, meta.nextCall_catchItemBails, meta.nextCall_catchItemBails_asX, callArgs, allowCacheGetOrSet);
         meta.ResetNextCallFields();
-        // now that we have the context/call-plan object, obtain the actual accessor-func (with that context/call-plan object sent in)
-        // break point
-        if (meta.accessor == null) {
-            meta.accessor = accessorGetter(callPlan);
-            if (name)
-                CE(meta.accessor).SetName(name);
-        }
         let result;
         const startTime = performance.now();
         //const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
         try {
-            result = callPlan.Call_OrReturnCache(callArgs);
+            result = callPlan.Call_OrReturnCache();
         }
         /*catch (ex) {
             if (ex instanceof BailMessage && isRootAccessor) {

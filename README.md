@@ -44,10 +44,10 @@ export class GraphDBShape {
 ```
 declare module "mobx-graphlink/Dist/UserTypes" {
 	// if you're using an app-wide mobx data-store, that you want easily accessible within "accessor" funcs
-	interface RootStoreShape extends RootState {}
+	interface UT_StoreShape extends RootState {}
 	
 	// shares the GraphDBShape class above (along with its TS type-constraints) with the mobx-graphlink library
-	interface DBShape extends GraphDBShape {}
+	interface UT_DBShape extends GraphDBShape {}
 }
 
 export const graph = new Graphlink<RootState, GraphDBShape>();

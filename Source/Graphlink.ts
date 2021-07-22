@@ -11,29 +11,29 @@ export let defaultGraphOptions: GraphOptions;
 export function SetDefaultGraphOptions(opt: GraphOptions) {
 	defaultGraphOptions = opt;
 }
-export interface GraphOptions<RootStoreShape = any, DBShape = any> {
-	graph: Graphlink<RootStoreShape, DBShape>;
+export interface GraphOptions<StoreShape = any, DBShape = any> {
+	graph: Graphlink<StoreShape, DBShape>;
 }
 
-export class GraphlinkInitOptions<RootStoreShape> {
-	rootStore: RootStoreShape;
+export class GraphlinkInitOptions<StoreShape> {
+	rootStore: StoreShape;
 	apollo: ApolloClient<NormalizedCacheObject>;
 	knexModule?: typeof Knex;
 	pgClient?: PoolClient;
 	//initSubs = true;
 }
 
-export class Graphlink<RootStoreShape, DBShape> {
+export class Graphlink<StoreShape, DBShape> {
 	static instances = [] as Graphlink<any, any>[];
 
-	constructor(initOptions?: GraphlinkInitOptions<RootStoreShape>) {
+	constructor(initOptions?: GraphlinkInitOptions<StoreShape>) {
 		if (initOptions) {
 			this.Initialize(initOptions);
 		}
 	}
 
 	initialized = false;
-	Initialize(initOptions: GraphlinkInitOptions<RootStoreShape>) {
+	Initialize(initOptions: GraphlinkInitOptions<StoreShape>) {
 		let {rootStore, apollo, knexModule, pgClient} = initOptions;
 
 		Graphlink.instances.push(this);
@@ -48,8 +48,8 @@ export class Graphlink<RootStoreShape, DBShape> {
 		this.initialized = true;
 	}
 
-	rootStore: RootStoreShape;
-	storeOverridesStack = [] as RootStoreShape[];
+	rootStore: StoreShape;
+	storeOverridesStack = [] as StoreShape[];
 	storeAccessorCachingTempDisabled = false;
 	//accessorContext: AccessorContext<RootStoreShape> = new AccessorContext<RootStoreShape>(this);
 	lastRunAccessor_meta: AccessorMetadata|undefined;

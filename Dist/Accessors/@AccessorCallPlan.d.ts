@@ -15,6 +15,5 @@ export declare class AccessorCallPlan {
     GetCacheKey(): any[];
     MaybeCatchItemBail<T>(itemGetter: () => T): T;
     cachedResult_wrapper: IComputedValue<any>;
-    uselessCachingWarned: boolean;
-    Call_OrReturnCache(callArgs: any[]): any;
+    Call_OrReturnCache(): any;
 }

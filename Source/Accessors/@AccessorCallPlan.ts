@@ -65,9 +65,9 @@ export class AccessorCallPlan {
 
 	// dynamic
 	cachedResult_wrapper: IComputedValue<any>;
-	uselessCachingWarned = false;
+	//uselessCachingWarned = false;
 	//_lastCall_startTime?: number; // for debugging/profiling purposes only
-	Call_OrReturnCache(callArgs: any[]) {
+	Call_OrReturnCache() {
 		// cache hit, return
 		if (this.cachedResult_wrapper != null) {
 			return this.cachedResult_wrapper.get();
@@ -78,15 +78,15 @@ export class AccessorCallPlan {
 		//const useCaching = cachingHasPurpose && this.accessorMeta.options.cache;
 		const useCaching = cachingHasPurpose;
 		if (!useCaching) {
-			if (!cachingHasPurpose && !this.uselessCachingWarned) {
+			/*if (!cachingHasPurpose && !this.uselessCachingWarned) {
 				console.warn("invoking a computedFn from outside an reactive context won't be memoized, unless keepAlive is set");
 				this.uselessCachingWarned = true;
-			}
-			return this.accessorMeta.accessor.apply(null, callArgs);
+			}*/
+			return this.accessorMeta.accessor.apply(this, this.callArgs);
 		}
 
 		// create new entry
-		this.cachedResult_wrapper = computed(()=>this.accessorMeta.accessor.apply(null, callArgs), {
+		this.cachedResult_wrapper = computed(()=>this.accessorMeta.accessor.apply(this, this.callArgs), {
 			name: `computedFn(${this.accessorMeta.accessor.name}#${++this.callPlanIndex})`,
 			keepAlive: this.accessorMeta.options.cache_keepAlive ?? false,
 		});

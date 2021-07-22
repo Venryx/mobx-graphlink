@@ -2,7 +2,6 @@ import { computed, onBecomeUnobserved, _isComputingDerivation } from "mobx";
 import { CatchBail } from "../index.js";
 export class AccessorCallPlan {
     constructor(accessorMeta, graph, store, catchItemBails, catchItemBails_asX, callArgs, callPlanIndex, onUnobserved) {
-        this.uselessCachingWarned = false;
         this.accessorMeta = accessorMeta;
         this.graph = graph;
         this.store = store;
@@ -40,8 +39,9 @@ export class AccessorCallPlan {
         }
         return itemGetter();
     }
+    //uselessCachingWarned = false;
     //_lastCall_startTime?: number; // for debugging/profiling purposes only
-    Call_OrReturnCache(callArgs) {
+    Call_OrReturnCache() {
         var _a;
         // cache hit, return
         if (this.cachedResult_wrapper != null) {
@@ -52,14 +52,14 @@ export class AccessorCallPlan {
         //const useCaching = cachingHasPurpose && this.accessorMeta.options.cache;
         const useCaching = cachingHasPurpose;
         if (!useCaching) {
-            if (!cachingHasPurpose && !this.uselessCachingWarned) {
+            /*if (!cachingHasPurpose && !this.uselessCachingWarned) {
                 console.warn("invoking a computedFn from outside an reactive context won't be memoized, unless keepAlive is set");
                 this.uselessCachingWarned = true;
-            }
-            return this.accessorMeta.accessor.apply(null, callArgs);
+            }*/
+            return this.accessorMeta.accessor.apply(this, this.callArgs);
         }
         // create new entry
-        this.cachedResult_wrapper = computed(() => this.accessorMeta.accessor.apply(null, callArgs), {
+        this.cachedResult_wrapper = computed(() => this.accessorMeta.accessor.apply(this, this.callArgs), {
             name: `computedFn(${this.accessorMeta.accessor.name}#${++this.callPlanIndex})`,
             keepAlive: (_a = this.accessorMeta.options.cache_keepAlive) !== null && _a !== void 0 ? _a : false,
         });

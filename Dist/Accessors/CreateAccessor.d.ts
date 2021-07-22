@@ -9,18 +9,18 @@ declare type FuncExtensions<Func> = {
     CatchBail: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(bailResultOrGetter: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : never;
     CatchItemBails: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(itemBailResult: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : never;
 };
-interface CreateAccessor_Shape<RootState_PreSet = UT_StoreShape> {
-    <Func extends Function, RootState = RootState_PreSet>(accessorGetter: (context: AccessorCallPlan) => Func): Func & FuncExtensions<Func>;
-    <Func extends Function, RootState = RootState_PreSet>(options: AccessorOptions<RootState>, accessorGetter: (context: AccessorCallPlan) => Func): Func & FuncExtensions<Func>;
-    <Func extends Function, RootState = RootState_PreSet>(name: string, accessorGetter: (context: AccessorCallPlan) => Func): Func & FuncExtensions<Func>;
-    <Func extends Function, RootState = RootState_PreSet>(name: string, options: AccessorOptions<RootState>, accessorGetter: (context: AccessorCallPlan) => Func): Func & FuncExtensions<Func>;
+interface CreateAccessor_Shape<StoreShape_PreSet = UT_StoreShape> {
+    <Func extends (this: AccessorCallPlan | void, ...args: any[]) => any, StoreShape = StoreShape_PreSet>(accessor: Func): Func & FuncExtensions<Func>;
+    <Func extends (this: AccessorCallPlan | void, ...args: any[]) => any, StoreShape = StoreShape_PreSet>(options: Partial<AccessorOptions<StoreShape>>, accessor: Func): Func & FuncExtensions<Func>;
+    <Func extends (this: AccessorCallPlan | void, ...args: any[]) => any, StoreShape = StoreShape_PreSet>(name: string, accessor: Func): Func & FuncExtensions<Func>;
+    <Func extends (this: AccessorCallPlan | void, ...args: any[]) => any, StoreShape = StoreShape_PreSet>(name: string, options: Partial<AccessorOptions<StoreShape>>, accessor: Func): Func & FuncExtensions<Func>;
 }
 /**
 Probably temp. Usage:
 export const CreateAccessor_Typed = Create_CreateAccessor_Typed<RootStoreShape>();
 export const GetPerson = CreateAccessor_Typed({}, ...);
 */
-export declare function Create_CreateAccessor_Typed<RootState>(): CreateAccessor_Shape<RootState>;
+export declare function Create_CreateAccessor_Typed<StoreShape>(): CreateAccessor_Shape<StoreShape>;
 /**
 Wrap a function with CreateAccessor if it's under the "Store/" path, and one of the following:
 1) It accesses the store directly (ie. store.main.page). (thus, "WithStore(testStoreContents, ()=>GetThingFromStore())" works, without hacky overriding of project-wide "store" export)
