@@ -99,7 +99,7 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<Graph
 			watcher.Start();
 			if (options?.throwImmediatelyOnDBWait) GetAsync_throwImmediatelyOnDBWait_activeDepth++;
 			// flip some flag here to say, "don't use cached data -- re-request!"
-			storeAccessorCachingTempDisabled = true;
+			opt.graph.storeAccessorCachingTempDisabled = true;
 			let result;
 
 			let accessor_lastError;
@@ -123,7 +123,7 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<Graph
 			}
 			
 			// cleanup for getter-func
-			storeAccessorCachingTempDisabled = false;
+			opt.graph.storeAccessorCachingTempDisabled = false;
 			if (options?.throwImmediatelyOnDBWait) GetAsync_throwImmediatelyOnDBWait_activeDepth--;
 			watcher.Stop();
 			
@@ -231,5 +231,3 @@ export function NNV<T>(val: T): NonNullable<T> {
 	AssertV(val != null, ()=>`Value cannot be null. (provided value: ${val})`);
 	return val as any;
 }
-
-export let storeAccessorCachingTempDisabled = false;

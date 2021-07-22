@@ -6,7 +6,6 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 import { TreeNode } from "./Tree/TreeNode.js";
 import { observable } from "mobx";
-import { AccessorContext } from "./Accessors/CreateAccessor.js";
 export let defaultGraphOptions;
 export function SetDefaultGraphOptions(opt) {
     defaultGraphOptions = opt;
@@ -17,7 +16,7 @@ export class Graphlink {
     constructor(initOptions) {
         this.initialized = false;
         this.storeOverridesStack = [];
-        this.accessorContext = new AccessorContext(this);
+        this.storeAccessorCachingTempDisabled = false;
         /*InitSubs() {
             // todo
             this.subs.apollo = null;

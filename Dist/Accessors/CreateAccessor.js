@@ -1,8 +1,8 @@
 import { Assert, CE, E } from "js-vextensions";
 import { defaultGraphOptions } from "../Graphlink.js";
 import { CatchBail } from "../Utils/General/BailManager.js";
-import { AccessorMetadata, accessorMetadata } from "./@AccessorMetadata.js";
-import { GetAsync, GetWait, storeAccessorCachingTempDisabled } from "./Helpers.js";
+import { AccessorMetadata, accessorMetadata, AccessorOptions } from "./@AccessorMetadata.js";
+import { GetAsync, GetWait } from "./Helpers.js";
 export function WithStore(options, store, accessorFunc) {
     const opt = E(defaultGraphOptions, options);
     opt.graph.storeOverridesStack.push(store);
@@ -14,17 +14,6 @@ export function WithStore(options, store, accessorFunc) {
     }
     return result;
 }
-//export class AccessorOptions<T> {
-export class AccessorOptions {
-    constructor() {
-        this.cache = true;
-        this.cache_keepAlive = false;
-        //cache_unwrapArgs?: {[key: number]: boolean};
-        //cache_unwrapArgs?: number[];
-        this.cache_unwrapArrays = true;
-    }
-}
-AccessorOptions.default = new AccessorOptions();
 // I want to use the approach below, but the TS type-inference for args (after removing the 1st one) is still not perfect; it strips the types of "paramName = defaultVal" entries, and param comments
 /*export declare type ArgumentsType_ExceptFirst<F extends (firstArg: any, ...args: any[]) => any> = F extends (firstArg: any, ...args: infer A) => any ? A : never;
 export type AccessorWithContext = (context: AccessorContext, ...args: any[])=>any;
@@ -44,44 +33,6 @@ export function Create_CreateAccessor_Typed() {
     //return State_Base as typeof State_Base<RootStateType, any>;
     //return State_Base as StateFunc_WithWatch<RootState>;
     return CreateAccessor;
-}
-export class AccessorContext {
-    constructor(graph) {
-        // static getters, which return the values for the lowest store-accessor in the stack (assumed to be the level of the code asking for this data)
-        //		(if not, eg. if one SA passes func to child SA, then parent SA needs to first cache/unwrap the data it wants, at start of its execution)
-        // commented; for this to work, you would need to include the...
-        this.accessorCallStack = [];
-        this.graph = graph;
-    }
-    get store() {
-        //return AccessorContext.liveValuesStack_current._store;
-        return this.graph.storeOverridesStack.length == 0 ? this.graph.rootStore : this.graph.storeOverridesStack.slice(-1)[0];
-    }
-    ;
-    get accessorCallStack_current() { return this.accessorCallStack[this.accessorCallStack.length - 1]; }
-    get accessorMeta() {
-        Assert(this.accessorCallStack.length);
-        return this.accessorCallStack_current.meta;
-    }
-    get catchItemBails() {
-        var _a;
-        Assert(this.accessorCallStack.length);
-        return (_a = this.accessorCallStack_current.catchItemBails) !== null && _a !== void 0 ? _a : false;
-    }
-    ;
-    get catchItemBails_asX() {
-        Assert(this.accessorCallStack.length);
-        return this.accessorCallStack_current.catchItemBails_asX;
-    }
-    ;
-    MaybeCatchItemBail(itemGetter) {
-        if (this.catchItemBails) {
-            return CatchBail(this.catchItemBails_asX, itemGetter);
-        }
-        return itemGetter();
-    }
-}
-export class AccessorCallStackEntry {
 }
 /**
 Wrap a function with CreateAccessor if it's under the "Store/" path, and one of the following:
@@ -105,43 +56,29 @@ export const CreateAccessor = (...args) => {
         name = accessor_temp.toString();
         Assert(name != null);
     }
-    const meta = new AccessorMetadata({ name });
+    const meta = new AccessorMetadata({ name, options: options });
     accessorMetadata.set(name, meta);
     const wrapperAccessor = (...callArgs) => {
         // initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
         const opt = E(AccessorOptions.default, options);
         let graphOpt = E(defaultGraphOptions, CE(opt).IncludeKeys("graph"));
         const graph = graphOpt.graph;
-        // now that we know what graphlink instance should be used, obtain the actual accessor-func (sending in the graphlink's accessor-context)
+        const store = graph.storeOverridesStack.length == 0 ? graph.rootStore : graph.storeOverridesStack.slice(-1)[0];
+        const allowCacheGetOrSet = opt.cache && !graph.storeAccessorCachingTempDisabled;
+        const callPlan = meta.GetCallPlan(graph, store, meta.nextCall_catchItemBails, meta.nextCall_catchItemBails_asX, callArgs, allowCacheGetOrSet);
+        meta.ResetNextCallFields();
+        // now that we have the context/call-plan object, obtain the actual accessor-func (with that context/call-plan object sent in)
+        // break point
         if (meta.accessor == null) {
-            meta.accessor = accessorGetter(graph.accessorContext);
+            meta.accessor = accessorGetter(callPlan);
             if (name)
                 CE(meta.accessor).SetName(name);
         }
-        const callStackEntry = { meta, catchItemBails: meta.nextCall_catchItemBails, catchItemBails_asX: meta.nextCall_catchItemBails_asX };
-        graph.accessorContext.accessorCallStack.push(callStackEntry);
-        callStackEntry._startTime = performance.now();
         let result;
-        //graph.accessorContext.accessorCallStack.push(nextCall_catchItemBails ? {catchItemBails: nextCall_catchItemBails, catchItemBails_asX: nextCall_catchItemBails_asX} : AccessorCallStackEntry.default);
-        if (meta.nextCall_catchItemBails) {
-            meta.nextCall_catchItemBails = false; // reset flag
-            //delete meta.nextCall_catchItemBails_asX;
-            // also confirm that function actually uses the flag (else, probably an issue, ie. usage forgotten)
-            Assert(meta.CanCatchItemBails, `${name}.CatchItemBails() called, but accessor seems to contain no bail-catching code. (it neither checks for c.catchItemBails, nor calls c.MaybeCatchItemBail)${""}This suggests a mistake, so either remove the CatchItemBails() call, or add bail-catching code within the accessor-func.`);
-        }
-        const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
+        const startTime = performance.now();
+        //const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
         try {
-            if (opt.cache && !storeAccessorCachingTempDisabled) {
-                const contextVars = [
-                    graph.accessorContext.store,
-                    graph.accessorContext.catchItemBails,
-                    graph.accessorContext.catchItemBails_asX,
-                ];
-                result = meta.CallAccessor_OrReturnCache(contextVars, callArgs, opt.cache_unwrapArrays);
-            }
-            else {
-                result = meta.accessor(...callArgs);
-            }
+            result = callPlan.Call_OrReturnCache(callArgs);
         }
         /*catch (ex) {
             if (ex instanceof BailMessage && isRootAccessor) {
@@ -151,13 +88,12 @@ export const CreateAccessor = (...args) => {
             }
         }*/
         finally {
-            const runTime = performance.now() - callStackEntry._startTime;
+            const runTime = performance.now() - startTime;
             meta.callCount++;
             meta.totalRunTime += runTime;
-            if (isRootAccessor) {
+            /*if (isRootAccessor) {
                 meta.totalRunTime_asRoot += runTime;
-            }
-            graph.accessorContext.accessorCallStack.pop();
+            }*/
         }
         return result;
     };

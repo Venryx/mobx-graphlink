@@ -96,7 +96,7 @@ export function GetAsync(dataGetterFunc, options) {
                 if (options === null || options === void 0 ? void 0 : options.throwImmediatelyOnDBWait)
                     GetAsync_throwImmediatelyOnDBWait_activeDepth++;
                 // flip some flag here to say, "don't use cached data -- re-request!"
-                storeAccessorCachingTempDisabled = true;
+                opt.graph.storeAccessorCachingTempDisabled = true;
                 let result;
                 let accessor_lastError;
                 function HandleAccessorError(ex, handling) {
@@ -118,7 +118,7 @@ export function GetAsync(dataGetterFunc, options) {
                     HandleAccessorError(ex, opt.errorHandling_during);
                 }
                 // cleanup for getter-func
-                storeAccessorCachingTempDisabled = false;
+                opt.graph.storeAccessorCachingTempDisabled = false;
                 if (options === null || options === void 0 ? void 0 : options.throwImmediatelyOnDBWait)
                     GetAsync_throwImmediatelyOnDBWait_activeDepth--;
                 watcher.Stop();
@@ -199,4 +199,3 @@ export function NNV(val) {
     AssertV(val != null, () => `Value cannot be null. (provided value: ${val})`);
     return val;
 }
-export let storeAccessorCachingTempDisabled = false;

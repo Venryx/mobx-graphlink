@@ -3,9 +3,9 @@ import {TreeRequestWatcher} from "./Tree/TreeRequestWatcher.js";
 import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "./Utils/DB/DBPaths.js";
 import {observable, runInAction} from "mobx";
 import {ApolloClient, NormalizedCacheObject} from "@apollo/client/core/index.js";
-import {AccessorContext} from "./Accessors/CreateAccessor.js";
 import type {PoolClient} from "pg";
 import type Knex from "knex";
+import {AccessorMetadata} from "./Accessors/@AccessorMetadata.js";
 
 export let defaultGraphOptions: GraphOptions;
 export function SetDefaultGraphOptions(opt: GraphOptions) {
@@ -50,7 +50,9 @@ export class Graphlink<RootStoreShape, DBShape> {
 
 	rootStore: RootStoreShape;
 	storeOverridesStack = [] as RootStoreShape[];
-	accessorContext: AccessorContext<RootStoreShape> = new AccessorContext<RootStoreShape>(this);
+	storeAccessorCachingTempDisabled = false;
+	//accessorContext: AccessorContext<RootStoreShape> = new AccessorContext<RootStoreShape>(this);
+	lastRunAccessor_meta: AccessorMetadata|undefined;
 
 	/*InitSubs() {
 		// todo

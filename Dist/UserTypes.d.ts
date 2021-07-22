@@ -1,4 +1,4 @@
-export interface RootStoreShape {
+export interface UT_StoreShape {
 }
-export interface DBShape {
+export interface UT_DBShape {
 }

@@ -1,28 +1,19 @@
-import { Graphlink, GraphOptions } from "../Graphlink.js";
-import { RootStoreShape } from "../UserTypes.js";
-import { AccessorMetadata } from "./@AccessorMetadata.js";
+import { GraphOptions } from "../Graphlink.js";
+import { UT_StoreShape } from "../UserTypes.js";
+import { AccessorCallPlan } from "./@AccessorCallPlan.js";
+import { AccessorOptions } from "./@AccessorMetadata.js";
 export declare function WithStore<T>(options: Partial<GraphOptions>, store: any, accessorFunc: () => T): T;
-export declare class AccessorOptions {
-    static default: AccessorOptions;
-    cache: boolean;
-    cache_keepAlive: boolean;
-    cache_unwrapArrays: boolean;
-    /** Short for bail-result. */
-    onBail: any;
-}
-export declare type CallArgToDependencyConvertorFunc = (callArgs: any[]) => any[];
 declare type FuncExtensions<Func> = {
     Async: Func extends ((..._: infer Args) => infer ReturnTypeX) ? (..._: Args) => Promise<ReturnTypeX> : never;
     Wait: Func;
     CatchBail: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(bailResultOrGetter: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : never;
     CatchItemBails: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(itemBailResult: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : never;
 };
-declare type CA_Options<RootState> = Partial<GraphOptions<RootState> & AccessorOptions>;
-interface CreateAccessor_Shape<RootState_PreSet = RootStoreShape> {
-    <Func extends Function, RootState = RootState_PreSet>(accessorGetter: (context: AccessorContext<RootState>) => Func): Func & FuncExtensions<Func>;
-    <Func extends Function, RootState = RootState_PreSet>(options: CA_Options<RootState>, accessorGetter: (context: AccessorContext<RootState>) => Func): Func & FuncExtensions<Func>;
-    <Func extends Function, RootState = RootState_PreSet>(name: string, accessorGetter: (context: AccessorContext<RootState>) => Func): Func & FuncExtensions<Func>;
-    <Func extends Function, RootState = RootState_PreSet>(name: string, options: CA_Options<RootState>, accessorGetter: (context: AccessorContext<RootState>) => Func): Func & FuncExtensions<Func>;
+interface CreateAccessor_Shape<RootState_PreSet = UT_StoreShape> {
+    <Func extends Function, RootState = RootState_PreSet>(accessorGetter: (context: AccessorCallPlan) => Func): Func & FuncExtensions<Func>;
+    <Func extends Function, RootState = RootState_PreSet>(options: AccessorOptions<RootState>, accessorGetter: (context: AccessorCallPlan) => Func): Func & FuncExtensions<Func>;
+    <Func extends Function, RootState = RootState_PreSet>(name: string, accessorGetter: (context: AccessorCallPlan) => Func): Func & FuncExtensions<Func>;
+    <Func extends Function, RootState = RootState_PreSet>(name: string, options: AccessorOptions<RootState>, accessorGetter: (context: AccessorCallPlan) => Func): Func & FuncExtensions<Func>;
 }
 /**
 Probably temp. Usage:
@@ -30,23 +21,6 @@ export const CreateAccessor_Typed = Create_CreateAccessor_Typed<RootStoreShape>(
 export const GetPerson = CreateAccessor_Typed({}, ...);
 */
 export declare function Create_CreateAccessor_Typed<RootState>(): CreateAccessor_Shape<RootState>;
-export declare class AccessorContext<RootStoreShape> {
-    constructor(graph: Graphlink<RootStoreShape, any>);
-    graph: Graphlink<RootStoreShape, any>;
-    get store(): RootStoreShape;
-    accessorCallStack: AccessorCallStackEntry[];
-    get accessorCallStack_current(): AccessorCallStackEntry;
-    get accessorMeta(): AccessorMetadata;
-    get catchItemBails(): boolean;
-    get catchItemBails_asX(): any;
-    MaybeCatchItemBail<T>(itemGetter: () => T): T;
-}
-export declare class AccessorCallStackEntry {
-    meta: AccessorMetadata;
-    catchItemBails: boolean;
-    catchItemBails_asX: any;
-    _startTime?: number;
-}
 /**
 Wrap a function with CreateAccessor if it's under the "Store/" path, and one of the following:
 1) It accesses the store directly (ie. store.main.page). (thus, "WithStore(testStoreContents, ()=>GetThingFromStore())" works, without hacky overriding of project-wide "store" export)

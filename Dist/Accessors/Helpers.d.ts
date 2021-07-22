@@ -37,5 +37,4 @@ declare class AVWrapper {
 /** Helper object for making in-line assertions. */
 export declare const AV: AVWrapper;
 export declare function NNV<T>(val: T): NonNullable<T>;
-export declare let storeAccessorCachingTempDisabled: boolean;
 export {};

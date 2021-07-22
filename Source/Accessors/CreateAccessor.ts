@@ -1,9 +1,10 @@
 import {Assert, CE, E} from "js-vextensions";
-import {defaultGraphOptions, Graphlink, GraphOptions} from "../Graphlink.js";
-import {RootStoreShape} from "../UserTypes.js";
+import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
+import {UT_StoreShape} from "../UserTypes.js";
 import {CatchBail} from "../Utils/General/BailManager.js";
-import {AccessorMetadata, accessorMetadata} from "./@AccessorMetadata.js";
-import {GetAsync, GetWait, storeAccessorCachingTempDisabled} from "./Helpers.js";
+import {AccessorCallPlan} from "./@AccessorCallPlan.js";
+import {AccessorMetadata, accessorMetadata, AccessorOptions} from "./@AccessorMetadata.js";
+import {GetAsync, GetWait} from "./Helpers.js";
 
 export function WithStore<T>(options: Partial<GraphOptions>, store: any, accessorFunc: ()=>T): T {
 	const opt = E(defaultGraphOptions, options) as GraphOptions;
@@ -16,21 +17,7 @@ export function WithStore<T>(options: Partial<GraphOptions>, store: any, accesso
 	return result;
 }
 
-//export class AccessorOptions<T> {
-export class AccessorOptions {
-	static default = new AccessorOptions();
-	cache = true;
-	cache_keepAlive = false;
-	//cache_unwrapArgs?: {[key: number]: boolean};
-	//cache_unwrapArgs?: number[];
-	cache_unwrapArrays = true;
-	//callArgToDependencyConvertorFunc?: CallArgToDependencyConvertorFunc;
 
-	/** Short for bail-result. */
-	//onBail: T;
-	onBail: any;
-}
-export type CallArgToDependencyConvertorFunc = (callArgs: any[])=>any[];
 
 type FuncExtensions<Func> = {
 	Async: Func extends ((..._: infer Args)=>infer ReturnTypeX)
@@ -49,12 +36,11 @@ type FuncExtensions<Func> = {
 // I want to use these to extract out the typing, but then it makes the metadata harder to understand for library users
 /*type CA_Accessor<Func, RootState> = (context: AccessorContext<RootState>)=>Func;
 type CA_ReturnType<Func> = Func & FuncExtensions<Func>;*/
-type CA_Options<RootState> = Partial<GraphOptions<RootState> & AccessorOptions>;
-interface CreateAccessor_Shape<RootState_PreSet = RootStoreShape> {
-	<Func extends Function, RootState = RootState_PreSet>(																accessorGetter: (context: AccessorContext<RootState>)=>Func): Func & FuncExtensions<Func>;
-	<Func extends Function, RootState = RootState_PreSet>(options: CA_Options<RootState>,						accessorGetter: (context: AccessorContext<RootState>)=>Func): Func & FuncExtensions<Func>;
-	<Func extends Function, RootState = RootState_PreSet>(name: string,												accessorGetter: (context: AccessorContext<RootState>)=>Func): Func & FuncExtensions<Func>;
-	<Func extends Function, RootState = RootState_PreSet>(name: string, options: CA_Options<RootState>,	accessorGetter: (context: AccessorContext<RootState>)=>Func): Func & FuncExtensions<Func>;
+interface CreateAccessor_Shape<RootState_PreSet = UT_StoreShape> {
+	<Func extends Function, RootState = RootState_PreSet>(																	accessorGetter: (context: AccessorCallPlan)=>Func): Func & FuncExtensions<Func>;
+	<Func extends Function, RootState = RootState_PreSet>(options: AccessorOptions<RootState>,					accessorGetter: (context: AccessorCallPlan)=>Func): Func & FuncExtensions<Func>;
+	<Func extends Function, RootState = RootState_PreSet>(name: string,													accessorGetter: (context: AccessorCallPlan)=>Func): Func & FuncExtensions<Func>;
+	<Func extends Function, RootState = RootState_PreSet>(name: string, options: AccessorOptions<RootState>,	accessorGetter: (context: AccessorCallPlan)=>Func): Func & FuncExtensions<Func>;
 }
 // I want to use the approach below, but the TS type-inference for args (after removing the 1st one) is still not perfect; it strips the types of "paramName = defaultVal" entries, and param comments
 /*export declare type ArgumentsType_ExceptFirst<F extends (firstArg: any, ...args: any[]) => any> = F extends (firstArg: any, ...args: infer A) => any ? A : never;
@@ -79,53 +65,6 @@ export function Create_CreateAccessor_Typed<RootState>() {
 	return CreateAccessor as CreateAccessor_Shape<RootState>;
 }
 
-export class AccessorContext<RootStoreShape> {
-	constructor(graph: Graphlink<RootStoreShape, any>) {
-		this.graph = graph;
-	}
-	
-	graph: Graphlink<RootStoreShape, any>;
-	get store(): RootStoreShape {
-		//return AccessorContext.liveValuesStack_current._store;
-		return this.graph.storeOverridesStack.length == 0 ? this.graph.rootStore : this.graph.storeOverridesStack.slice(-1)[0];
-	};
-
-	// static getters, which return the values for the lowest store-accessor in the stack (assumed to be the level of the code asking for this data)
-	//		(if not, eg. if one SA passes func to child SA, then parent SA needs to first cache/unwrap the data it wants, at start of its execution)
-	// commented; for this to work, you would need to include the...
-	accessorCallStack = [] as AccessorCallStackEntry[];
-	get accessorCallStack_current() { return this.accessorCallStack[this.accessorCallStack.length - 1]; }
-	get accessorMeta(): AccessorMetadata {
-		Assert(this.accessorCallStack.length);
-		return this.accessorCallStack_current.meta;
-	}
-	get catchItemBails(): boolean {
-		Assert(this.accessorCallStack.length);
-		return this.accessorCallStack_current.catchItemBails ?? false;
-	};
-	get catchItemBails_asX(): any {
-		Assert(this.accessorCallStack.length);
-		return this.accessorCallStack_current.catchItemBails_asX;
-	};
-	MaybeCatchItemBail<T>(itemGetter: ()=>T): T {
-		if (this.catchItemBails) {
-			return CatchBail(this.catchItemBails_asX, itemGetter);
-		}
-		return itemGetter();
-	}
-}
-export class AccessorCallStackEntry {
-	// metadata
-	meta: AccessorMetadata;
-
-	// for use within accessor-func's code (relevant to caching)
-	catchItemBails: boolean;
-	catchItemBails_asX: any;
-
-	// extras (not relevant to caching, or the func's own code [other than for debugging, and potentially logging])
-	_startTime?: number;
-}
-
 /**
 Wrap a function with CreateAccessor if it's under the "Store/" path, and one of the following:
 1) It accesses the store directly (ie. store.main.page). (thus, "WithStore(testStoreContents, ()=>GetThingFromStore())" works, without hacky overriding of project-wide "store" export)
@@ -133,7 +72,7 @@ Wrap a function with CreateAccessor if it's under the "Store/" path, and one of 
 3) It involves a transformation of data into a new wrapper (ie. breaking reference equality), such that it's worth caching the processing. (to not trigger unnecessary child-ui re-renders)
 */
 export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
-	let name: string|undefined, options: Partial<GraphOptions & AccessorOptions>|null, accessorGetter: Function;
+	let name: string|undefined, options: AccessorOptions<any>|null, accessorGetter: Function;
 	if (typeof args[0] == "function" && args.length == 1) [accessorGetter] = args;
 	else if (typeof args[0] == "object" && args.length == 2) [options, accessorGetter] = args;
 	else if (args.length == 2) [name, accessorGetter] = args;
@@ -146,7 +85,7 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 		Assert(name != null);
 	}
 
-	const meta = new AccessorMetadata({name});
+	const meta = new AccessorMetadata({name, options: options!});
 	accessorMetadata.set(name, meta);
 
 	const wrapperAccessor = (...callArgs)=>{
@@ -154,37 +93,24 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 		const opt = E(AccessorOptions.default, options!) as Partial<GraphOptions> & AccessorOptions;
 		let graphOpt = E(defaultGraphOptions, CE(opt).IncludeKeys("graph"));
 		const graph = graphOpt.graph;
-		// now that we know what graphlink instance should be used, obtain the actual accessor-func (sending in the graphlink's accessor-context)
+
+		const store = graph.storeOverridesStack.length == 0 ? graph.rootStore : graph.storeOverridesStack.slice(-1)[0];
+		const allowCacheGetOrSet = opt.cache && !graph.storeAccessorCachingTempDisabled;
+		const callPlan = meta.GetCallPlan(graph, store, meta.nextCall_catchItemBails, meta.nextCall_catchItemBails_asX, callArgs, allowCacheGetOrSet);
+		meta.ResetNextCallFields();
+
+		// now that we have the context/call-plan object, obtain the actual accessor-func (with that context/call-plan object sent in)
+		// break point
 		if (meta.accessor == null) {
-			meta.accessor = accessorGetter(graph.accessorContext) as Function;
+			meta.accessor = accessorGetter(callPlan) as Function;
 			if (name) CE(meta.accessor).SetName(name);
 		}
 
-		const callStackEntry: AccessorCallStackEntry = {meta, catchItemBails: meta.nextCall_catchItemBails, catchItemBails_asX: meta.nextCall_catchItemBails_asX};
-		graph.accessorContext.accessorCallStack.push(callStackEntry);
-		callStackEntry._startTime = performance.now();
-
 		let result;
-		//graph.accessorContext.accessorCallStack.push(nextCall_catchItemBails ? {catchItemBails: nextCall_catchItemBails, catchItemBails_asX: nextCall_catchItemBails_asX} : AccessorCallStackEntry.default);
-		if (meta.nextCall_catchItemBails) {
-			meta.nextCall_catchItemBails = false; // reset flag
-			//delete meta.nextCall_catchItemBails_asX;
-			// also confirm that function actually uses the flag (else, probably an issue, ie. usage forgotten)
-			Assert(meta.CanCatchItemBails, `${name}.CatchItemBails() called, but accessor seems to contain no bail-catching code. (it neither checks for c.catchItemBails, nor calls c.MaybeCatchItemBail)${""
-				}This suggests a mistake, so either remove the CatchItemBails() call, or add bail-catching code within the accessor-func.`);
-		}
-		const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
+		const startTime = performance.now();
+		//const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
 		try {
-			if (opt.cache && !storeAccessorCachingTempDisabled) {
-				const contextVars = [
-					graph.accessorContext.store,
-					graph.accessorContext.catchItemBails,
-					graph.accessorContext.catchItemBails_asX,
-				];
-				result = meta.CallAccessor_OrReturnCache(contextVars, callArgs, opt.cache_unwrapArrays);
-			} else {
-				result = meta.accessor(...callArgs);
-			}
+			result = callPlan.Call_OrReturnCache(callArgs);
 		}
 		/*catch (ex) {
 			if (ex instanceof BailMessage && isRootAccessor) {
@@ -194,13 +120,12 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 			}
 		}*/
 		finally {
-			const runTime = performance.now() - callStackEntry._startTime!;
+			const runTime = performance.now() - startTime;
 			meta.callCount++;
 			meta.totalRunTime += runTime;
-			if (isRootAccessor) {
+			/*if (isRootAccessor) {
 				meta.totalRunTime_asRoot += runTime;
-			}
-			graph.accessorContext.accessorCallStack.pop();
+			}*/
 		}
 
 		return result;

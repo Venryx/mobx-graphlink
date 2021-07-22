@@ -1,7 +1,7 @@
 import {Assert, IsString, E, CE, IsArray, IsFunction} from "js-vextensions";
 import {defaultGraphOptions, GraphOptions} from "../../Graphlink.js";
 import {SplitStringBySlash_Cached} from "./StringSplitCache.js";
-import {DBShape} from "../../UserTypes.js";
+import {UT_DBShape} from "../../UserTypes.js";
 
 export function VPathToFBPath(vPath: string) {
 	return vPath.replace(/\/\./g, ".");
@@ -80,10 +80,10 @@ export function AssertValidatePath(path: string) {
 	Assert(!path.includes("//"), "Path cannot contain a double-slash. (This may mean a path parameter is missing)");
 }
 
-export function MobXPathGetterToPath(pathGetterFunc: (dbRoot: DBShape)=>any) {
+export function MobXPathGetterToPath(pathGetterFunc: (dbRoot: UT_DBShape)=>any) {
 	return MobXPathGetterToPathSegments(pathGetterFunc).join("/");
 }
-export function MobXPathGetterToPathSegments(pathGetterFunc: (dbRoot: DBShape)=>any) {
+export function MobXPathGetterToPathSegments(pathGetterFunc: (dbRoot: UT_DBShape)=>any) {
 	let pathSegments = [] as string[];
 	let proxy = new Proxy({}, {
 		get: (target, key)=> {

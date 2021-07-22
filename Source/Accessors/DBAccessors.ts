@@ -1,14 +1,13 @@
 import {CE, E, emptyArray, emptyArray_forLoading} from "js-vextensions";
 import {ObservableMap, runInAction} from "mobx";
 import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
-import {DataStatus} from "../Tree/TreeNode.js";
-import {DBShape} from "../UserTypes.js";
-import {Bail, BailMessage} from "../Utils/General/BailManager.js";
-import {DoX_ComputationSafe} from "../Utils/General/MobX.js";
-import {nil} from "../Utils/General/Nil.js";
-import {PathOrPathGetterToPathSegments} from "../Utils/DB/DBPaths.js";
-import {NotifyWaitingForDB} from "./Helpers.js";
 import {QueryParams} from "../Tree/QueryParams.js";
+import {DataStatus} from "../Tree/TreeNode.js";
+import {UT_DBShape} from "../UserTypes.js";
+import {PathOrPathGetterToPathSegments} from "../Utils/DB/DBPaths.js";
+import {Bail} from "../Utils/General/BailManager.js";
+import {DoX_ComputationSafe} from "../Utils/General/MobX.js";
+import {NotifyWaitingForDB} from "./Helpers.js";
 
 /*
 Why use explicit GetDocs, GetDoc, etc. calls instead of just Proxy's in mobx store fields?
@@ -27,7 +26,7 @@ export class GetDocs_Options {
 	ifLoading_returnVal? = emptyArray_forLoading;
 	//resultForEmpty? = emptyArray;
 }
-export function GetDocs<DB = DBShape, DocT = any>(options: Partial<GraphOptions<any, DB>> & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>ObservableMap<any, DocT>)): DocT[] {
+export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphOptions<any, DB>> & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>ObservableMap<any, DocT>)): DocT[] {
 	const opt = E(defaultGraphOptions, GetDocs_Options.default, options) as GraphOptions & GetDocs_Options;
 	let subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
 	//let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
@@ -76,7 +75,7 @@ export class GetDoc_Options {
 	ifLoading_bail_message?: string;
 	ifLoading_returnVal? = undefined;
 }
-export function GetDoc<DB = DBShape, DocT = any>(options: Partial<GraphOptions<any, DB>> & GetDoc_Options, docPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>DocT)): DocT|null|undefined {
+export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphOptions<any, DB>> & GetDoc_Options, docPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>DocT)): DocT|null|undefined {
 	const opt = E(defaultGraphOptions, GetDoc_Options.default, options) as GraphOptions & GetDoc_Options;
 	let subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
 	//let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;

@@ -44,11 +44,12 @@ export let bailContext;
 export function Bail(messageOrMessageFunc, triggerDebugger = false) {
     let message = messageOrMessageFunc instanceof Function ? messageOrMessageFunc() : messageOrMessageFunc;
     if (message == null) {
-        const { accessorCallStack } = defaultGraphOptions.graph.accessorContext;
+        const lastRunAccessor_meta = defaultGraphOptions.graph.lastRunAccessor_meta;
         // if in accessor-call-stack, use that to make a more informative bail-message
-        if (accessorCallStack.length) {
+        if (lastRunAccessor_meta) {
             //message = `[generic bail error, at: ${accessorCallStack.map(a=>GetAccessorName(a.meta.accessor)).join("->")}]`
-            message = `[generic bail error, at: ${accessorCallStack.map(a => a.meta.accessor.name).join("->")}]`;
+            //message = `[generic bail error, at: ${accessorCallStack.map(a=>a.meta.accessor.name).join("->")}]`
+            message = `[generic bail error, at: ${lastRunAccessor_meta.accessor.name}]`;
         }
         else {
             message = "[generic bail error]";

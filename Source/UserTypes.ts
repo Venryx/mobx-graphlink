@@ -25,5 +25,5 @@ export const person = GetDoc({graph}, ...);
 ==========
 */
 
-export interface RootStoreShape {}
-export interface DBShape {}
+export interface UT_StoreShape {}
+export interface UT_DBShape {}
