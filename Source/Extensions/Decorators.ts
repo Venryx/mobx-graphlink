@@ -110,6 +110,8 @@ export function MGLClass(
 export type Field_Extras = {
 	/** If true, field will be removed from list of required properties. (fields are required by default) */
 	opt?: boolean;
+	/*#* If specified, the given graphql type will be used for this field, within the Command-classes' graphql definitions. */
+	//graphqlType?: string;
 };
 /**
 Marks the given field to be part of the json-schema for the current class.

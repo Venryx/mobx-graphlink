@@ -92,7 +92,7 @@ export function GetGQLSchemaInfoFromJSONSchema(opts: {rootName: string, jsonSche
 	// if there's an existing schema with exactly the name of one we're passing in, don't include that existing-schema as a placeholder/"dependency"
 	placeholdersForExistingSchemas = placeholdersForExistingSchemas.filter(a=>NormalizeGQLTypeName(a.$id) != NormalizeGQLTypeName(opts.rootName));*/
 	
-	let jsonSchema_final = Clone(opts.jsonSchema);
+	let jsonSchema_final = Clone(jsonSchema);
 	//jsonSchema_final.$id = opts.rootName; // only used by "graphql2jsonschema"
 	FinalizeSchemaForConversionToGraphQL(jsonSchema_final);
 
@@ -113,10 +113,10 @@ export function GetGQLSchemaInfoFromJSONSchema(opts: {rootName: string, jsonSche
 		const typeDefs = ExtractTypeDefs(gqlSchemaStr_temp, true, jsonSchema_final);
 		/*const typeDefs_indexForLastDep = typeDefs.findIndex(a=>NormalizeTypeName(a.name) == NormalizeTypeName(CE(placeholdersForExistingSchemas).Last().$id));
 		const typeDefs_new = typeDefs_indexForLastDep != -1 ? typeDefs.slice(typeDefs_indexForLastDep + 1) : [];*/
-		Assert(typeDefs.length, `Could not find/generate type-def for "${opts.rootName}". @typeDefs:${""/*JSON.stringify(typeDefs, null, 2)*/}`);
+		Assert(typeDefs.length, `Could not find/generate type-def for "${rootName}". @typeDefs:${""/*JSON.stringify(typeDefs, null, 2)*/}`);
 		//console.log("TypeDefs_New:", typeDefs_new);
 
-		if (CommandsPlugin_opts?.logTypeDefs_detailed?.includes(opts.rootName)) {
+		if (CommandsPlugin_opts?.logTypeDefs_detailed?.includes(rootName)) {
 			console.log("Type-definition details info:\n----------\n",
 				"schema:", jsonSchema_final,
 				"gqlSchemaStr:", gqlSchemaStr_temp,
