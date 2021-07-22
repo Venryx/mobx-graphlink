@@ -29,7 +29,7 @@ export function FinalizeSchemaForConversionToGraphQL(schema: JSONSchema7, refPat
 	}
 	// make sure type does not contain "null" as an option
 	if (schema.type instanceof Array && schema.type.includes("null")) {
-		schema.type = CE(schema.type).Except("null");
+		schema.type = CE(schema.type).Exclude("null");
 	}
 
 	// if type:array, make sure "items" is specified

@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import AJV from "ajv";
 import AJVKeywords from "ajv-keywords";
-import { Clone, ToJSON, IsString, Assert, E, CE } from "js-vextensions";
+import { Clone, ToJSON, IsString, Assert, E, CE, ArrayCE } from "js-vextensions";
 import { AssertV } from "../Accessors/Helpers.js";
 import { UUID_regex } from "./KeyGenerator.js";
 //import {RemoveHelpers, WithoutHelpers} from "./DatabaseHelpers.js";
@@ -121,7 +121,11 @@ export function DeriveJSONSchema(typeName, modifiers) {
             }
         }
         if (result.required)
-            result.required = result.required.Including(...modifiers.includeOnly);
+            result.required = ArrayCE(result.required).Include(...modifiers.includeOnly);
+    }
+    if (modifiers.makeOptional) {
+        if (result.required)
+            result.required = ArrayCE(result.required).Exclude(...modifiers.makeOptional);
     }
     return result;
 }
@@ -221,7 +225,8 @@ export function AssertValidate(schemaNameOrJSON, data, failureMessageOrGetter, o
 export function AssertValidate_Full(schemaObject, schemaName, data, failureMessageOrGetter, opt) {
     var _a;
     opt = E(new AssertValidateOptions(), opt);
-    AssertV(schemaObject != null, "schemaObject cannot be null.");
+    const assertFunc = opt.useAssertV ? AssertV : Assert;
+    assertFunc(schemaObject != null, "schemaObject cannot be null.");
     schemaObject = NewSchema(schemaObject); // make sure we apply schema-object defaults
     if (opt.allowOptionalPropsToBeNull) {
         schemaObject = Schema_WithOptionalPropsAllowedNull(schemaObject);
@@ -234,19 +239,15 @@ export function AssertValidate_Full(schemaObject, schemaName, data, failureMessa
     if (opt.addSchemaName && schemaName) {
         failureMessage += `\nSchemaName: "${schemaName}"`;
     }
-    if (opt.addSchemaObject) {
-        failureMessage += `\nSchemaObject: "${JSON.stringify(schemaObject, null, 2)}"`;
-    }
     if (opt.addDataStr) {
         failureMessage += `\nData: ${ToJSON(data, undefined, 3)}`;
     }
+    // we put this last, so that if message is shown in tooltip, we can see the more important data-str before line-count cutoff
+    if (opt.addSchemaObject) {
+        failureMessage += `\nSchemaObject: "${JSON.stringify(schemaObject, null, 2)}"`;
+    }
     failureMessage += "\n";
-    if (opt.useAssertV) {
-        AssertV(errorsText == null, failureMessage);
-    }
-    else {
-        Assert(errorsText == null, failureMessage);
-    }
+    assertFunc(errorsText == null, failureMessage);
 }
 export function Schema_WithOptionalPropsAllowedNull(schema) {
     const result = Clone(schema);

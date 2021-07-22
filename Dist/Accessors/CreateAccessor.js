@@ -2,7 +2,7 @@ import { Assert, CE, E } from "js-vextensions";
 import { defaultGraphOptions } from "../Graphlink.js";
 import { CatchBail } from "../Utils/General/BailManager.js";
 import { AccessorMetadata, accessorMetadata } from "./@AccessorMetadata.js";
-import { GetWait, storeAccessorCachingTempDisabled } from "./Helpers.js";
+import { GetAsync, GetWait, storeAccessorCachingTempDisabled } from "./Helpers.js";
 export function WithStore(options, store, accessorFunc) {
     const opt = E(defaultGraphOptions, options);
     opt.graph.storeOverridesStack.push(store);
@@ -47,26 +47,30 @@ export function Create_CreateAccessor_Typed() {
 }
 export class AccessorContext {
     constructor(graph) {
+        // static getters, which return the values for the lowest store-accessor in the stack (assumed to be the level of the code asking for this data)
+        //		(if not, eg. if one SA passes func to child SA, then parent SA needs to first cache/unwrap the data it wants, at start of its execution)
+        // commented; for this to work, you would need to include the...
         this.accessorCallStack = [];
         this.graph = graph;
     }
-    get accessorCallStack_current() { return this.accessorCallStack[this.accessorCallStack.length - 1]; }
-    // static getters, which return the values for the lowest store-accessor in the stack (assumed to be the level of the code asking for this data)
-    //		(if not, eg. if one SA passes func to child SA, then parent SA needs to first cache/unwrap the data it wants, at start of its execution)
     get store() {
         //return AccessorContext.liveValuesStack_current._store;
         return this.graph.storeOverridesStack.length == 0 ? this.graph.rootStore : this.graph.storeOverridesStack.slice(-1)[0];
     }
     ;
+    get accessorCallStack_current() { return this.accessorCallStack[this.accessorCallStack.length - 1]; }
     get accessorMeta() {
+        Assert(this.accessorCallStack.length);
         return this.accessorCallStack_current.meta;
     }
     get catchItemBails() {
         var _a;
+        Assert(this.accessorCallStack.length);
         return (_a = this.accessorCallStack_current.catchItemBails) !== null && _a !== void 0 ? _a : false;
     }
     ;
     get catchItemBails_asX() {
+        Assert(this.accessorCallStack.length);
         return this.accessorCallStack_current.catchItemBails_asX;
     }
     ;
@@ -106,7 +110,7 @@ export const CreateAccessor = (...args) => {
     const wrapperAccessor = (...callArgs) => {
         // initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
         const opt = E(AccessorOptions.default, options);
-        let graphOpt = E(defaultGraphOptions, CE(opt).Including("graph"));
+        let graphOpt = E(defaultGraphOptions, CE(opt).IncludeKeys("graph"));
         const graph = graphOpt.graph;
         // now that we know what graphlink instance should be used, obtain the actual accessor-func (sending in the graphlink's accessor-context)
         if (meta.accessor == null) {
@@ -157,12 +161,19 @@ export const CreateAccessor = (...args) => {
         }
         return result;
     };
+    /** Func.Async(...) is shortcut for GetAsync(()=>Func(...)) */
+    wrapperAccessor.Async = (...callArgs) => {
+        // initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
+        const opt = E(AccessorOptions.default, options);
+        let graphOpt = E(defaultGraphOptions, CE(opt).IncludeKeys("graph"));
+        return GetAsync(() => wrapperAccessor(...callArgs), graphOpt);
+    };
     // Func.Wait(thing) is shortcut for GetWait(()=>Func(thing))
     // Note: This function doesn't really have a purpose atm, now that "bailing" system is in place.
     wrapperAccessor.Wait = (...callArgs) => {
         // initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
         const opt = E(AccessorOptions.default, options);
-        let graphOpt = E(defaultGraphOptions, CE(opt).Including("graph"));
+        let graphOpt = E(defaultGraphOptions, CE(opt).IncludeKeys("graph"));
         return GetWait(() => wrapperAccessor(...callArgs), graphOpt);
     };
     wrapperAccessor.CatchBail = (bailResultOrGetter, ...callArgs) => {

@@ -12,6 +12,8 @@ import {GetCommandClassMetadata, GetCommandClassMetadatas} from "./CommandMetada
 import {WithBrackets} from "../Tree/QueryParams.js";
 import {CleanDBData, UserInfo} from "../index.js";
 import {DBPPath} from "../Utils/DB/DBPaths.js";
+import {DeepMap} from "../Utils/General/DeepMap.js";
+import {GenerateUUID} from "../Extensions/KeyGenerator.js";
 
 export const commandsWaitingToComplete_new = [] as Command<any, any>[];
 
@@ -206,6 +208,23 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		const oldData = Clone(this.options.graph.tree.AsRawData());
 		const newData = ApplyDBUpdates_Local(oldData, dbUpdates);
 		this.options.graph.ValidateDBData!(newData);
+	}
+
+	// helper-methods to be called within user-supplied Validate() function
+	/*generatedUUIDs = new DeepMap<string>();
+	GenerateUUID_Once(obj: any, propName: string) {
+		const entry = this.generatedUUIDs.entry([obj, propName]);
+		if (!entry.exists()) {
+			entry.set(GenerateUUID());
+		}
+		return entry.get();
+	}*/
+	generatedUUIDs = new Map<string, string>();
+	GenerateUUID_Once(path: string) {
+		if (!this.generatedUUIDs.has(path)) {
+			this.generatedUUIDs.set(path, GenerateUUID());
+		}
+		return this.generatedUUIDs.get(path)!;
 	}
 }
 

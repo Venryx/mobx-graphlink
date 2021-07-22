@@ -18,6 +18,7 @@ import { gql } from "@apollo/client/core/index.js";
 import { GetCommandClassMetadata } from "./CommandMetadata.js";
 import { WithBrackets } from "../Tree/QueryParams.js";
 import { CleanDBData } from "../index.js";
+import { GenerateUUID } from "../Extensions/KeyGenerator.js";
 export const commandsWaitingToComplete_new = [];
 let currentCommandRun_listeners = [];
 function WaitTillCurrentCommandFinishes() {
@@ -44,6 +45,16 @@ export class Command {
         this.returnData = {};
         /** Last validation error, from calling Validate_Safe(). */
         this.validateError = null;
+        // helper-methods to be called within user-supplied Validate() function
+        /*generatedUUIDs = new DeepMap<string>();
+        GenerateUUID_Once(obj: any, propName: string) {
+            const entry = this.generatedUUIDs.entry([obj, propName]);
+            if (!entry.exists()) {
+                entry.set(GenerateUUID());
+            }
+            return entry.get();
+        }*/
+        this.generatedUUIDs = new Map();
         let options, payload;
         if (args.length == 1)
             [payload] = args;
@@ -194,6 +205,12 @@ export class Command {
             const newData = ApplyDBUpdates_Local(oldData, dbUpdates);
             this.options.graph.ValidateDBData(newData);
         });
+    }
+    GenerateUUID_Once(path) {
+        if (!this.generatedUUIDs.has(path)) {
+            this.generatedUUIDs.set(path, GenerateUUID());
+        }
+        return this.generatedUUIDs.get(path);
     }
 }
 export class DBHelper {

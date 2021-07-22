@@ -121,7 +121,7 @@ export class TreeNode<DataShape> {
 
 					MaybeLog_Base(a=>a.subscriptions, l=>l(`Got collection snapshot. @path(${this.path}) @docs:`, docs));
 					runInAction("TreeNode.Subscribe.onSnapshot_collection", ()=> {
-						const deletedDocIDs = CE(Array.from(this.docNodes.keys())).Except(...docs.map(a=>a.id));
+						const deletedDocIDs = CE(Array.from(this.docNodes.keys())).Exclude(...docs.map(a=>a.id));
 						let dataChanged = false;
 						for (const doc of docs) {
 							if (!this.docNodes.has(doc.id)) {

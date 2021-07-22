@@ -115,7 +115,7 @@ export type Field_Extras = {
 };
 /**
 Marks the given field to be part of the json-schema for the current class.
-Note that the "requiredness" of properties should be based on what's valid for an entry when being submitted for addition to the database (ie. within the payload of AddXXX commands);
+Note that the "requiredness" of properties should be based on what's valid for an entry during submission to the database (ie. within the type's main AddXXX command);
 	this is different than the TS "?" marker, which should match with the requiredness of the property when already in the db. (for new entries, the TS constructors already make all props optional)
 */
 export function Field(schemaOrGetter: Object | (()=>Object), extras?: Field_Extras) {
@@ -143,11 +143,12 @@ declare module "knex" {
 		}
 	}
 }
+export type DBInitFunc = (t: Knex.TableBuilder, n: string)=>any;
 /**
 Marks the given field to be a database column for the current class. (ie. in its generated table definition)
 Note that "notNullable()" is called for these fields automatically; if you want it to be optional/nullable within the db, add ".nullable()" to the chain.
 */
-export function DB(initFunc: (t: Knex.TableBuilder, n: string)=>any) {
+export function DB(initFunc: DBInitFunc) {
 	//return function(target: Function, propertyKey: string, descriptor: PropertyDescriptor) {
 	return function(target: any, propertyKey: string) {
 		const constructor = target.constructor;
@@ -155,6 +156,6 @@ export function DB(initFunc: (t: Knex.TableBuilder, n: string)=>any) {
 		constructor["_fieldDBInits"][propertyKey] = initFunc;
 	};
 }
-export function GetFieldDBInit(constructor: Function, fieldName: string) {
+export function GetFieldDBInit(constructor: Function, fieldName: string): DBInitFunc|undefined {
 	return (constructor["_fieldDBInits"] ?? {})[fieldName];
 }

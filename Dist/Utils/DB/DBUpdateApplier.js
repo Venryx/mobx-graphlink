@@ -97,6 +97,7 @@ export function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true) {
                     let result = rawVal;
                     // if db-type for a field is "json"/"jsonb", make sure that the value is stringified
                     const fieldDBInitFunc = GetFieldDBInit(class_, fieldName);
+                    Assert(fieldDBInitFunc != null, `Could not find db-init-func for field "${fieldName}" on class "${class_.name}".`);
                     if (fieldDBInitFunc.toString().includes(".json(") || fieldDBInitFunc.toString().includes(".jsonb(")) {
                         result = typeof result == "string" || result == null ? result : JSON.stringify(result);
                     }

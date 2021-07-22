@@ -12,9 +12,10 @@ export declare class AccessorOptions {
 }
 export declare type CallArgToDependencyConvertorFunc = (callArgs: any[]) => any[];
 declare type FuncExtensions<Func> = {
+    Async: Func extends ((..._: infer Args) => infer ReturnTypeX) ? (..._: Args) => Promise<ReturnTypeX> : never;
     Wait: Func;
-    CatchBail: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(bailResultOrGetter: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : Func;
-    CatchItemBails: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(itemBailResult: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : Func;
+    CatchBail: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(bailResultOrGetter: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : never;
+    CatchItemBails: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(itemBailResult: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : never;
 };
 declare type CA_Options<RootState> = Partial<GraphOptions<RootState> & AccessorOptions>;
 interface CreateAccessor_Shape<RootState_PreSet = RootStoreShape> {
@@ -32,9 +33,9 @@ export declare function Create_CreateAccessor_Typed<RootState>(): CreateAccessor
 export declare class AccessorContext<RootStoreShape> {
     constructor(graph: Graphlink<RootStoreShape, any>);
     graph: Graphlink<RootStoreShape, any>;
+    get store(): RootStoreShape;
     accessorCallStack: AccessorCallStackEntry[];
     get accessorCallStack_current(): AccessorCallStackEntry;
-    get store(): RootStoreShape;
     get accessorMeta(): AccessorMetadata;
     get catchItemBails(): boolean;
     get catchItemBails_asX(): any;

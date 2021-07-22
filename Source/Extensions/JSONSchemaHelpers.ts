@@ -1,6 +1,6 @@
 import AJV from "ajv";
 import AJVKeywords from "ajv-keywords";
-import {Clone, ToJSON, IsString, Assert, IsObject, E, CE, IsArray, DEL} from "js-vextensions";
+import {Clone, ToJSON, IsString, Assert, IsObject, E, CE, IsArray, DEL, ArrayCE} from "js-vextensions";
 import {JSONSchema4, JSONSchema7, JSONSchema7Definition, JSONSchema7Object, JSONSchema7Type} from "json-schema";
 import {AssertV} from "../Accessors/Helpers.js";
 import {UUID_regex} from "./KeyGenerator.js";
@@ -63,7 +63,7 @@ export function SimpleSchema(props: JSONSchemaProperties) {
 export const schemaEntryJSONs = new Map<string, JSONSchema7>();
 /**
 Adds the given schema to the schema collection.
-Note that the "requiredness" of properties should be based on what's valid for an entry when being submitted for addition to the database. (ie. within the payload of AddXXX commands)
+Note that the "requiredness" of properties should be based on what's valid for an entry during submission to the database. (ie. within the type's main AddXXX command)
 */
 export function AddSchema(name: string, schemaOrGetter: JSONSchema7 | (()=>JSONSchema7)): AJV.Ajv | Promise<AJV.Ajv>;
 export function AddSchema(name: string, schemaDeps: string[] | null | undefined, schemaGetter: ()=>JSONSchema7): AJV.Ajv | Promise<AJV.Ajv>; // only accept schema-getter, since otherwise there's no point to adding the dependency-schemas
@@ -120,7 +120,8 @@ export function GetSchemaJSON(name: string, errorOnMissing = true): JSONSchema7 
 }
 
 export type SchemaModifiers = {
-	includeOnly?: string[]
+	includeOnly?: string[];
+	makeOptional?: string[];
 };
 export function DeriveJSONSchema(typeName: string, modifiers: SchemaModifiers): Object {
 	const result = Clone(GetSchemaJSON(typeName));
@@ -130,7 +131,10 @@ export function DeriveJSONSchema(typeName: string, modifiers: SchemaModifiers): 
 				delete result.properties[key];
 			}
 		}
-		if (result.required) result.required = result.required.Including(...modifiers.includeOnly);
+		if (result.required) result.required = ArrayCE(result.required).Include(...modifiers.includeOnly);
+	}
+	if (modifiers.makeOptional) {
+		if (result.required) result.required = ArrayCE(result.required).Exclude(...modifiers.makeOptional);
 	}
 	return result;
 }
@@ -263,7 +267,9 @@ export function AssertValidate(schemaNameOrJSON: string | JSONSchema7, data, fai
 }
 export function AssertValidate_Full(schemaObject: JSONSchema7, schemaName: string|null, data, failureMessageOrGetter: string | ((errorsText: string|undefined)=>string), opt?: Partial<AssertValidateOptions>) {
 	opt = E(new AssertValidateOptions(), opt);
-	AssertV(schemaObject != null, "schemaObject cannot be null.");
+	const assertFunc: typeof AssertV = opt.useAssertV ? AssertV : Assert;
+	
+	assertFunc(schemaObject != null, "schemaObject cannot be null.");
 	schemaObject = NewSchema(schemaObject); // make sure we apply schema-object defaults
 	if (opt.allowOptionalPropsToBeNull) {
 		schemaObject = Schema_WithOptionalPropsAllowedNull(schemaObject);
@@ -278,19 +284,16 @@ export function AssertValidate_Full(schemaObject: JSONSchema7, schemaName: strin
 	if (opt.addSchemaName && schemaName) {
 		failureMessage += `\nSchemaName: "${schemaName}"`;
 	}
-	if (opt.addSchemaObject) {
-		failureMessage += `\nSchemaObject: "${JSON.stringify(schemaObject, null, 2)}"`;
-	}
 	if (opt.addDataStr) {
 		failureMessage += `\nData: ${ToJSON(data, undefined, 3)}`;
 	}
+	// we put this last, so that if message is shown in tooltip, we can see the more important data-str before line-count cutoff
+	if (opt.addSchemaObject) {
+		failureMessage += `\nSchemaObject: "${JSON.stringify(schemaObject, null, 2)}"`;
+	}
 	failureMessage += "\n";
 
-	if (opt.useAssertV) {
-		AssertV(errorsText == null, failureMessage);
-	} else {
-		Assert(errorsText == null, failureMessage);
-	}
+	assertFunc(errorsText == null, failureMessage);
 }
 
 export function Schema_WithOptionalPropsAllowedNull(schema: any) {

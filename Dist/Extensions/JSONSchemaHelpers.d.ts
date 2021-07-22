@@ -12,13 +12,14 @@ export declare function SimpleSchema(props: JSONSchemaProperties): any;
 export declare const schemaEntryJSONs: Map<string, JSONSchema7>;
 /**
 Adds the given schema to the schema collection.
-Note that the "requiredness" of properties should be based on what's valid for an entry when being submitted for addition to the database. (ie. within the payload of AddXXX commands)
+Note that the "requiredness" of properties should be based on what's valid for an entry during submission to the database. (ie. within the type's main AddXXX command)
 */
 export declare function AddSchema(name: string, schemaOrGetter: JSONSchema7 | (() => JSONSchema7)): AJV.Ajv | Promise<AJV.Ajv>;
 export declare function AddSchema(name: string, schemaDeps: string[] | null | undefined, schemaGetter: () => JSONSchema7): AJV.Ajv | Promise<AJV.Ajv>;
 export declare function GetSchemaJSON(name: string, errorOnMissing?: boolean): JSONSchema7;
 export declare type SchemaModifiers = {
     includeOnly?: string[];
+    makeOptional?: string[];
 };
 export declare function DeriveJSONSchema(typeName: string, modifiers: SchemaModifiers): Object;
 export declare function RunXOnceSchemasAdded(schemaDeps: string[], funcX: () => void): void;

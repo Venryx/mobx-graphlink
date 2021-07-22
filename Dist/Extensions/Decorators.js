@@ -94,7 +94,7 @@ export function MGLClass(opts, schemaExtrasOrGetter, initFunc_pre) {
 }
 /**
 Marks the given field to be part of the json-schema for the current class.
-Note that the "requiredness" of properties should be based on what's valid for an entry when being submitted for addition to the database (ie. within the payload of AddXXX commands);
+Note that the "requiredness" of properties should be based on what's valid for an entry during submission to the database (ie. within the type's main AddXXX command);
     this is different than the TS "?" marker, which should match with the requiredness of the property when already in the db. (for new entries, the TS constructors already make all props optional)
 */
 export function Field(schemaOrGetter, extras) {

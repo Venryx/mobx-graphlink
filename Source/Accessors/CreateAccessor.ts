@@ -3,7 +3,7 @@ import {defaultGraphOptions, Graphlink, GraphOptions} from "../Graphlink.js";
 import {RootStoreShape} from "../UserTypes.js";
 import {CatchBail} from "../Utils/General/BailManager.js";
 import {AccessorMetadata, accessorMetadata} from "./@AccessorMetadata.js";
-import {GetWait, storeAccessorCachingTempDisabled} from "./Helpers.js";
+import {GetAsync, GetWait, storeAccessorCachingTempDisabled} from "./Helpers.js";
 
 export function WithStore<T>(options: Partial<GraphOptions>, store: any, accessorFunc: ()=>T): T {
 	const opt = E(defaultGraphOptions, options) as GraphOptions;
@@ -33,14 +33,17 @@ export class AccessorOptions {
 export type CallArgToDependencyConvertorFunc = (callArgs: any[])=>any[];
 
 type FuncExtensions<Func> = {
+	Async: Func extends ((..._: infer Args)=>infer ReturnTypeX)
+		? (..._: Args)=>Promise<ReturnTypeX>
+		: never,
 	Wait: Func,
 	// other functions, like BIN and BILA, are provided in BailManager.ts as Function.prototype extensions
 	CatchBail: Func extends ((..._: infer Args)=>infer ReturnTypeX)
 		? <T>(bailResultOrGetter: T, ..._: Args)=>NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T)
-		: Func,
+		: never,
 	CatchItemBails: Func extends ((..._: infer Args)=>infer ReturnTypeX)
 		? <T>(itemBailResult: T, ..._: Args)=>NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T)
-		: Func
+		: never,
 };
 
 // I want to use these to extract out the typing, but then it makes the metadata harder to understand for library users
@@ -82,22 +85,26 @@ export class AccessorContext<RootStoreShape> {
 	}
 	
 	graph: Graphlink<RootStoreShape, any>;
-	accessorCallStack = [] as AccessorCallStackEntry[];
-	get accessorCallStack_current() { return this.accessorCallStack[this.accessorCallStack.length - 1]; }
-
-	// static getters, which return the values for the lowest store-accessor in the stack (assumed to be the level of the code asking for this data)
-	//		(if not, eg. if one SA passes func to child SA, then parent SA needs to first cache/unwrap the data it wants, at start of its execution)
 	get store(): RootStoreShape {
 		//return AccessorContext.liveValuesStack_current._store;
 		return this.graph.storeOverridesStack.length == 0 ? this.graph.rootStore : this.graph.storeOverridesStack.slice(-1)[0];
 	};
+
+	// static getters, which return the values for the lowest store-accessor in the stack (assumed to be the level of the code asking for this data)
+	//		(if not, eg. if one SA passes func to child SA, then parent SA needs to first cache/unwrap the data it wants, at start of its execution)
+	// commented; for this to work, you would need to include the...
+	accessorCallStack = [] as AccessorCallStackEntry[];
+	get accessorCallStack_current() { return this.accessorCallStack[this.accessorCallStack.length - 1]; }
 	get accessorMeta(): AccessorMetadata {
+		Assert(this.accessorCallStack.length);
 		return this.accessorCallStack_current.meta;
 	}
 	get catchItemBails(): boolean {
+		Assert(this.accessorCallStack.length);
 		return this.accessorCallStack_current.catchItemBails ?? false;
 	};
 	get catchItemBails_asX(): any {
+		Assert(this.accessorCallStack.length);
 		return this.accessorCallStack_current.catchItemBails_asX;
 	};
 	MaybeCatchItemBail<T>(itemGetter: ()=>T): T {
@@ -145,7 +152,7 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 	const wrapperAccessor = (...callArgs)=>{
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
 		const opt = E(AccessorOptions.default, options!) as Partial<GraphOptions> & AccessorOptions;
-		let graphOpt = E(defaultGraphOptions, CE(opt).Including("graph"));
+		let graphOpt = E(defaultGraphOptions, CE(opt).IncludeKeys("graph"));
 		const graph = graphOpt.graph;
 		// now that we know what graphlink instance should be used, obtain the actual accessor-func (sending in the graphlink's accessor-context)
 		if (meta.accessor == null) {
@@ -199,12 +206,20 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 		return result;
 	};
 
+	/** Func.Async(...) is shortcut for GetAsync(()=>Func(...)) */
+	wrapperAccessor.Async = (...callArgs)=>{
+		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
+		const opt = E(AccessorOptions.default, options!) as Partial<GraphOptions> & AccessorOptions;
+		let graphOpt = E(defaultGraphOptions, CE(opt).IncludeKeys("graph"));
+
+		return GetAsync(()=>wrapperAccessor(...callArgs), graphOpt);
+	};
 	// Func.Wait(thing) is shortcut for GetWait(()=>Func(thing))
 	// Note: This function doesn't really have a purpose atm, now that "bailing" system is in place.
 	wrapperAccessor.Wait = (...callArgs)=>{
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
 		const opt = E(AccessorOptions.default, options!) as Partial<GraphOptions> & AccessorOptions;
-		let graphOpt = E(defaultGraphOptions, CE(opt).Including("graph"));
+		let graphOpt = E(defaultGraphOptions, CE(opt).IncludeKeys("graph"));
 
 		return GetWait(()=>wrapperAccessor(...callArgs), graphOpt);
 	};
