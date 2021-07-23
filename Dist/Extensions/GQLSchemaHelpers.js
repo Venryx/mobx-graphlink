@@ -1,7 +1,6 @@
 import { Assert, CE, Clone, FancyFormat } from "js-vextensions";
 import { JSONStringify_NoQuotesForKeys } from "../Utils/General/General.js";
 import { GetSchemaJSON, IsJSONSchemaOfTypeScalar, JSONSchemaScalarTypeToGraphQLScalarType } from "./JSONSchemaHelpers.js";
-//import convert_ from "jsonschema2graphql";
 import { getGraphqlSchemaFromJsonSchema } from "@vforks/get-graphql-from-jsonschema";
 import { CommandsPlugin_opts } from "../Server/CommandsPlugin.js";
 //const convert = convert_["default"] as typeof convert_;

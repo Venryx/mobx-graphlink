@@ -2,7 +2,6 @@ import {Assert, CE, Clone, GetTreeNodesInObjTree, FancyFormat, TreeNode} from "j
 import {JSONSchema7, JSONSchema7Definition} from "json-schema";
 import {JSONStringify_NoQuotesForKeys} from "../Utils/General/General.js";
 import {GetSchemaJSON, IsJSONSchemaOfTypeScalar, JSONSchemaScalarTypeToGraphQLScalarType, schemaEntryJSONs} from "./JSONSchemaHelpers.js";
-//import convert_ from "jsonschema2graphql";
 import {getGraphqlSchemaFromJsonSchema} from "@vforks/get-graphql-from-jsonschema";
 import {CommandsPlugin_opts, CreateCommandPlugin_Options} from "../Server/CommandsPlugin.js";
 //const convert = convert_["default"] as typeof convert_;
