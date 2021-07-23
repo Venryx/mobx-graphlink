@@ -22,7 +22,9 @@ export declare function MGLClass(opts?: {
     schemaDeps?: string[];
 }, schemaExtrasOrGetter?: Object | (() => Object), initFunc_pre?: (t: Knex.TableBuilder) => any): (constructor: Function) => void;
 export declare type Field_Extras = {
-    /** If true, field will be removed from list of required properties. (fields are required by default) */
+    /** If true, two changes are made:
+    1) Field is removed from the list of required properties. (fields are required by default)
+    2) Field's schema is changed to accept either the listed type, or null. (as elsewhere, null and undefined/not-present are meant to be treated the same) */
     opt?: boolean;
 };
 /**

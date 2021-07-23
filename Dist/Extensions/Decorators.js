@@ -81,12 +81,28 @@ export function MGLClass(opts, schemaExtrasOrGetter, initFunc_pre) {
             let schema = schemaExtrasOrGetter instanceof Function ? schemaExtrasOrGetter() : (schemaExtrasOrGetter !== null && schemaExtrasOrGetter !== void 0 ? schemaExtrasOrGetter : {});
             schema.properties = (_a = schema.properties) !== null && _a !== void 0 ? _a : {};
             for (const [key, fieldSchemaOrGetter] of Object.entries((_b = constructor["_fields"]) !== null && _b !== void 0 ? _b : [])) {
-                schema.properties[key] = fieldSchemaOrGetter instanceof Function ? fieldSchemaOrGetter() : fieldSchemaOrGetter;
+                let fieldSchema = fieldSchemaOrGetter instanceof Function ? fieldSchemaOrGetter() : fieldSchemaOrGetter;
                 const extras = (_c = constructor["_fieldExtras"]) === null || _c === void 0 ? void 0 : _c[key];
-                if (!(extras === null || extras === void 0 ? void 0 : extras.opt)) {
+                if (extras === null || extras === void 0 ? void 0 : extras.opt) {
+                    const fieldSchemaKeys = Object.keys(fieldSchema);
+                    if (fieldSchemaKeys.length == 1 && fieldSchemaKeys[0] == "type") {
+                        const fieldTypes = (Array.isArray(fieldSchema.type) ? fieldSchema.type : [fieldSchema.type]);
+                        const alreadyAcceptsNull = fieldTypes.includes("null");
+                        if (!alreadyAcceptsNull) {
+                            fieldSchema.type = fieldTypes.concat("null");
+                        }
+                    }
+                    else {
+                        fieldSchema = {
+                            oneOf: [fieldSchema, { type: "null" }],
+                        };
+                    }
+                }
+                else {
                     schema.required = (_d = schema.required) !== null && _d !== void 0 ? _d : [];
                     schema.required.push(key);
                 }
+                schema.properties[key] = fieldSchema;
             }
             return schema;
         });

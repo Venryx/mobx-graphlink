@@ -41,7 +41,7 @@
   "dependencies": {
     "@types/json-schema": "^7.0.8",
     "@types/node": "^15.12.4",
-    "@vforks/get-graphql-from-jsonschema": "8.0.12-4",
+    "@vforks/get-graphql-from-jsonschema": "8.0.12-5",
     "ajv": "^6.12.6",
     "ajv-keywords": "^3.5.2",
     "buffer": "^6.0.3",

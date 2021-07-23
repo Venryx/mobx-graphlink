@@ -95,12 +95,26 @@ export function MGLClass(
 			let schema = schemaExtrasOrGetter instanceof Function ? schemaExtrasOrGetter() : (schemaExtrasOrGetter ?? {} as any);
 			schema.properties = schema.properties ?? {};
 			for (const [key, fieldSchemaOrGetter] of Object.entries(constructor["_fields"] ?? [])) {
-				schema.properties[key] = fieldSchemaOrGetter instanceof Function ? fieldSchemaOrGetter() : fieldSchemaOrGetter;
+				let fieldSchema = fieldSchemaOrGetter instanceof Function ? fieldSchemaOrGetter() : fieldSchemaOrGetter;
 				const extras = constructor["_fieldExtras"]?.[key] as Field_Extras;
-				if (!extras?.opt) {
+				if (extras?.opt) {
+					const fieldSchemaKeys = Object.keys(fieldSchema);
+					if (fieldSchemaKeys.length == 1 && fieldSchemaKeys[0] == "type") {
+						const fieldTypes = (Array.isArray(fieldSchema.type) ? fieldSchema.type : [fieldSchema.type]);
+						const alreadyAcceptsNull = fieldTypes.includes("null");
+						if (!alreadyAcceptsNull) {
+							fieldSchema.type = fieldTypes.concat("null");
+						}
+					} else {
+						fieldSchema = {
+							oneOf: [fieldSchema, {type: "null"}],
+						};
+					}
+				} else {
 					schema.required = schema.required ?? [];
 					schema.required.push(key);
 				}
+				schema.properties[key] = fieldSchema;
 			}
 			return schema;
 		});
@@ -108,7 +122,9 @@ export function MGLClass(
 }
 
 export type Field_Extras = {
-	/** If true, field will be removed from list of required properties. (fields are required by default) */
+	/** If true, two changes are made:
+	1) Field is removed from the list of required properties. (fields are required by default)
+	2) Field's schema is changed to accept either the listed type, or null. (as elsewhere, null and undefined/not-present are meant to be treated the same) */
 	opt?: boolean;
 	/*#* If specified, the given graphql type will be used for this field, within the Command-classes' graphql definitions. */
 	//graphqlType?: string;
