@@ -12,6 +12,7 @@ export interface GraphOptions<StoreShape = any, DBShape = any> {
 export declare class GraphlinkInitOptions<StoreShape> {
     rootStore: StoreShape;
     apollo: ApolloClient<NormalizedCacheObject>;
+    onServer: boolean;
     knexModule?: typeof Knex;
     pgClient?: PoolClient;
 }
@@ -24,6 +25,7 @@ export declare class Graphlink<StoreShape, DBShape> {
     storeOverridesStack: StoreShape[];
     storeAccessorCachingTempDisabled: boolean;
     lastRunAccessor_meta: AccessorMetadata | undefined;
+    onServer: boolean;
     subs: {
         apollo: ApolloClient<NormalizedCacheObject>;
         knexModule?: typeof Knex | null | undefined;

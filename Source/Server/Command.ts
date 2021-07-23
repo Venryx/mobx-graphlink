@@ -50,13 +50,14 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	}
 	//userInfo: FireUserInfo;
 	_userInfo_override: UserInfo|null|undefined; // for use on server (so permissions are checked against the calling user's id rather than the server's )
-	_userInfo_override_set = false;
+	//_userInfo_override_set = false;
 	get userInfo() {
-		if (this._userInfo_override_set) {
-			Assert(this._userInfo_override != null, "For commands being run on the server, user-info must be supplied.");
+		if (this.options.graph.onServer) {
+			Assert(this._userInfo_override != null, `For commands being run on the server, user-info must be explicitly attached. @Command:${this.constructor.name}`);
 			return this._userInfo_override;
+		} else {
+			return this.options.graph.userInfo!;
 		}
-		return this.options.graph.userInfo!;
 	}
 	type: string;
 	options: GraphOptions;
@@ -74,6 +75,7 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	parentCommand: Command<any, any>;
 	MarkAsSubcommand(parentCommand: Command<any, any>) {
 		this.parentCommand = parentCommand;
+		this._userInfo_override = parentCommand._userInfo_override;
 		//this.Validate_Early();
 		return this;
 	}

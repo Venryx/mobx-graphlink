@@ -118,7 +118,8 @@ export const CreateCommandsPlugin = (opts) => {
                 const command = new CommandClass(args);
                 Assert(context.req.user != null, "Cannot run command on server unless logged in.");
                 command._userInfo_override = context.req.user;
-                command._userInfo_override_set = true;
+                //command._userInfo_override_set = true;
+                //console.log(`@Command:${CommandClass.name} UserInfo:`, context.req.user);
                 (_a = opts.preCommandRun) === null || _a === void 0 ? void 0 : _a.call(opts, { parent, args, context, info, command });
                 let returnData;
                 let error;
@@ -130,7 +131,9 @@ export const CreateCommandsPlugin = (opts) => {
                     throw ex;
                 }
                 finally {
-                    (_b = opts.postCommandRun) === null || _b === void 0 ? void 0 : _b.call(opts, { parent, args, context, info, command, returnData, error });
+                    command._userInfo_override = null; // defensive; will cause command.userInfo to error if called outside of code-block above
+                    (_b = opts.postCommandRun) === null || _b === void 0 ? void 0 : _b.call(// defensive; will cause command.userInfo to error if called outside of code-block above
+                    opts, { parent, args, context, info, command, returnData, error });
                 }
                 return returnData;
             });

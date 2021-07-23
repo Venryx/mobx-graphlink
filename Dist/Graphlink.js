@@ -17,10 +17,6 @@ export class Graphlink {
         this.initialized = false;
         this.storeOverridesStack = [];
         this.storeAccessorCachingTempDisabled = false;
-        /*InitSubs() {
-            // todo
-            this.subs.apollo = null;
-        }*/
         this.subs = {};
         this.treeRequestWatchers = new Set();
         if (initOptions) {
@@ -28,11 +24,12 @@ export class Graphlink {
         }
     }
     Initialize(initOptions) {
-        let { rootStore, apollo, knexModule, pgClient } = initOptions;
+        let { rootStore, apollo, onServer, knexModule, pgClient } = initOptions;
         Graphlink.instances.push(this);
         this.rootStore = rootStore;
         //if (initSubs) {
         //this.InitSubs();
+        this.onServer = onServer;
         this.subs.apollo = apollo;
         this.subs.knexModule = knexModule;
         this.subs.pgClient = pgClient;

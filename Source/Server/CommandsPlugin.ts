@@ -144,7 +144,8 @@ export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 				const command: Command<any> = new CommandClass(args);
 				Assert(context.req.user != null, "Cannot run command on server unless logged in.");
 				command._userInfo_override = context.req.user;
-				command._userInfo_override_set = true;
+				//command._userInfo_override_set = true;
+				//console.log(`@Command:${CommandClass.name} UserInfo:`, context.req.user);
 
 				opts.preCommandRun?.({parent, args, context, info, command});
 				let returnData: any;
@@ -155,6 +156,7 @@ export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 					error = ex;
 					throw ex;
 				} finally {
+					command._userInfo_override = null; // defensive; will cause command.userInfo to error if called outside of code-block above
 					opts.postCommandRun?.({parent, args, context, info, command, returnData, error});
 				}
 				

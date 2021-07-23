@@ -38,7 +38,6 @@ function NotifyListenersThatCurrentCommandFinished() {
 // require command return-value to always be an object; this provides more schema stability (eg. lets you change the return-data of a mutation, without breaking the contents of "legacy" keys)
 export class Command {
     constructor(...args) {
-        this._userInfo_override_set = false;
         //prepareStartTime: number;
         //runStartTime: number;
         //returnData = {} as any;
@@ -68,15 +67,19 @@ export class Command {
         const meta = GetCommandClassMetadata(this.constructor.name);
         this.payload = E(Clone(meta.defaultPayload), Clone(payload));
     }
+    //_userInfo_override_set = false;
     get userInfo() {
-        if (this._userInfo_override_set) {
-            Assert(this._userInfo_override != null, "For commands being run on the server, user-info must be supplied.");
+        if (this.options.graph.onServer) {
+            Assert(this._userInfo_override != null, `For commands being run on the server, user-info must be explicitly attached. @Command:${this.constructor.name}`);
             return this._userInfo_override;
         }
-        return this.options.graph.userInfo;
+        else {
+            return this.options.graph.userInfo;
+        }
     }
     MarkAsSubcommand(parentCommand) {
         this.parentCommand = parentCommand;
+        this._userInfo_override = parentCommand._userInfo_override;
         //this.Validate_Early();
         return this;
     }

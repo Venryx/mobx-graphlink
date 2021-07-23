@@ -18,9 +18,12 @@ export interface GraphOptions<StoreShape = any, DBShape = any> {
 export class GraphlinkInitOptions<StoreShape> {
 	rootStore: StoreShape;
 	apollo: ApolloClient<NormalizedCacheObject>;
+	onServer: boolean;
+	//initSubs = true;
+
+	// server-specific
 	knexModule?: typeof Knex;
 	pgClient?: PoolClient;
-	//initSubs = true;
 }
 
 export class Graphlink<StoreShape, DBShape> {
@@ -34,12 +37,13 @@ export class Graphlink<StoreShape, DBShape> {
 
 	initialized = false;
 	Initialize(initOptions: GraphlinkInitOptions<StoreShape>) {
-		let {rootStore, apollo, knexModule, pgClient} = initOptions;
+		let {rootStore, apollo, onServer, knexModule, pgClient} = initOptions;
 
 		Graphlink.instances.push(this);
 		this.rootStore = rootStore;
 		//if (initSubs) {
 		//this.InitSubs();
+		this.onServer = onServer;
 		this.subs.apollo = apollo;
 		this.subs.knexModule = knexModule;
 		this.subs.pgClient = pgClient;
@@ -58,6 +62,7 @@ export class Graphlink<StoreShape, DBShape> {
 		// todo
 		this.subs.apollo = null;
 	}*/
+	onServer: boolean;
 	subs = {} as {
 		apollo: ApolloClient<NormalizedCacheObject>;
 		knexModule?: typeof Knex|null; // only used if on db-server
