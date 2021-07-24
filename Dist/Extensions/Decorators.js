@@ -1,6 +1,7 @@
 import { AddSchema, collection_docSchemaName } from "./JSONSchemaHelpers.js";
 import { BailMessage } from "../Utils/General/BailManager.js";
 import { Assert, E } from "js-vextensions";
+import { observer } from "mobx-react";
 // metadata-retrieval helpers
 // ==========
 export function TableNameToDocSchemaName(tableName, errorIfMissing = true) {
@@ -57,6 +58,37 @@ export function BailHandler(...args) {
                 }
             }
         };
+    }
+}
+export class MGLObserver_Options {
+    constructor() {
+        Object.defineProperty(this, "bailHandler", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: true
+        });
+        Object.defineProperty(this, "bailHandler_opts", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+    }
+}
+export function MGLObserver(...args) {
+    let opts = new MGLObserver_Options();
+    if (typeof args[0] == "function") {
+        ApplyToClass(args[0]);
+    }
+    else {
+        opts = E(opts, args[0]);
+        return ApplyToClass;
+    }
+    function ApplyToClass(targetClass) {
+        if (opts.bailHandler)
+            BailHandler(opts.bailHandler_opts)(targetClass);
+        observer(targetClass);
     }
 }
 // db stuff

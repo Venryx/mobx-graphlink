@@ -1,5 +1,6 @@
 import type { Knex } from "knex";
 import { BailMessage } from "../Utils/General/BailManager.js";
+import { n } from "../Utils/@Internal/Types.js";
 export declare function TableNameToDocSchemaName(tableName: string, errorIfMissing?: boolean): string;
 export declare function TableNameToGraphQLDocRetrieverKey(tableName: string): string;
 export declare let BailHandler_loadingUI_default: BailHandler;
@@ -14,6 +15,12 @@ export declare class BailHandler_Options {
 }
 export declare function BailHandler(targetClass: Function): any;
 export declare function BailHandler(options?: Partial<BailHandler_Options>): any;
+export declare class MGLObserver_Options {
+    bailHandler: boolean;
+    bailHandler_opts?: BailHandler_Options;
+}
+export declare function MGLObserver(targetClass: Function): any;
+export declare function MGLObserver(options: Partial<MGLObserver_Options> | n): any;
 export declare const mglClasses: Function[];
 export declare function GetMGLClass(name: string): Function | undefined;
 export declare function MGLClass(opts?: {

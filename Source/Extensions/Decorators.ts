@@ -2,6 +2,8 @@ import {AddSchema, collection_docSchemaName, WaitTillSchemaAdded} from "./JSONSc
 import type {Knex} from "knex";
 import {BailMessage} from "../Utils/General/BailManager.js";
 import {Assert, E} from "js-vextensions";
+import {observer} from "mobx-react";
+import {n} from "../Utils/@Internal/Types.js";
 
 // metadata-retrieval helpers
 // ==========
@@ -56,6 +58,27 @@ export function BailHandler(...args) {
 				}
 			}
 		};
+	}
+}
+
+export class MGLObserver_Options {
+	bailHandler = true;
+	bailHandler_opts?: BailHandler_Options;
+}
+export function MGLObserver(targetClass: Function);
+export function MGLObserver(options: Partial<MGLObserver_Options>|n);
+export function MGLObserver(...args) {
+	let opts = new MGLObserver_Options();
+	if (typeof args[0] == "function") {
+		ApplyToClass(args[0]);
+	} else {
+		opts = E(opts, args[0]);
+		return ApplyToClass;
+	}
+
+	function ApplyToClass(targetClass: Function) {
+		if (opts.bailHandler) BailHandler(opts.bailHandler_opts)(targetClass);
+		observer(targetClass as any);
 	}
 }
 
