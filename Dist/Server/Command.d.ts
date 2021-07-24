@@ -1,8 +1,8 @@
-import { GraphOptions } from "../Graphlink.js";
 import { GetAsync_Options } from "../Accessors/Helpers.js";
-import { DBUpdate } from "../Utils/DB/DBUpdate.js";
+import { GraphOptions } from "../Graphlink.js";
 import { UserInfo } from "../index.js";
 import { DBPPath } from "../Utils/DB/DBPaths.js";
+import { DBUpdate } from "../Utils/DB/DBUpdate.js";
 export declare const commandsWaitingToComplete_new: Command<any, any>[];
 export declare abstract class Command<Payload, ReturnData extends {
     [key: string]: any;

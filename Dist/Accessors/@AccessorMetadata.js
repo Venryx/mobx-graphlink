@@ -15,29 +15,122 @@ export function LogAccessorRunTimes() {
 //export class AccessorOptions<T> {
 export class AccessorOptions {
     constructor() {
-        this.cache = true;
-        this.cache_keepAlive = false;
-        this.cache_unwrapArrays = true;
+        Object.defineProperty(this, "cache", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: true
+        });
+        Object.defineProperty(this, "cache_keepAlive", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: false
+        });
+        Object.defineProperty(this, "cache_unwrapArrays", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: true
+        });
+        Object.defineProperty(this, "graph", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         //callArgToDependencyConvertorFunc?: CallArgToDependencyConvertorFunc;
         /** Short for bail-result. */
         //onBail: T;
         //onBail: any;
     }
 }
-AccessorOptions.default = new AccessorOptions();
+Object.defineProperty(AccessorOptions, "default", {
+    enumerable: true,
+    configurable: true,
+    writable: true,
+    value: new AccessorOptions()
+});
 export const accessorMetadata = new Map();
 export class AccessorMetadata {
     constructor(data) {
+        Object.defineProperty(this, "name", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "options", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "accessor", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        // inspection of func-code
+        Object.defineProperty(this, "_codeStr_cached", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "_canCatchItemBails", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         // temp fields
-        this.nextCall_catchItemBails = false;
+        Object.defineProperty(this, "nextCall_catchItemBails", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: false
+        });
+        Object.defineProperty(this, "nextCall_catchItemBails_asX", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         // profiling
-        this.callCount = 0;
-        this.totalRunTime = 0;
+        Object.defineProperty(this, "callCount", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "totalRunTime", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
         //totalRunTime_asRoot = 0;
         // result-caching
-        this.mobxCacheOpts = {};
-        this.callPlans = new DeepMap();
-        this.numberOfCallPlansStored = 0;
+        Object.defineProperty(this, "mobxCacheOpts", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: {}
+        });
+        Object.defineProperty(this, "callPlans", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: new DeepMap()
+        });
+        Object.defineProperty(this, "numberOfCallPlansStored", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
         Object.assign(this, data);
     }
     get CodeStr_Cached() {

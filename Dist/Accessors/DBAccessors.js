@@ -1,10 +1,9 @@
 import { CE, E, emptyArray, emptyArray_forLoading } from "js-vextensions";
-import { runInAction } from "mobx";
 import { defaultGraphOptions } from "../Graphlink.js";
 import { DataStatus } from "../Tree/TreeNode.js";
 import { PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
 import { Bail } from "../Utils/General/BailManager.js";
-import { DoX_ComputationSafe } from "../Utils/General/MobX.js";
+import { DoX_ComputationSafe, RunInAction } from "../Utils/General/MobX.js";
 import { NotifyWaitingForDB } from "./Helpers.js";
 /*
 Why use explicit GetDocs, GetDoc, etc. calls instead of just Proxy's in mobx store fields?
@@ -13,13 +12,46 @@ Why use explicit GetDocs, GetDoc, etc. calls instead of just Proxy's in mobx sto
 */
 export class GetDocs_Options {
     constructor() {
-        this.inLinkRoot = true;
-        this.ifLoading_bail = true;
-        this.ifLoading_returnVal = emptyArray_forLoading;
+        Object.defineProperty(this, "inLinkRoot", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: true
+        });
+        //queryOps?: QueryOp[];
+        Object.defineProperty(this, "params", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "ifLoading_bail", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: true
+        });
+        Object.defineProperty(this, "ifLoading_bail_message", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "ifLoading_returnVal", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: emptyArray_forLoading
+        });
         //resultForEmpty? = emptyArray;
     }
 }
-GetDocs_Options.default = new GetDocs_Options();
+Object.defineProperty(GetDocs_Options, "default", {
+    enumerable: true,
+    configurable: true,
+    writable: true,
+    value: new GetDocs_Options()
+});
 export function GetDocs(options, collectionPathOrGetterFunc) {
     var _a;
     const opt = E(defaultGraphOptions, GetDocs_Options.default, options);
@@ -35,9 +67,15 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
     }
     else {
         // we can't change observables from within computations, so do it in a moment (out of computation call-stack)
-        DoX_ComputationSafe(() => runInAction("GetDocs_Request", () => {
+        DoX_ComputationSafe(() => RunInAction("GetDocs_Request", () => {
             opt.graph.tree.Get(pathSegments, opt.params, true).Request();
         }));
+        // if tree-node still not created yet (due to waiting a tick so can start mobx action), add placeholder entry, so tree-request-watchers know there's still data being loaded
+        // todo: improve this (eg. make-so watchers know they may receive mere placeholder entries)
+        if (opt.graph.tree.Get(pathSegments, opt.params) == null) {
+            const placeholder = { "_note": "This is a placeholder; data is still loading, but its tree-node hasn't been created yet, so this is its placeholder." };
+            opt.graph.treeRequestWatchers.forEach(a => a.nodesRequested.add(placeholder));
+        }
         // we need this function to re-run once new TreeNode is created+subscribed, so access/watch parent TreeNode's collections map
         // edit: nevermind, works without -- since Get function already accesses the collectionNodes field
         //opt.graph.tree.Get(pathSegments.slice(0, -1))?.collectionNodes.entries();
@@ -63,12 +101,38 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
 }*/
 export class GetDoc_Options {
     constructor() {
-        this.inLinkRoot = true;
-        this.ifLoading_bail = true;
-        this.ifLoading_returnVal = undefined;
+        Object.defineProperty(this, "inLinkRoot", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: true
+        });
+        Object.defineProperty(this, "ifLoading_bail", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: true
+        });
+        Object.defineProperty(this, "ifLoading_bail_message", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "ifLoading_returnVal", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: undefined
+        });
     }
 }
-GetDoc_Options.default = new GetDoc_Options();
+Object.defineProperty(GetDoc_Options, "default", {
+    enumerable: true,
+    configurable: true,
+    writable: true,
+    value: new GetDoc_Options()
+});
 export function GetDoc(options, docPathOrGetterFunc) {
     const opt = E(defaultGraphOptions, GetDoc_Options.default, options);
     let subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
@@ -83,9 +147,15 @@ export function GetDoc(options, docPathOrGetterFunc) {
     }
     else {
         // we can't change observables from within computations, so do it in a moment (out of computation call-stack)
-        DoX_ComputationSafe(() => runInAction("GetDoc_Request", () => {
+        DoX_ComputationSafe(() => RunInAction("GetDoc_Request", () => {
             opt.graph.tree.Get(pathSegments, undefined, true).Request();
         }));
+        // if tree-node still not created yet (due to waiting a tick so can start mobx action), add placeholder entry, so tree-request-watchers know there's still data being loaded
+        // todo: improve this (eg. make-so watchers know they may receive mere placeholder entries)
+        if (opt.graph.tree.Get(pathSegments) == null) {
+            const placeholder = { "_note": "This is a placeholder; data is still loading, but its tree-node hasn't been created yet, so this is its placeholder." };
+            opt.graph.treeRequestWatchers.forEach(a => a.nodesRequested.add(placeholder));
+        }
     }
     //if (opt.undefinedForLoading && treeNode?.status != DataStatus.Received_Full) return undefined;
     if ((treeNode === null || treeNode === void 0 ? void 0 : treeNode.status) != DataStatus.Received_Full) {

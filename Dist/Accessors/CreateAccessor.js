@@ -60,7 +60,8 @@ export const CreateAccessor = (...args) => {
     const opt = meta.options;
     const wrapperAccessor = (...callArgs) => {
         // initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
-        let graphOpt = E(defaultGraphOptions, CE(opt).IncludeKeys("graph"));
+        //let graphOpt = E(defaultGraphOptions, CE(opt).IncludeKeys("graph"));
+        let graphOpt = E(defaultGraphOptions, opt.graph ? { graph: opt.graph } : {});
         const graph = graphOpt.graph;
         const store = graph.storeOverridesStack.length == 0 ? graph.rootStore : graph.storeOverridesStack.slice(-1)[0];
         const allowCacheGetOrSet = opt.cache && !graph.storeAccessorCachingTempDisabled;

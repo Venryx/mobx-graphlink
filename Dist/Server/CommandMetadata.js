@@ -42,7 +42,55 @@ export function GetCommandClassMetadatas() {
 }
 export class CommandClassMetadata {
     constructor(data) {
-        this.defaultPayload = {};
+        Object.defineProperty(this, "commandClass", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "payloadSchemaGetter", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        }); // set by @CommandMeta
+        Object.defineProperty(this, "returnSchemaGetter", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        }); // set by @CommandMeta
+        Object.defineProperty(this, "defaultPayload", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: {}
+        });
+        // derivatives
+        Object.defineProperty(this, "payloadSchema", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "returnSchema", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "payload_graphqlInfo", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "return_graphqlInfo", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         Object.assign(this, data);
         //this.CalculateDerivatives();
     }

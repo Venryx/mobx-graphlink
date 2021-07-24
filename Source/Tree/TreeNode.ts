@@ -1,11 +1,11 @@
-import {FetchResult} from "@apollo/client/core/index.js";
-import {Observable} from "@apollo/client/utilities/index.js";
 import {Assert, CE, E, ToJSON} from "js-vextensions";
-import {observable, ObservableMap, runInAction, _getGlobalState} from "mobx";
+import {makeObservable, observable, ObservableMap, runInAction, _getGlobalState} from "mobx";
 import {Graphlink} from "../Graphlink.js";
+import {FetchResult, Observable} from "../Utils/@NPMFixes/apollo_client.js";
 import {CleanDBData} from "../Utils/DB/DBDataHelpers.js";
 import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "../Utils/DB/DBPaths.js";
 import {MaybeLog_Base} from "../Utils/General/General.js";
+import {MobX_AllowStateChanges, MobX_GetGlobalState, RunInAction} from "../Utils/General/MobX.js";
 import {QueryParams, QueryParams_Linked} from "./QueryParams.js";
 
 export enum TreeNodeType {
@@ -39,6 +39,7 @@ export class String_NotWrappedInGraphQL {
 
 export class TreeNode<DataShape> {
 	constructor(fire: Graphlink<any, any>, pathOrSegments: string | string[]) {
+		makeObservable(this);
 		this.graph = fire;
 		this.pathSegments = PathOrPathGetterToPathSegments(pathOrSegments);
 		this.path = PathOrPathGetterToPath(pathOrSegments)!;
@@ -84,8 +85,9 @@ export class TreeNode<DataShape> {
 		/*WaitXThenRun(0, ()=> {
 			runInAction("TreeNode.Subscribe_prep", ()=>this.status = DataStatus.Waiting);
 		});*/
-		Assert(_getGlobalState().computationDepth == 0, "Cannot call TreeNode.Subscribe from within a computation.");
-		runInAction("TreeNode.Subscribe_prep", ()=>this.status = DataStatus.Waiting);
+		//Assert(MobX_GetGlobalState().computationDepth == 0, "Cannot call TreeNode.Subscribe from within a computation.");
+		Assert(MobX_AllowStateChanges(), "Cannot call TreeNode.Subscribe from within a computation.");
+		RunInAction("TreeNode.Subscribe_prep", ()=>this.status = DataStatus.Waiting);
 
 		MaybeLog_Base(a=>a.subscriptions, ()=>`Subscribing to: ${this.path}`);
 		if (this.type == TreeNodeType.Document) {
@@ -101,7 +103,7 @@ export class TreeNode<DataShape> {
 					Assert(Object.values(returnedData).length == 1);
 					const returnedDocument = Object.values(returnedData)[0] as any; // so unwrap it here
 					MaybeLog_Base(a=>a.subscriptions, l=>l(`Got doc snapshot. @path(${this.path}) @snapshot:`, returnedDocument));
-					runInAction("TreeNode.Subscribe.onSnapshot_doc", ()=> {
+					RunInAction("TreeNode.Subscribe.onSnapshot_doc", ()=> {
 						this.SetData(returnedDocument, false);
 					});
 				},
@@ -120,7 +122,7 @@ export class TreeNode<DataShape> {
 					const fromCache = false;
 
 					MaybeLog_Base(a=>a.subscriptions, l=>l(`Got collection snapshot. @path(${this.path}) @docs:`, docs));
-					runInAction("TreeNode.Subscribe.onSnapshot_collection", ()=> {
+					RunInAction("TreeNode.Subscribe.onSnapshot_collection", ()=> {
 						const deletedDocIDs = CE(Array.from(this.docNodes.keys())).Exclude(...docs.map(a=>a.id));
 						let dataChanged = false;
 						for (const doc of docs) {
@@ -228,7 +230,7 @@ export class TreeNode<DataShape> {
 	Get(subpathOrGetterFunc: string | string[] | ((data: DataShape)=>any), query?: QueryParams, createTreeNodesIfMissing = false): TreeNode<any>|null {
 		let subpathSegments = PathOrPathGetterToPathSegments(subpathOrGetterFunc);
 
-		let proceed_inAction = ()=>runInAction(`TreeNode.Get @path(${this.path})`, ()=>proceed(true));
+		let proceed_inAction = ()=>RunInAction(`TreeNode.Get @path(${this.path})`, ()=>proceed(true));
 		let proceed = (inAction: boolean)=> {
 			let currentNode: TreeNode<any> = this;
 			for (let [index, segment] of subpathSegments.entries()) {

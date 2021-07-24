@@ -4,6 +4,7 @@ import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
 import {DataStatus, TreeNode} from "../Tree/TreeNode.js";
 import {TreeRequestWatcher} from "../Tree/TreeRequestWatcher.js";
 import {MobXPathGetterToPath} from "../Utils/DB/DBPaths.js";
+import {BailMessage} from "../Utils/General/BailManager.js";
 
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 // (one of the rare cases where opt is not the first argument; that's because GetWait may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
@@ -104,6 +105,10 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<Graph
 
 			let accessor_lastError;
 			function HandleAccessorError(ex: Error, handling: GetAsync_ErrorHandleType) {
+				if (ex instanceof BailMessage) {
+					return; // always ignore bail-messages in GetAsync (is this the ideal behavior?)
+				}
+
 				accessor_lastError = ex;
 
 				// if last iteration, never catch -- we want to see the error, as it's likely the cause of the seemingly-infinite iteration

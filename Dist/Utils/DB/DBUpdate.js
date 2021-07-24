@@ -1,7 +1,18 @@
 import { CE } from "js-vextensions";
 export class DBValueWrapper {
     constructor() {
-        this.merge = false;
+        Object.defineProperty(this, "value", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "merge", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: false
+        });
     }
 }
 export function WrapDBValue(value, otherFlags) {
@@ -17,6 +28,24 @@ export var DBUpdateType;
 })(DBUpdateType || (DBUpdateType = {}));
 export class DBUpdate {
     constructor(data) {
+        Object.defineProperty(this, "type", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "path", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "value", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         CE(this).VSet(data);
     }
     get PathSegments() {

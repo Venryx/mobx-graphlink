@@ -58,10 +58,8 @@ export function InitGraphlink() {
 	graph.Initialize({rootStore: store});
 }
 ```
-5) Temp: Follow the instructions [here](https://github.com/apollographql/apollo-client/issues/7734#issuecomment-782587795) to fix a typing issue in `ts-invariant`.
-6) Temp: If loading lib as ESM, open all the `package.json` files under `node_modules/@apollo/client`, adding the line `"type": "module"` (temp fix for [this issue](https://github.com/apollographql/apollo-client/pull/8396)). There are many `package.json` files, so it's recommended to use a search-and-replace tool (like `grep` or [grepWin](https://tools.stefankueng.com/grepWin.html)), replacing `"module":` with `"type": "module", "module":`.
-7) If using mobx-graphlink symlinked, make sure to add "pg", "postgraphile", and "graphile-utils" to the "paths" of tsconfig.json, so it always resolved to the app's version.
-8) If importing mobx-graphlink from frontend code, make sure to exclude "pg", "postgraphile", and "graphile-utils", as they are unneeded, and rely on node-js packages that webpack 5+ doesn't auto-polyfill.
+5) If using mobx-graphlink symlinked, make sure to add "pg", "postgraphile", and "graphile-utils" to the "paths" of tsconfig.json, so it always resolves to the app's version.
+6) If importing mobx-graphlink from frontend code, make sure to exclude "pg", "postgraphile", and "graphile-utils", as they are unneeded, and rely on node-js packages that webpack 5+ doesn't auto-polyfill.
 
 ### Usage
 

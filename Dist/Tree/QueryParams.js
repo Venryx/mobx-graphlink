@@ -1,11 +1,79 @@
-import { gql } from "@apollo/client/core/index.js";
 import { Assert, CE, Clone, FromJSON, ToJSON } from "js-vextensions";
 import { TableNameToDocSchemaName, TableNameToGraphQLDocRetrieverKey } from "../Extensions/Decorators.js";
 import { ConstructGQLArgsStr } from "../Extensions/GQLSchemaHelpers.js";
 import { GetSchemaJSON } from "../Extensions/JSONSchemaHelpers.js";
+import { gql } from "../Utils/@NPMFixes/apollo_client.js";
 import { TreeNodeType } from "./TreeNode.js";
 export class QueryParams {
     constructor(initialData) {
+        /** Example: "$limit: Int!, $maxValue: Int!" */
+        Object.defineProperty(this, "varsDefine", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        /** Example: {limit: 10, maxValue: 100} */
+        Object.defineProperty(this, "vars", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        // arguments (definition: https://stackoverflow.com/a/55474252)
+        // ==========
+        // old way 1; dropped for now, since there are two many filters-and-such possible with the connection-filter plugin
+        //queryOps = [] as QueryOp[];
+        // old way 2; dropped, since safer to use JSON stringification
+        /*#* Example: "first: $limit, filter: {someProp: {lessThan: $maxValue}}" */
+        //argsStr?: string;
+        // enables stuff like "id: $id" (direct selection-by-id, rather than using filter system)
+        Object.defineProperty(this, "args_rawPrefixStr", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        // for other random things possible on server-side 
+        Object.defineProperty(this, "args_custom", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        // filtering
+        /** Example: {someProp: {lessThan: $maxValue}}*/
+        Object.defineProperty(this, "filter", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        // pagination
+        Object.defineProperty(this, "first", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "after", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "last", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "before", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         CE(this).Extend(initialData);
     }
     static ParseString(dataStr) {
@@ -40,6 +108,25 @@ export class QueryParams {
 export class QueryParams_Linked extends QueryParams {
     constructor(initialData) {
         super();
+        Object.defineProperty(this, "treeNode", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        // derivatives
+        Object.defineProperty(this, "queryStr", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "graphQLQuery", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         CE(this).Extend(initialData);
         this.Clean(); // our data is probably already cleaned (ie. if called from "TreeNode.Get(...)"), but clean it again (in case user called this constructor directly)
         this.CalculateDerivatives();

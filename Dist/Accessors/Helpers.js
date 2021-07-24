@@ -12,6 +12,7 @@ import { reaction } from "mobx";
 import { defaultGraphOptions } from "../Graphlink.js";
 import { DataStatus } from "../Tree/TreeNode.js";
 import { TreeRequestWatcher } from "../Tree/TreeRequestWatcher.js";
+import { BailMessage } from "../Utils/General/BailManager.js";
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 // (one of the rare cases where opt is not the first argument; that's because GetWait may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
 // Note: This function doesn't really have a purpose atm, as Command.Validate functions already use a GetAsync wrapper that quick-throws as soon as any db-request has to wait.
@@ -42,16 +43,41 @@ export function GetWait(dataGetterFunc, options, funcName) {
 export class GetAsync_Options {
     constructor() {
         /** Just meant to alert us for infinite-loop-like calls/getter-funcs. Default: 50 [pretty arbitrary] */
-        this.maxIterations = 50; // todo: maybe replace this with system that tracks the list of paths accessed, and which halts if it "senses no progression" [eg. max-iterations-without-change-to-access-paths]
+        Object.defineProperty(this, "maxIterations", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 50
+        }); // todo: maybe replace this with system that tracks the list of paths accessed, and which halts if it "senses no progression" [eg. max-iterations-without-change-to-access-paths]
         /** How to handle errors that occur in accessor, when there are still db-requests in progress. (ie. when accessor is still progressing) */
-        this.errorHandling_during = "ignore";
+        Object.defineProperty(this, "errorHandling_during", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: "ignore"
+        });
         /** How to handle errors that occur in accessor, when no db-requests are still in progress. (ie. on final accessor call) */
-        this.errorHandling_final = "reject";
+        Object.defineProperty(this, "errorHandling_final", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: "reject"
+        });
         /** If true, db requests within dataGetterFunc that find themselves waiting for remote db-data, with throw an error immediately. (avoiding higher-level processing) */
-        this.throwImmediatelyOnDBWait = false;
+        Object.defineProperty(this, "throwImmediatelyOnDBWait", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: false
+        });
     }
 }
-GetAsync_Options.default = new GetAsync_Options();
+Object.defineProperty(GetAsync_Options, "default", {
+    enumerable: true,
+    configurable: true,
+    writable: true,
+    value: new GetAsync_Options()
+});
 export let GetAsync_throwImmediatelyOnDBWait_activeDepth = 0;
 export function NotifyWaitingForDB(dbPath) {
     if (GetAsync_throwImmediatelyOnDBWait_activeDepth > 0) {
@@ -100,6 +126,9 @@ export function GetAsync(dataGetterFunc, options) {
                 let result;
                 let accessor_lastError;
                 function HandleAccessorError(ex, handling) {
+                    if (ex instanceof BailMessage) {
+                        return; // always ignore bail-messages in GetAsync (is this the ideal behavior?)
+                    }
                     accessor_lastError = ex;
                     // if last iteration, never catch -- we want to see the error, as it's likely the cause of the seemingly-infinite iteration
                     if (handling == "reject") {
@@ -181,6 +210,12 @@ Object.defineProperty(Function.prototype, "AV", {
 /** Helper class for making in-line assertions. */
 class AVWrapper {
     constructor(propNameOrGetter) {
+        Object.defineProperty(this, "propName", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         //this.propName = propNameOrGetter instanceof Function ? MobXPathGetterToPath(propNameOrGetter) : propNameOrGetter;
         this.propName = propNameOrGetter instanceof Function ? propNameOrGetter.toString().match(/=>.+?([a-zA-Z_]+)/)[1] : propNameOrGetter;
     }
@@ -192,7 +227,12 @@ class AVWrapper {
         this.NonNull_(value);
     }
 }
-AVWrapper.generic = new AVWrapper("");
+Object.defineProperty(AVWrapper, "generic", {
+    enumerable: true,
+    configurable: true,
+    writable: true,
+    value: new AVWrapper("")
+});
 /** Helper object for making in-line assertions. */
 export const AV = AVWrapper.generic;
 export function NNV(val) {

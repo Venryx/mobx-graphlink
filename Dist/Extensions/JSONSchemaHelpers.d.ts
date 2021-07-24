@@ -54,5 +54,5 @@ export declare function GetInvalidPropPaths(data: Object, schemaObject: Object):
 }[];
 export declare function IsJSONSchemaScalar(typeStr: string | undefined): boolean;
 export declare function IsJSONSchemaOfTypeScalar(jsonSchema: JSONSchema7): boolean;
-export declare function JSONSchemaScalarTypeToGraphQLScalarType(jsonSchemaScalarType: string): "Int" | "Float" | "String" | "Boolean" | undefined;
+export declare function JSONSchemaScalarTypeToGraphQLScalarType(jsonSchemaScalarType: string): "String" | "Int" | "Float" | "Boolean" | undefined;
 export {};

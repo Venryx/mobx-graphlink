@@ -49,9 +49,47 @@ export function FinalizeSchemaForConversionToGraphQL(schema, refPath = []) {
     }
 }
 export class TypeDef {
+    constructor() {
+        Object.defineProperty(this, "type", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        }); // rootTypeExtension is for, eg. "extend type Mutation { ... }" entries
+        Object.defineProperty(this, "name", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "str", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "strIndexInSchemaStr", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+    }
 }
 export class GraphQLSchemaInfo {
     constructor(data) {
+        Object.defineProperty(this, "typeName", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        }); // the name of the "main graphql type" generated for the given json-schema
+        Object.defineProperty(this, "typeDefs", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         Object.assign(this, data);
     }
     //schemaAsStr: string;

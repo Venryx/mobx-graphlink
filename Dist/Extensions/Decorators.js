@@ -21,6 +21,14 @@ export function BailHandler_loadingUI_default_Set(value) {
     BailHandler_loadingUI_default = value;
 }
 export class BailHandler_Options {
+    constructor() {
+        Object.defineProperty(this, "loadingUI", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+    }
 }
 export function BailHandler(...args) {
     let opts = new BailHandler_Options();

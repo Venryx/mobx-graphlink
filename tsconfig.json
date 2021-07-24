@@ -14,8 +14,8 @@
 		"declaration": true,
 		"declarationDir": "Dist",
 
-		// fixes AsyncIterator type-missing issue
-		"lib": ["es6", "dom", "esnext"],
+		"useDefineForClassFields": true, // needed for mobx @observable
+		"lib": ["es6", "dom", "esnext"], // fixes AsyncIterator type-missing issue
 
 		//"strict": true, // enables all of the below (other than noImplicitReturns)
 		//"noImplicitAny": true,
@@ -26,6 +26,7 @@
 		"strictNullChecks": true,
 		//"strictFunctionTypes": true,
 		//"strictPropertyInitialization": true,
+
 	},
 	"include": [
 		"Typings/**/*.d.ts",

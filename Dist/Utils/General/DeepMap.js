@@ -5,10 +5,42 @@ Extracted from mobx-utils, for two reasons:
 */
 export class DeepMapEntry {
     constructor(base, args) {
-        this.base = base;
-        this.args = args;
-        this.closestIdx = 0;
-        this.isDisposed = false;
+        Object.defineProperty(this, "base", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: base
+        });
+        Object.defineProperty(this, "args", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: args
+        });
+        Object.defineProperty(this, "root", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "closest", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "closestIdx", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "isDisposed", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: false
+        });
         let current = (this.closest = this.root = base);
         let i = 0;
         for (; i < this.args.length - 1; i++) {
@@ -73,7 +105,18 @@ export class DeepMapEntry {
 export const $finalValue = Symbol("$finalValue");
 export class DeepMap {
     constructor() {
-        this.store = new Map();
+        Object.defineProperty(this, "store", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: new Map()
+        });
+        Object.defineProperty(this, "last", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
     }
     entry(args) {
         if (this.last)

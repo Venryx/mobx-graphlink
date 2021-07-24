@@ -1,8 +1,7 @@
 /// <reference types="zen-observable" />
-import { FetchResult } from "@apollo/client/core/index.js";
-import { Observable } from "@apollo/client/utilities/index.js";
 import { ObservableMap } from "mobx";
 import { Graphlink } from "../Graphlink.js";
+import { FetchResult, Observable } from "../Utils/@NPMFixes/apollo_client.js";
 import { QueryParams, QueryParams_Linked } from "./QueryParams.js";
 export declare enum TreeNodeType {
     Root = "Root",

@@ -1,9 +1,9 @@
 import { TreeNode } from "./Tree/TreeNode.js";
 import { TreeRequestWatcher } from "./Tree/TreeRequestWatcher.js";
-import { ApolloClient, NormalizedCacheObject } from "@apollo/client/core/index.js";
 import type { PoolClient } from "pg";
 import type Knex from "knex";
 import { AccessorMetadata } from "./Accessors/@AccessorMetadata.js";
+import { ApolloClient, NormalizedCacheObject } from "./Utils/@NPMFixes/apollo_client.js";
 export declare let defaultGraphOptions: GraphOptions;
 export declare function SetDefaultGraphOptions(opt: GraphOptions): void;
 export interface GraphOptions<StoreShape = any, DBShape = any> {

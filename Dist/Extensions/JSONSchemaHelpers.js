@@ -209,12 +209,42 @@ export function Validate_Full(schemaObject, schemaName, data) {
 }
 export class AssertValidateOptions {
     constructor() {
-        this.addErrorsText = true;
-        this.addSchemaName = true;
-        this.addSchemaObject = false;
-        this.addDataStr = true;
-        this.allowOptionalPropsToBeNull = true;
-        this.useAssertV = true;
+        Object.defineProperty(this, "addErrorsText", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: true
+        });
+        Object.defineProperty(this, "addSchemaName", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: true
+        });
+        Object.defineProperty(this, "addSchemaObject", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: false
+        });
+        Object.defineProperty(this, "addDataStr", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: true
+        });
+        Object.defineProperty(this, "allowOptionalPropsToBeNull", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: true
+        });
+        Object.defineProperty(this, "useAssertV", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: true
+        });
     }
 }
 export function AssertValidate(schemaNameOrJSON, data, failureMessageOrGetter, opt) {

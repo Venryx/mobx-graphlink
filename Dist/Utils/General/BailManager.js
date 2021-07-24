@@ -2,10 +2,20 @@ import { emptyArray_forLoading } from "js-vextensions";
 import { defaultGraphOptions } from "../../Graphlink.js";
 export class BailMessage {
     constructor(message) {
-        this.message = message;
+        Object.defineProperty(this, "message", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: message
+        });
     }
 }
-BailMessage.main = new BailMessage("[generic bail error]");
+Object.defineProperty(BailMessage, "main", {
+    enumerable: true,
+    configurable: true,
+    writable: true,
+    value: new BailMessage("[generic bail error]")
+});
 Object.defineProperty(Function.prototype, "normal", { get() { return this; } });
 Object.defineProperty(Function.prototype, "BIN", { value: function (...args) {
         const result = this.apply(null, args);
@@ -19,8 +29,18 @@ Object.defineProperty(Function.prototype, "BILA", { value: function (...args) {
     } });
 export class BailContext {
     constructor() {
-        this.onBail_triggerError = true;
-        this.onBail_triggerDebugger = false;
+        Object.defineProperty(this, "onBail_triggerError", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: true
+        });
+        Object.defineProperty(this, "onBail_triggerDebugger", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: false
+        });
     }
 }
 export function CatchBail(bailResultOrGetter, func, args, thisArg) {

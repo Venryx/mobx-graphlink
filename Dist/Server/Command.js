@@ -7,18 +7,18 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { Clone, Assert, E, ArrayCE } from "js-vextensions";
-import { MaybeLog_Base } from "../Utils/General/General.js";
-import { defaultGraphOptions } from "../Graphlink.js";
+import { ArrayCE, Assert, Clone, E } from "js-vextensions";
 import { GetAsync } from "../Accessors/Helpers.js";
-import { ApplyDBUpdates, ApplyDBUpdates_Local } from "../Utils/DB/DBUpdateApplier.js";
-import { DBUpdate, DBUpdateType } from "../Utils/DB/DBUpdate.js";
 import { AssertValidate } from "../Extensions/JSONSchemaHelpers.js";
-import { gql } from "@apollo/client/core/index.js";
-import { GetCommandClassMetadata } from "./CommandMetadata.js";
-import { WithBrackets } from "../Tree/QueryParams.js";
-import { CleanDBData } from "../index.js";
 import { GenerateUUID } from "../Extensions/KeyGenerator.js";
+import { defaultGraphOptions } from "../Graphlink.js";
+import { CleanDBData } from "../index.js";
+import { WithBrackets } from "../Tree/QueryParams.js";
+import { gql } from "../Utils/@NPMFixes/apollo_client.js";
+import { DBUpdate, DBUpdateType } from "../Utils/DB/DBUpdate.js";
+import { ApplyDBUpdates, ApplyDBUpdates_Local } from "../Utils/DB/DBUpdateApplier.js";
+import { MaybeLog_Base } from "../Utils/General/General.js";
+import { GetCommandClassMetadata } from "./CommandMetadata.js";
 export const commandsWaitingToComplete_new = [];
 let currentCommandRun_listeners = [];
 function WaitTillCurrentCommandFinishes() {
@@ -38,12 +38,56 @@ function NotifyListenersThatCurrentCommandFinished() {
 // require command return-value to always be an object; this provides more schema stability (eg. lets you change the return-data of a mutation, without breaking the contents of "legacy" keys)
 export class Command {
     constructor(...args) {
+        //userInfo: FireUserInfo;
+        Object.defineProperty(this, "_userInfo_override", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        }); // for use on server (so permissions are checked against the calling user's id rather than the server's )
+        Object.defineProperty(this, "type", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "options", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "payload", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         //prepareStartTime: number;
         //runStartTime: number;
         //returnData = {} as any;
-        this.returnData = {};
+        Object.defineProperty(this, "returnData", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: {}
+        });
+        // these methods are executed on the server (well, will be later)
+        // ==========
+        // parent commands should call MarkAsSubcommand() immediately after setting a subcommand's payload
+        Object.defineProperty(this, "parentCommand", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         /** Last validation error, from calling Validate_Safe(). */
-        this.validateError = null;
+        Object.defineProperty(this, "validateError", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: null
+        });
         // helper-methods to be called within user-supplied Validate() function
         /*generatedUUIDs = new DeepMap<string>();
         GenerateUUID_Once(obj: any, propName: string) {
@@ -53,7 +97,12 @@ export class Command {
             }
             return entry.get();
         }*/
-        this.generatedUUIDs = new Map();
+        Object.defineProperty(this, "generatedUUIDs", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: new Map()
+        });
         let options, payload;
         if (args.length == 1)
             [payload] = args;
@@ -218,7 +267,12 @@ export class Command {
 }
 export class DBHelper {
     constructor() {
-        this._dbUpdates = [];
+        Object.defineProperty(this, "_dbUpdates", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: []
+        });
         /*delete(path: string, value: any) {
             this._dbUpdates.push(new DBUpdate({type: DBUpdateType.delete, path, value}));
         }*/

@@ -1,8 +1,8 @@
-import {DocumentNode, gql} from "@apollo/client/core/index.js";
 import {Assert, CE, Clone, FromJSON, ToJSON} from "js-vextensions";
 import {TableNameToDocSchemaName, TableNameToGraphQLDocRetrieverKey} from "../Extensions/Decorators.js";
 import {ConstructGQLArgsStr} from "../Extensions/GQLSchemaHelpers.js";
 import {GetSchemaJSON} from "../Extensions/JSONSchemaHelpers.js";
+import {DocumentNode, gql} from "../Utils/@NPMFixes/apollo_client.js";
 import {TreeNode, TreeNodeType} from "./TreeNode.js";
 
 export class QueryParams {

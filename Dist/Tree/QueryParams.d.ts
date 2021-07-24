@@ -1,4 +1,4 @@
-import { DocumentNode } from "@apollo/client/core/index.js";
+import { DocumentNode } from "../Utils/@NPMFixes/apollo_client.js";
 import { TreeNode } from "./TreeNode.js";
 export declare class QueryParams {
     static ParseString(dataStr: string): QueryParams;

@@ -5,10 +5,11 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 import { Assert, CE, E, ToJSON } from "js-vextensions";
-import { observable, runInAction, _getGlobalState } from "mobx";
+import { makeObservable, observable } from "mobx";
 import { CleanDBData } from "../Utils/DB/DBDataHelpers.js";
 import { PathOrPathGetterToPath, PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
 import { MaybeLog_Base } from "../Utils/General/General.js";
+import { MobX_AllowStateChanges, RunInAction } from "../Utils/General/MobX.js";
 import { QueryParams, QueryParams_Linked } from "./QueryParams.js";
 export var TreeNodeType;
 (function (TreeNodeType) {
@@ -26,11 +27,25 @@ export var DataStatus;
 })(DataStatus || (DataStatus = {}));
 export class PathSubscription {
     constructor(unsubscribe) {
+        Object.defineProperty(this, "unsubscribe", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this.unsubscribe = unsubscribe;
     }
 }
 //export const $varOfSameName = Symbol("$varOfSameName");
 export class String_NotWrappedInGraphQL {
+    constructor() {
+        Object.defineProperty(this, "str", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+    }
     toJSON() {
         return this.str; // don't put quotes around it
     }
@@ -38,12 +53,102 @@ export class String_NotWrappedInGraphQL {
 export class TreeNode {
     constructor(fire, pathOrSegments) {
         var _a;
-        this.status = DataStatus.Initial;
+        Object.defineProperty(this, "graph", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "pathSegments", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "pathSegments_noQuery", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "path", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "path_noQuery", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "type", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "status", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: DataStatus.Initial
+        });
+        //subscription: PathSubscription|null;
+        Object.defineProperty(this, "observable", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "subscription", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         // for doc (and root) nodes
-        this.collectionNodes = observable.map();
+        Object.defineProperty(this, "collectionNodes", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: observable.map()
+        });
+        //collectionNodes = new Map<string, TreeNode<any>>();
+        Object.defineProperty(this, "data", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "dataJSON", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         // for collection (and collection-query) nodes
-        this.queryNodes = observable.map(); // for collection nodes
-        this.docNodes = observable.map();
+        Object.defineProperty(this, "queryNodes", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: observable.map()
+        }); // for collection nodes
+        //queryNodes = new Map<string, TreeNode<any>>(); // for collection nodes
+        Object.defineProperty(this, "query", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        }); // for collection-query nodes
+        Object.defineProperty(this, "docNodes", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: observable.map()
+        });
+        makeObservable(this);
         this.graph = fire;
         this.pathSegments = PathOrPathGetterToPathSegments(pathOrSegments);
         this.path = PathOrPathGetterToPath(pathOrSegments);
@@ -80,8 +185,9 @@ export class TreeNode {
         /*WaitXThenRun(0, ()=> {
             runInAction("TreeNode.Subscribe_prep", ()=>this.status = DataStatus.Waiting);
         });*/
-        Assert(_getGlobalState().computationDepth == 0, "Cannot call TreeNode.Subscribe from within a computation.");
-        runInAction("TreeNode.Subscribe_prep", () => this.status = DataStatus.Waiting);
+        //Assert(MobX_GetGlobalState().computationDepth == 0, "Cannot call TreeNode.Subscribe from within a computation.");
+        Assert(MobX_AllowStateChanges(), "Cannot call TreeNode.Subscribe from within a computation.");
+        RunInAction("TreeNode.Subscribe_prep", () => this.status = DataStatus.Waiting);
         MaybeLog_Base(a => a.subscriptions, () => `Subscribing to: ${this.path}`);
         if (this.type == TreeNodeType.Document) {
             this.observable = this.graph.subs.apollo.subscribe({
@@ -96,7 +202,7 @@ export class TreeNode {
                     Assert(Object.values(returnedData).length == 1);
                     const returnedDocument = Object.values(returnedData)[0]; // so unwrap it here
                     MaybeLog_Base(a => a.subscriptions, l => l(`Got doc snapshot. @path(${this.path}) @snapshot:`, returnedDocument));
-                    runInAction("TreeNode.Subscribe.onSnapshot_doc", () => {
+                    RunInAction("TreeNode.Subscribe.onSnapshot_doc", () => {
                         this.SetData(returnedDocument, false);
                     });
                 },
@@ -115,7 +221,7 @@ export class TreeNode {
                     Assert(docs != null && docs instanceof Array);
                     const fromCache = false;
                     MaybeLog_Base(a => a.subscriptions, l => l(`Got collection snapshot. @path(${this.path}) @docs:`, docs));
-                    runInAction("TreeNode.Subscribe.onSnapshot_collection", () => {
+                    RunInAction("TreeNode.Subscribe.onSnapshot_collection", () => {
                         const deletedDocIDs = CE(Array.from(this.docNodes.keys())).Exclude(...docs.map(a => a.id));
                         let dataChanged = false;
                         for (const doc of docs) {
@@ -200,7 +306,7 @@ export class TreeNode {
     // default createTreeNodesIfMissing to false, so that it's safe to call this from a computation (which includes store-accessors)
     Get(subpathOrGetterFunc, query, createTreeNodesIfMissing = false) {
         let subpathSegments = PathOrPathGetterToPathSegments(subpathOrGetterFunc);
-        let proceed_inAction = () => runInAction(`TreeNode.Get @path(${this.path})`, () => proceed(true));
+        let proceed_inAction = () => RunInAction(`TreeNode.Get @path(${this.path})`, () => proceed(true));
         let proceed = (inAction) => {
             let currentNode = this;
             for (let [index, segment] of subpathSegments.entries()) {

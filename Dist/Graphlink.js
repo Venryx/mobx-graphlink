@@ -5,20 +5,133 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 import { TreeNode } from "./Tree/TreeNode.js";
-import { observable } from "mobx";
+import { makeObservable, observable } from "mobx";
 export let defaultGraphOptions;
 export function SetDefaultGraphOptions(opt) {
     defaultGraphOptions = opt;
 }
 export class GraphlinkInitOptions {
+    constructor() {
+        Object.defineProperty(this, "rootStore", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "apollo", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "onServer", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        //initSubs = true;
+        // server-specific
+        Object.defineProperty(this, "knexModule", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "pgClient", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+    }
 }
 export class Graphlink {
     constructor(initOptions) {
-        this.initialized = false;
-        this.storeOverridesStack = [];
-        this.storeAccessorCachingTempDisabled = false;
-        this.subs = {};
-        this.treeRequestWatchers = new Set();
+        Object.defineProperty(this, "initialized", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: false
+        });
+        Object.defineProperty(this, "rootStore", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "storeOverridesStack", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: []
+        });
+        Object.defineProperty(this, "storeAccessorCachingTempDisabled", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: false
+        });
+        //accessorContext: AccessorContext<RootStoreShape> = new AccessorContext<RootStoreShape>(this);
+        Object.defineProperty(this, "lastRunAccessor_meta", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        /*InitSubs() {
+            // todo
+            this.subs.apollo = null;
+        }*/
+        Object.defineProperty(this, "onServer", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "subs", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: {}
+        });
+        Object.defineProperty(this, "userInfo", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        // todo (probably)
+        /*async LogIn() {
+            // todo
+            return null;
+        }
+        async LogIn_WithCredential() {
+            // todo
+            return null;
+        }
+        async LogOut() {
+            // todo
+        }*/
+        Object.defineProperty(this, "tree", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "treeRequestWatchers", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: new Set()
+        });
+        Object.defineProperty(this, "ValidateDBData", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        makeObservable(this);
         if (initOptions) {
             this.Initialize(initOptions);
         }
@@ -41,9 +154,23 @@ export class Graphlink {
         this.tree.UnsubscribeAll();
     }
 }
-Graphlink.instances = [];
+Object.defineProperty(Graphlink, "instances", {
+    enumerable: true,
+    configurable: true,
+    writable: true,
+    value: []
+});
 __decorate([
     observable
 ], Graphlink.prototype, "userInfo", void 0);
 export class UserInfo {
+    constructor() {
+        Object.defineProperty(this, "id", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        //displayName: string;
+    }
 }
