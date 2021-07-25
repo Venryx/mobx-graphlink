@@ -11,23 +11,23 @@ import "js-vextensions/Helpers/@ApplyCECode.js";
 
 const program = new Command();
 program
-	.option("--classesFolder <path>", "Path (from cwd) to folder in which all @MGLClass code files can be found.")
+	.option("--classFolders <paths...>", "Paths (from cwd) to folders in which the @MGLClass code files can be found.")
 	.option("--templateFile <path>", `Path  (from cwd) to folder containing "Template.ts", and where to place the db-init output script.`)
 	.option("--outFile <path>", `Path  (from cwd) to folder containing "Template.ts", and where to place the db-init output script.`)
 	.option("--watch", `If set, will use "watch mode" -- rebuilding the init-db script whenever the db-shape files are modified.`);
 program.parse(process.argv);
-const programOpts = program.opts() as {classesFolder: string, templateFile: string, outFile: string, watch: boolean};
+const programOpts = program.opts() as {classFolders: string[], templateFile: string, outFile: string, watch: boolean};
 
 const repoRoot = process.cwd();
-const classesFolderPath = paths.join(repoRoot, programOpts.classesFolder);
+const classFolders_paths = programOpts.classFolders.map(a=>paths.isAbsolute(a) ? a : paths.join(repoRoot, a));
 const templateFilePath = paths.join(repoRoot, programOpts.templateFile);
 const outFilePath = paths.join(repoRoot, programOpts.outFile);
 const watch = programOpts.watch;
 //console.log("Args:", process.argv, "@watchPath:", watchPath);
 
-// watch classes-folder and template-file
+// watch template-file and class-folders
 if (watch) {
-	chokidar.watch([classesFolderPath, templateFilePath]).on("all", (event, path) => {
+	const changeHandler = (event, path) => {
 		if (path == templateFilePath) {
 			if (event == "change") {
 				console.log(event, path);
@@ -39,8 +39,13 @@ if (watch) {
 				BuildDBShapeFile();
 			}
 		}
-	});
-	console.log(`Watching: "${classesFolderPath}", "${templateFilePath}"`);
+	};
+	chokidar.watch(templateFilePath).on("all", changeHandler);
+	console.log(`Watching: "${templateFilePath}"`);
+	for (const classFolderPath of classFolders_paths) {
+		chokidar.watch(classFolderPath).on("all", changeHandler);
+		console.log(`Watching: "${classFolderPath}"`);
+	}
 }
 
 class TableInfo {
@@ -55,7 +60,10 @@ class FieldInfo {
 
 BuildDBShapeFile();
 async function BuildDBShapeFile() {
-	const mglClassFiles = await glob("**/@*.ts", {cwd: classesFolderPath, absolute: true});
+	const mglClassFiles = [] as string[];
+	for (const folderPath of classFolders_paths) {
+		mglClassFiles.push(...await glob("**/@*.ts", {cwd: folderPath, absolute: true}));
+	}
 
 	const tableInfos = new Map<string, TableInfo>();
 	for (const filePath of mglClassFiles) {

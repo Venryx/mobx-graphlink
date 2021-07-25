@@ -1,7 +1,6 @@
 import { AddSchema, collection_docSchemaName } from "./JSONSchemaHelpers.js";
 import { BailMessage } from "../Utils/General/BailManager.js";
 import { Assert, E } from "js-vextensions";
-import { observer } from "mobx-react";
 // metadata-retrieval helpers
 // ==========
 export function TableNameToDocSchemaName(tableName, errorIfMissing = true) {
@@ -60,6 +59,24 @@ export function BailHandler(...args) {
         };
     }
 }
+let observer;
+function WP_ImportSync(name_ending) {
+    // Try to dynamically lazy import. Use import() to hint webpack we want to code split this module, but the "real" import needs to be synchronous.
+    //import(`@/data/posts/${this.props.matches.slug}`);
+    //require(...) doesn't work
+    //return __webpack_require__(require.resolve(name));
+    const moduleID = Object.keys(__webpack_require__.m).find(a => a.endsWith(name_ending));
+    return __webpack_require__(moduleID);
+}
+function EnsureImported_MobXReact() {
+    // if in NodeJS, return an empty decorator (NodeJS doesn't provide __webpack_require__ func, and lib should be NodeJS-safe at parse-time; fine since NodeJS/server won't actually use these observers)
+    if (typeof window == "undefined" || typeof document == "undefined") {
+        observer = function PlaceholderForNodeJS() { };
+    }
+    //observer = observer ?? (await import("mobx-react")).observer;
+    //observer = observer ?? WP_ImportSync("mobx-react").observer;
+    observer = observer !== null && observer !== void 0 ? observer : WP_ImportSync("/mobx-react/dist/mobxreact.esm.js").observer;
+}
 export class MGLObserver_Options {
     constructor() {
         Object.defineProperty(this, "bailHandler", {
@@ -77,6 +94,7 @@ export class MGLObserver_Options {
     }
 }
 export function MGLObserver(...args) {
+    EnsureImported_MobXReact();
     let opts = new MGLObserver_Options();
     if (typeof args[0] == "function") {
         ApplyToClass(args[0]);
