@@ -58,6 +58,15 @@ class FieldInfo {
 	initFuncCode: string;
 }
 
+function StripComments(str: string) {
+	let result = strip(str);
+
+	// fix for issue: https://github.com/jonschlinkert/strip-comments/issues/48
+	result = result.replace(/^(\s*)\/\/(.*)$/gm, "");
+
+	return result;
+}
+
 BuildDBShapeFile();
 async function BuildDBShapeFile() {
 	const mglClassFiles = [] as string[];
@@ -68,7 +77,7 @@ async function BuildDBShapeFile() {
 	const tableInfos = new Map<string, TableInfo>();
 	for (const filePath of mglClassFiles) {
 		const code = fs.readFileSync(filePath).toString();
-		const code_noComments = strip(code) as string;
+		const code_noComments = StripComments(code) as string;
 
 		const tableNameMatches = code_noComments.Matches(/table: "(.+?)"/);
 		const tablePreInitFuncMatches = code_noComments.Matches(/\st=>/);

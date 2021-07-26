@@ -82,6 +82,7 @@ export function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true) {
         // prepare transaction
         MaybeLog_Base(a => a.commands, l => l(`Applying db-updates...`));
         yield knex_raw.transaction((knexTx) => __awaiter(this, void 0, void 0, function* () {
+            var _b, _c;
             // add db-commands to transaction
             for (const update of dbUpdates) {
                 AssertDBUpdateIsValid(update);
@@ -109,6 +110,9 @@ export function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true) {
                     //const result = await knex(tableName).where({id: docID}).first().insert(update.value);
                     const docValue_final = Object.assign({}, update.value);
                     for (const column of Object.keys(docSchema.properties)) {
+                        // special key for saying "db writes this field automatically, don't try to specify it" (eg. tsvector column calculated from text/jsonb field)
+                        if (docSchema.properties[column]["$noWrite"] || ((_c = (_b = docSchema.properties[column]["oneOf"]) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c["$noWrite"]))
+                            continue;
                         // make sure every column/field has a value; this way, the "onConflict, merge" behavior is the same as "set"
                         if (!(column in docValue_final)) {
                             docValue_final[column] = null;
