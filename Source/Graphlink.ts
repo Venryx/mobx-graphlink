@@ -70,7 +70,25 @@ export class Graphlink<StoreShape, DBShape> {
 		pgClient?: PoolClient|null; // only used if on db-server
 	};
 
-	@observable userInfo: UserInfo|null;
+	@observable readonly userInfo: UserInfo|null;
+	SetUserInfo(userInfo: UserInfo, clearCaches = true) {
+		(this as any).userInfo = userInfo;
+		if (clearCaches) {
+			console.log("Clearing mobx-graphlink and apollo cache, due to user-info change.");
+			return (async()=>{
+				/*for (const node of this.tree.AllDescendantNodes) {
+					node.data
+				}*/
+				// delete all the collection tree-nodes; this is equivalent to clearing the mobx-graphlink cache
+				for (const [key, collectionNode] of this.tree.collectionNodes) {
+					this.tree.collectionNodes.delete(key);
+				}
+
+				await this.subs.apollo.cache.reset();
+				await this.subs.apollo.clearStore();
+			})();
+		}
+	}
 	// todo (probably)
 	/*async LogIn() {
 		// todo

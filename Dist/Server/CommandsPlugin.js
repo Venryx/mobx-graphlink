@@ -122,7 +122,8 @@ export const CreateCommandsPlugin = (opts) => {
     CommandsPlugin_opts = opts;
     return makeExtendSchemaPlugin((build, schemaOptions) => {
         var _a;
-        const commandClassMetas = GetCommandClassMetadatas();
+        const commandClassMetas_all = GetCommandClassMetadatas();
+        const commandClassMetas_graphQL = commandClassMetas_all.filter(a => a.exposeToGraphQL);
         const allNewTypeDefs = []; // used only for cleaner logging
         //const allNewTypeDefs_strings = [] as string[];
         // there are a few schemas that are referenced by the command-classes, but which are not "MGLClass main types" (and thus are not yet part of the graphql types); so add them here
@@ -159,7 +160,7 @@ export const CreateCommandsPlugin = (opts) => {
             //allNewTypeDefs_strings.push(graphqlInfo.schemaAsStr);
         }
         console.log("SchemaDeps_DoneAfter:", Date.now() - startTime);
-        for (const meta of commandClassMetas) {
+        for (const meta of commandClassMetas_graphQL) {
             //const typeDefStringsForEntry = [] as string[];
             // merge schema-dep graph-ql-strings into first command's graph-ql-str (else errors, because each entry must have an "extent type Mutation { ... }" part)
             /*if (meta == commandClassMetas[0]) {
@@ -194,7 +195,7 @@ export const CreateCommandsPlugin = (opts) => {
             //allNewTypeDefs_strings.push(...typeDefStringsForEntry);
             //allNewTypeDefs_strings.push(typeDefStringsForEntry.join("\n\n")); // postgraphile is picky (bundle types with mutation-type-extension, because each entry must have a mutation-type-extension)
         }
-        const mutationResolvers = CE(commandClassMetas).ToMapObj(meta => meta.commandClass.name, classInfo => {
+        const mutationResolvers = CE(commandClassMetas_graphQL).ToMapObj(meta => meta.commandClass.name, classInfo => {
             return (parent, args, context, info) => __awaiter(void 0, void 0, void 0, function* () {
                 /*const { rows } = await context.pgClient.query(
                     sqlText, // e.g. "select * from users where id = $1"

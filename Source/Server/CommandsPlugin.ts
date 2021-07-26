@@ -49,7 +49,8 @@ export let CommandsPlugin_opts: CreateCommandPlugin_Options;
 export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 	CommandsPlugin_opts = opts;
 	return makeExtendSchemaPlugin((build, schemaOptions)=>{
-		const commandClassMetas = GetCommandClassMetadatas();
+		const commandClassMetas_all = GetCommandClassMetadatas();
+		const commandClassMetas_graphQL = commandClassMetas_all.filter(a=>a.exposeToGraphQL);
 
 		const allNewTypeDefs = [] as TypeDef[]; // used only for cleaner logging
 		//const allNewTypeDefs_strings = [] as string[];
@@ -90,7 +91,7 @@ export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 		}
 		console.log("SchemaDeps_DoneAfter:", Date.now() - startTime);
 
-		for (const meta of commandClassMetas) {
+		for (const meta of commandClassMetas_graphQL) {
 			//const typeDefStringsForEntry = [] as string[];
 
 			// merge schema-dep graph-ql-strings into first command's graph-ql-str (else errors, because each entry must have an "extent type Mutation { ... }" part)
@@ -131,7 +132,7 @@ export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 			//allNewTypeDefs_strings.push(typeDefStringsForEntry.join("\n\n")); // postgraphile is picky (bundle types with mutation-type-extension, because each entry must have a mutation-type-extension)
 		}
 
-		const mutationResolvers = CE(commandClassMetas).ToMapObj(meta=>meta.commandClass.name, classInfo=>{
+		const mutationResolvers = CE(commandClassMetas_graphQL).ToMapObj(meta=>meta.commandClass.name, classInfo=>{
 			return async(parent, args, context: Context, info)=>{
 				/*const { rows } = await context.pgClient.query(
 					sqlText, // e.g. "select * from users where id = $1"

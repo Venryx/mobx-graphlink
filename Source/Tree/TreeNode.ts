@@ -226,6 +226,17 @@ export class TreeNode<DataShape> {
 		return docDatas;
 	}
 
+	get AllChildNodes(): TreeNode<any>[] {
+		return [
+			...this.collectionNodes.values(),
+			...this.queryNodes.values(),
+			...this.docNodes.values(),
+		];
+	}
+	get AllDescendantNodes(): TreeNode<any>[] {
+		return CE(this.AllChildNodes).SelectMany(a=>a.AllDescendantNodes);
+	}
+
 	// default createTreeNodesIfMissing to false, so that it's safe to call this from a computation (which includes store-accessors)
 	Get(subpathOrGetterFunc: string | string[] | ((data: DataShape)=>any), query?: QueryParams, createTreeNodesIfMissing = false): TreeNode<any>|null {
 		let subpathSegments = PathOrPathGetterToPathSegments(subpathOrGetterFunc);
@@ -308,9 +319,14 @@ export function TreeNodeToRawData<DataShape>(treeNode: TreeNode<DataShape>, addT
 		CE(result).Extend(treeNode.data);
 	}*/
 	result["data"] = treeNode.data;
+
 	for (let [key, collection] of treeNode.collectionNodes) {
 		result[key] = TreeNodeToRawData(collection);
 	}
+	for (let [key, collection] of treeNode.queryNodes) {
+		result[key] = TreeNodeToRawData(collection);
+	}
+
 	/*if (treeNode.docNodes) {
 		let docsAsRawData = Array.from(treeNode.docNodes.values()).map(docNode=>TreeNodeToRawData(docNode));
 		CE(result)._AddItem("_subs", docsAsRawData);
@@ -318,5 +334,6 @@ export function TreeNodeToRawData<DataShape>(treeNode: TreeNode<DataShape>, addT
 	for (let [key, doc] of treeNode.docNodes) {
 		result[key] = TreeNodeToRawData(doc);
 	}
+
 	return result as DataShape;
 }

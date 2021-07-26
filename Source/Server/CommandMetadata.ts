@@ -1,5 +1,5 @@
 import {Assert, CE, SleepAsync, string, WaitXThenRun} from "js-vextensions";
-import {Command} from "./Command.js";
+import {Command, DBHelper} from "./Command.js";
 import {JSONSchema7, JSONSchema7Definition, JSONSchema7Type} from "json-schema";
 import {GetGQLSchemaInfoFromJSONSchema, GraphQLSchemaInfo, NormalizeGQLTypeName} from "../Extensions/GQLSchemaHelpers.js";
 import {GetSchemaJSON, IsJSONSchemaOfTypeScalar, IsJSONSchemaScalar, JSONSchemaScalarTypeToGraphQLScalarType, schemaEntryJSONs} from "../Extensions/JSONSchemaHelpers.js";
@@ -8,6 +8,8 @@ export function CommandMeta(opts: {
 	payloadSchema: ()=>JSONSchema7,
 	returnSchema?: ()=>JSONSchema7,
 	defaultPayload?: any,
+	//extraDBUpdates?: (helper: DBHelper)=>any,
+	exposeToGraphQL?: boolean,
 }) {
 	return (constructor: typeof Command)=>{
 		Assert(!commandClasses.includes(constructor));
@@ -18,6 +20,8 @@ export function CommandMeta(opts: {
 			payloadSchemaGetter: opts.payloadSchema,
 			returnSchemaGetter: opts.returnSchema,
 			defaultPayload: opts.defaultPayload,
+			//extraDBUpdates: opts.extraDBUpdates,
+			exposeToGraphQL: opts.exposeToGraphQL,
 		});
 		commandClassMetadata.set(constructor.name, metadata);
 
@@ -52,7 +56,7 @@ export function GetCommandClassMetadatas() {
 
 export class CommandClassMetadata {
 	constructor(data?: Partial<CommandClassMetadata>) {
-		Object.assign(this, data);
+		Object.assign(this, CE(data ?? {}).OmitUndefined());
 		//this.CalculateDerivatives();
 	}
 
@@ -60,6 +64,8 @@ export class CommandClassMetadata {
 	payloadSchemaGetter: (()=>JSONSchema7)|null|undefined; // set by @CommandMeta
 	returnSchemaGetter: (()=>JSONSchema7)|null|undefined; // set by @CommandMeta
 	defaultPayload = {};
+	//extraDBUpdates?: (helper: DBHelper)=>any;
+	exposeToGraphQL = true;
 
 	// derivatives
 	payloadSchema: JSONSchema7;

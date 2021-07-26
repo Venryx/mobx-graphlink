@@ -33,6 +33,9 @@ export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphOptio
 	let pathSegments = subpathSegments;
 	if (CE(pathSegments).Any(a=>a == null)) return emptyArray;
 
+	// include a mobx-access of user-info; this way, the accessor-stack is refreshed when user-info changes (which we want, since RLS policies can cause results to change depending on user-info)
+	//opt.graph.userInfo; // commented; not actually needed (the tree-nodes reset will trigger the accessor-stacks to refresh anyway)
+
 	const treeNode = opt.graph.tree.Get(pathSegments, opt.params);
 	// if already subscribed, just mark requested (reduces action-spam of GetDocs_Request)
 	if (treeNode && treeNode.subscription) {
@@ -87,6 +90,9 @@ export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphOption
 	//let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
 	let pathSegments = subpathSegments;
 	if (CE(pathSegments).Any(a=>a == null)) return null;
+
+	// include a mobx-access of user-info; this way, the accessor-stack is refreshed when user-info changes (which we want, since RLS policies can cause results to change depending on user-info)
+	//opt.graph.userInfo; // commented; not actually needed (the tree-nodes reset will trigger the accessor-stacks to refresh anyway)
 
 	let treeNode = opt.graph.tree.Get(pathSegments);
 	// if already subscribed, just mark requested (reduces action-spam of GetDoc_Request)

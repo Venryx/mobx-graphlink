@@ -303,6 +303,16 @@ export class TreeNode {
         //let docDatas = observable.array(docNodes.map(docNode=>docNode.data));
         return docDatas;
     }
+    get AllChildNodes() {
+        return [
+            ...this.collectionNodes.values(),
+            ...this.queryNodes.values(),
+            ...this.docNodes.values(),
+        ];
+    }
+    get AllDescendantNodes() {
+        return CE(this.AllChildNodes).SelectMany(a => a.AllDescendantNodes);
+    }
     // default createTreeNodesIfMissing to false, so that it's safe to call this from a computation (which includes store-accessors)
     Get(subpathOrGetterFunc, query, createTreeNodesIfMissing = false) {
         let subpathSegments = PathOrPathGetterToPathSegments(subpathOrGetterFunc);
@@ -398,6 +408,9 @@ export function TreeNodeToRawData(treeNode, addTreeLink = true) {
     }*/
     result["data"] = treeNode.data;
     for (let [key, collection] of treeNode.collectionNodes) {
+        result[key] = TreeNodeToRawData(collection);
+    }
+    for (let [key, collection] of treeNode.queryNodes) {
         result[key] = TreeNodeToRawData(collection);
     }
     /*if (treeNode.docNodes) {

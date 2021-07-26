@@ -7,12 +7,15 @@ export declare const commandsWaitingToComplete_new: Command<any, any>[];
 export declare abstract class Command<Payload, ReturnData extends {
     [key: string]: any;
 } = {}> {
+    static augmentValidate?: (command: Command<any>) => any;
+    static augmentDBUpdates?: (command: Command<any>, db: DBHelper) => any;
     constructor(payload: Payload);
     constructor(options: Partial<GraphOptions>, payload: Payload);
     _userInfo_override: UserInfo | null | undefined;
     get userInfo(): UserInfo;
     type: string;
     options: GraphOptions;
+    payload_orig: Payload;
     payload: Payload;
     returnData: ReturnData;
     parentCommand: Command<any, any>;

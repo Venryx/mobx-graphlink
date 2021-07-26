@@ -57,6 +57,12 @@ export class Command {
             writable: true,
             value: void 0
         });
+        Object.defineProperty(this, "payload_orig", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         Object.defineProperty(this, "payload", {
             enumerable: true,
             configurable: true,
@@ -114,6 +120,7 @@ export class Command {
         //this.payload = E(this.constructor["defaultPayload"], payload);
         // use Clone on the payload, so that behavior is consistent whether called locally or over the network
         const meta = GetCommandClassMetadata(this.constructor.name);
+        this.payload_orig = Clone(payload); // needed for safe inclusion in CommandRun entries (ie. in-db command-run recording)
         this.payload = E(Clone(meta.defaultPayload), Clone(payload));
     }
     //_userInfo_override_set = false;
@@ -137,6 +144,9 @@ export class Command {
         const meta = GetCommandClassMetadata(this.constructor.name);
         AssertValidate(meta.payloadSchema, this.payload, "Payload is invalid.", { addSchemaObject: true });
         this.Validate();
+        if (Command.augmentValidate) {
+            Command.augmentValidate(this);
+        }
         AssertValidate(meta.returnSchema, this.returnData, "Return-data is invalid.", { addSchemaObject: true });
     }
     get ValidateErrorStr() {
@@ -165,6 +175,13 @@ export class Command {
     GetDBUpdates() {
         const helper = new DBHelper();
         this.DeclareDBUpdates(helper);
+        /*const meta = GetCommandClassMetadata(this.constructor.name);
+        if (meta.extraDBUpdates) {
+            meta.extraDBUpdates(helper);
+        }*/
+        if (Command.augmentDBUpdates) {
+            Command.augmentDBUpdates(this, helper);
+        }
         const dbUpdates = helper._dbUpdates;
         return dbUpdates;
     }

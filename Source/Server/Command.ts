@@ -10,7 +10,7 @@ import {DBPPath} from "../Utils/DB/DBPaths.js";
 import {DBUpdate, DBUpdateType} from "../Utils/DB/DBUpdate.js";
 import {ApplyDBUpdates, ApplyDBUpdates_Local} from "../Utils/DB/DBUpdateApplier.js";
 import {MaybeLog_Base} from "../Utils/General/General.js";
-import {GetCommandClassMetadata} from "./CommandMetadata.js";
+import {GetCommandClassMetadata, GetCommandClassMetadatas} from "./CommandMetadata.js";
 
 export const commandsWaitingToComplete_new = [] as Command<any, any>[];
 
@@ -30,6 +30,9 @@ function NotifyListenersThatCurrentCommandFinished() {
 
 // require command return-value to always be an object; this provides more schema stability (eg. lets you change the return-data of a mutation, without breaking the contents of "legacy" keys)
 export abstract class Command<Payload, ReturnData extends {[key: string]: any} = {}> {
+	static augmentValidate?: (command: Command<any>)=>any;
+	static augmentDBUpdates?: (command: Command<any>, db: DBHelper)=>any;
+
 	constructor(payload: Payload);
 	constructor(options: Partial<GraphOptions>, payload: Payload);
 	constructor(...args) {
@@ -43,6 +46,7 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		//this.payload = E(this.constructor["defaultPayload"], payload);
 		// use Clone on the payload, so that behavior is consistent whether called locally or over the network
 		const meta = GetCommandClassMetadata(this.constructor.name);
+		this.payload_orig = Clone(payload); // needed for safe inclusion in CommandRun entries (ie. in-db command-run recording)
 		this.payload = E(Clone(meta.defaultPayload), Clone(payload));
 	}
 	//userInfo: FireUserInfo;
@@ -58,6 +62,7 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	}
 	type: string;
 	options: GraphOptions;
+	payload_orig: Payload;
 	payload: Payload;
 
 	//prepareStartTime: number;
@@ -84,6 +89,9 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		const meta = GetCommandClassMetadata(this.constructor.name);
 		AssertValidate(meta.payloadSchema, this.payload, "Payload is invalid.", {addSchemaObject: true});
 		this.Validate();
+		if (Command.augmentValidate) {
+			Command.augmentValidate(this);
+		}
 		AssertValidate(meta.returnSchema, this.returnData, "Return-data is invalid.", {addSchemaObject: true});
 	}
 
@@ -111,6 +119,15 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	GetDBUpdates() {
 		const helper = new DBHelper();
 		this.DeclareDBUpdates(helper);
+
+		/*const meta = GetCommandClassMetadata(this.constructor.name);
+		if (meta.extraDBUpdates) {
+			meta.extraDBUpdates(helper);
+		}*/
+		if (Command.augmentDBUpdates) {
+			Command.augmentDBUpdates(this, helper);
+		}
+		
 		const dbUpdates = helper._dbUpdates;
 		return dbUpdates;
 	}

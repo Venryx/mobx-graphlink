@@ -5,6 +5,7 @@ export declare function CommandMeta(opts: {
     payloadSchema: () => JSONSchema7;
     returnSchema?: () => JSONSchema7;
     defaultPayload?: any;
+    exposeToGraphQL?: boolean;
 }): (constructor: typeof Command) => void;
 export declare const commandClasses: (typeof Command)[];
 export declare function GetCommandClass(name: string): typeof Command | undefined;
@@ -17,6 +18,7 @@ export declare class CommandClassMetadata {
     payloadSchemaGetter: (() => JSONSchema7) | null | undefined;
     returnSchemaGetter: (() => JSONSchema7) | null | undefined;
     defaultPayload: {};
+    exposeToGraphQL: boolean;
     payloadSchema: JSONSchema7;
     returnSchema: JSONSchema7;
     payload_graphqlInfo: GraphQLSchemaInfo;

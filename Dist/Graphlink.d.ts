@@ -31,7 +31,8 @@ export declare class Graphlink<StoreShape, DBShape> {
         knexModule?: typeof Knex | null | undefined;
         pgClient?: PoolClient | null | undefined;
     };
-    userInfo: UserInfo | null;
+    readonly userInfo: UserInfo | null;
+    SetUserInfo(userInfo: UserInfo, clearCaches?: boolean): Promise<void> | undefined;
     tree: TreeNode<DBShape>;
     treeRequestWatchers: Set<TreeRequestWatcher>;
     UnsubscribeAll(): void;

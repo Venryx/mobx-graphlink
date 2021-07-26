@@ -1,4 +1,4 @@
-import { Assert, WaitXThenRun } from "js-vextensions";
+import { Assert, CE, WaitXThenRun } from "js-vextensions";
 import { GetGQLSchemaInfoFromJSONSchema, NormalizeGQLTypeName } from "../Extensions/GQLSchemaHelpers.js";
 import { GetSchemaJSON, IsJSONSchemaOfTypeScalar, IsJSONSchemaScalar, JSONSchemaScalarTypeToGraphQLScalarType } from "../Extensions/JSONSchemaHelpers.js";
 export function CommandMeta(opts) {
@@ -11,6 +11,8 @@ export function CommandMeta(opts) {
             payloadSchemaGetter: opts.payloadSchema,
             returnSchemaGetter: opts.returnSchema,
             defaultPayload: opts.defaultPayload,
+            //extraDBUpdates: opts.extraDBUpdates,
+            exposeToGraphQL: opts.exposeToGraphQL,
         });
         commandClassMetadata.set(constructor.name, metadata);
         // wait a moment before calculating derivatives (we need to make sure all schema-deps are added first)
@@ -66,6 +68,13 @@ export class CommandClassMetadata {
             writable: true,
             value: {}
         });
+        //extraDBUpdates?: (helper: DBHelper)=>any;
+        Object.defineProperty(this, "exposeToGraphQL", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: true
+        });
         // derivatives
         Object.defineProperty(this, "payloadSchema", {
             enumerable: true,
@@ -91,7 +100,7 @@ export class CommandClassMetadata {
             writable: true,
             value: void 0
         });
-        Object.assign(this, data);
+        Object.assign(this, CE(data !== null && data !== void 0 ? data : {}).OmitUndefined());
         //this.CalculateDerivatives();
     }
     CalculateDerivatives() {
