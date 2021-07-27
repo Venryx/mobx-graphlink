@@ -9,8 +9,7 @@ import {CommandsPlugin_opts, CreateCommandPlugin_Options} from "../Server/Comman
 export function FinalizeSchemaForConversionToGraphQL(schema: JSONSchema7, refPath: string[] = []): void {
 	// make sure "type" is specified
 	if (schema.type == null) {
-		//const needsType = (schema.oneOf ?? schema.allOf ?? schema.anyOf) == null;
-		const needsType = (schema.$ref ?? schema.enum ?? schema.oneOf) == null;
+		const needsType = (schema.$ref ?? schema.enum ?? schema.anyOf ?? schema.oneOf) == null;
 		if (needsType) {
 			if (schema.pattern != null) schema.type = "string";
 			else if (schema.items != null) schema.type = "array";

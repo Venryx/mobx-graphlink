@@ -103,7 +103,7 @@ export class Command {
             }
             return entry.get();
         }*/
-        Object.defineProperty(this, "generatedUUIDs", {
+        Object.defineProperty(this, "callXResults", {
             enumerable: true,
             configurable: true,
             writable: true,
@@ -275,11 +275,14 @@ export class Command {
             this.options.graph.ValidateDBData(newData);
         });
     }
-    GenerateUUID_Once(path) {
-        if (!this.generatedUUIDs.has(path)) {
-            this.generatedUUIDs.set(path, GenerateUUID());
+    CallX_Once(callTypeIdentifier, func) {
+        if (!this.callXResults.has(callTypeIdentifier)) {
+            this.callXResults.set(callTypeIdentifier, func());
         }
-        return this.generatedUUIDs.get(path);
+        return this.callXResults.get(callTypeIdentifier);
+    }
+    GenerateUUID_Once(path) {
+        return this.CallX_Once(path, GenerateUUID);
     }
 }
 export class DBHelper {

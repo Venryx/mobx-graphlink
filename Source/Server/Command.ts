@@ -9,6 +9,7 @@ import {gql} from "../Utils/@NPMFixes/apollo_client.js";
 import {DBPPath} from "../Utils/DB/DBPaths.js";
 import {DBUpdate, DBUpdateType} from "../Utils/DB/DBUpdate.js";
 import {ApplyDBUpdates, ApplyDBUpdates_Local} from "../Utils/DB/DBUpdateApplier.js";
+import {DeepMap} from "../Utils/General/DeepMap.js";
 import {MaybeLog_Base} from "../Utils/General/General.js";
 import {GetCommandClassMetadata, GetCommandClassMetadatas} from "./CommandMetadata.js";
 
@@ -235,13 +236,23 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		}
 		return entry.get();
 	}*/
-	generatedUUIDs = new Map<string, string>();
+	callXResults = new Map<string, any>();
+	CallX_Once<T>(callTypeIdentifier: string, func: ()=>T) {
+		if (!this.callXResults.has(callTypeIdentifier)) {
+			this.callXResults.set(callTypeIdentifier, func());
+		}
+		return this.callXResults.get(callTypeIdentifier)! as T;
+	}
+	GenerateUUID_Once(path: string) {
+		return this.CallX_Once(path, GenerateUUID);
+	}
+	/*generatedUUIDs = new Map<string, string>();
 	GenerateUUID_Once(path: string) {
 		if (!this.generatedUUIDs.has(path)) {
 			this.generatedUUIDs.set(path, GenerateUUID());
 		}
 		return this.generatedUUIDs.get(path)!;
-	}
+	}*/
 }
 
 export class DBHelper {

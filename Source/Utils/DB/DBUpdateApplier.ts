@@ -112,8 +112,9 @@ export async function ApplyDBUpdates(dbUpdates: DBUpdate[], simplifyDBUpdates = 
 				//const result = await knex(tableName).where({id: docID}).first().insert(update.value);
 				const docValue_final = {...update.value};
 				for (const column of Object.keys(docSchema.properties)) {
+					const columnSchema = docSchema.properties[column];
 					// special key for saying "db writes this field automatically, don't try to specify it" (eg. tsvector column calculated from text/jsonb field)
-					if (docSchema.properties[column]["$noWrite"] || docSchema.properties[column]["oneOf"]?.[0]?.["$noWrite"]) continue;
+					if (columnSchema["$noWrite"] || columnSchema["anyOf"]?.[0]?.["$noWrite"]) continue;
 					
 					// make sure every column/field has a value; this way, the "onConflict, merge" behavior is the same as "set"
 					if (!(column in docValue_final)) {

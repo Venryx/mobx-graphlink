@@ -152,7 +152,7 @@ export function MGLClass(opts, schemaExtrasOrGetter, initFunc_pre) {
                     }
                     else {
                         fieldSchema = {
-                            oneOf: [fieldSchema, { type: "null" }],
+                            anyOf: [fieldSchema, { type: "null" }],
                         };
                     }
                 }

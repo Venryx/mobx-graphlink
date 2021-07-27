@@ -153,7 +153,7 @@ export function MGLClass(
 						}
 					} else {
 						fieldSchema = {
-							oneOf: [fieldSchema, {type: "null"}],
+							anyOf: [fieldSchema, {type: "null"}],
 						};
 					}
 				} else {

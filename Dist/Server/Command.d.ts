@@ -38,7 +38,8 @@ export declare abstract class Command<Payload, ReturnData extends {
     /** Same as Run(), except with the server executing the command rather than the current context. */
     RunOnServer(): Promise<ReturnData>;
     Validate_LateHeavy(dbUpdates: any): Promise<void>;
-    generatedUUIDs: Map<string, string>;
+    callXResults: Map<string, any>;
+    CallX_Once<T>(callTypeIdentifier: string, func: () => T): T;
     GenerateUUID_Once(path: string): string;
 }
 export declare class DBHelper {

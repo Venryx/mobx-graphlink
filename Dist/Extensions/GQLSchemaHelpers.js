@@ -5,11 +5,10 @@ import { getGraphqlSchemaFromJsonSchema } from "@vforks/get-graphql-from-jsonsch
 import { CommandsPlugin_opts } from "../Server/CommandsPlugin.js";
 //const convert = convert_["default"] as typeof convert_;
 export function FinalizeSchemaForConversionToGraphQL(schema, refPath = []) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     // make sure "type" is specified
     if (schema.type == null) {
-        //const needsType = (schema.oneOf ?? schema.allOf ?? schema.anyOf) == null;
-        const needsType = ((_b = (_a = schema.$ref) !== null && _a !== void 0 ? _a : schema.enum) !== null && _b !== void 0 ? _b : schema.oneOf) == null;
+        const needsType = ((_c = (_b = (_a = schema.$ref) !== null && _a !== void 0 ? _a : schema.enum) !== null && _b !== void 0 ? _b : schema.anyOf) !== null && _c !== void 0 ? _c : schema.oneOf) == null;
         if (needsType) {
             if (schema.pattern != null)
                 schema.type = "string";
@@ -42,7 +41,7 @@ export function FinalizeSchemaForConversionToGraphQL(schema, refPath = []) {
         schema.properties = {};
     }
     // apply the same fixes for property sub-schemas
-    for (const [propName, propSchema] of Object.entries((_c = schema.properties) !== null && _c !== void 0 ? _c : {})) {
+    for (const [propName, propSchema] of Object.entries((_d = schema.properties) !== null && _d !== void 0 ? _d : {})) {
         if (typeof propSchema == "object") {
             FinalizeSchemaForConversionToGraphQL(propSchema, refPath);
         }
