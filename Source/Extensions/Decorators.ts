@@ -194,17 +194,16 @@ export function Field(schemaOrGetter: Object | (()=>Object), extras?: Field_Extr
 	};
 }
 
-/*interface Object {
-	DeferRef: (this: Knex.ColumnBuilder)=>Knex.ColumnBuilder;
-}*/
 // this is needed so DeferRef() can be called in the "@DB(...)" decorators, in user-project code, without TS complaining
+export type DeferRef_Options = {enforceAtTransactionEnd?: boolean};
 declare module "knex" {
 	namespace Knex {
 		interface ColumnBuilder {
-			DeferRef: (this: Knex.ColumnBuilder)=>Knex.ColumnBuilder; 
+			DeferRef: (this: Knex.ColumnBuilder, opts?: DeferRef_Options)=>Knex.ColumnBuilder; 
 		}
 	}
 }
+
 export type DBInitFunc = (t: Knex.TableBuilder, n: string)=>any;
 /**
 Marks the given field to be a database column for the current class. (ie. in its generated table definition)

@@ -40,10 +40,13 @@ Note that the "requiredness" of properties should be based on what's valid for a
     this is different than the TS "?" marker, which should match with the requiredness of the property when already in the db. (for new entries, the TS constructors already make all props optional)
 */
 export declare function Field(schemaOrGetter: Object | (() => Object), extras?: Field_Extras): (target: any, propertyKey: string) => void;
+export declare type DeferRef_Options = {
+    enforceAtTransactionEnd?: boolean;
+};
 declare module "knex" {
     namespace Knex {
         interface ColumnBuilder {
-            DeferRef: (this: Knex.ColumnBuilder) => Knex.ColumnBuilder;
+            DeferRef: (this: Knex.ColumnBuilder, opts?: DeferRef_Options) => Knex.ColumnBuilder;
         }
     }
 }
