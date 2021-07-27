@@ -46,7 +46,7 @@ export function SimplifyDBUpdates(updates_orig: DBUpdate[]) {
 		const laterUpdates = updates.slice(updates.indexOf(update) + 1);
 
 		// for updates superseded by a later update (due to path-overwriting), delete
-		if (CE(laterUpdates).Any(a=>a.path.startsWith(update.path))) {
+		if (CE(laterUpdates).Any(laterUpdate=>update.path.startsWith(laterUpdate.path))) {
 			CE(updates).Remove(update);
 		}
 
