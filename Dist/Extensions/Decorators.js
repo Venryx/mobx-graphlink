@@ -42,15 +42,15 @@ export function BailHandler(...args) {
     function ApplyToClass(targetClass) {
         const render_old = targetClass.prototype.render;
         targetClass.prototype.render = function (...args) {
-            var _a, _b;
+            var _a, _b, _c;
             try {
                 const result = render_old.apply(this, args);
                 return result;
             }
             catch (ex) {
                 if (ex instanceof BailMessage) {
-                    const loadingUI = (_b = (_a = targetClass.prototype.loadingUI) !== null && _a !== void 0 ? _a : opts.loadingUI) !== null && _b !== void 0 ? _b : BailHandler_loadingUI_default;
-                    return loadingUI({ comp: this, bailMessage: ex });
+                    const loadingUI = (_c = (_b = (_a = this.loadingUI) !== null && _a !== void 0 ? _a : targetClass.prototype.loadingUI) !== null && _b !== void 0 ? _b : opts.loadingUI) !== null && _c !== void 0 ? _c : BailHandler_loadingUI_default;
+                    return loadingUI.call(this, { comp: this, bailMessage: ex });
                 }
                 else {
                     throw ex;

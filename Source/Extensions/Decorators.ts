@@ -50,8 +50,8 @@ export function BailHandler(...args) {
 				return result;
 			} catch (ex) {
 				if (ex instanceof BailMessage) {
-					const loadingUI = targetClass.prototype.loadingUI ?? opts.loadingUI ?? BailHandler_loadingUI_default;
-					return loadingUI({comp: this, bailMessage: ex});
+					const loadingUI = this.loadingUI ?? targetClass.prototype.loadingUI ?? opts.loadingUI ?? BailHandler_loadingUI_default;
+					return loadingUI.call(this, {comp: this, bailMessage: ex});
 				} else {
 					throw ex;
 				}
