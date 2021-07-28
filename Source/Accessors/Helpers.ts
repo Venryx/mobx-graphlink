@@ -41,7 +41,7 @@ export function GetWait<T>(dataGetterFunc: ()=>T, options?: Partial<GraphOptions
 }
 
 /** reject: caller of "await GetAsync()" receives the error, log: catch error and log it, ignore: catch error */
-export type GetAsync_ErrorHandleType = "reject" | "log" | "ignore";
+export type GetAsync_ErrorHandleType = "rejectAndLog" | "reject" | "log" | "ignore";
 
 export class GetAsync_Options {
 	static default = new GetAsync_Options();
@@ -112,9 +112,12 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<Graph
 				accessor_lastError = ex;
 
 				// if last iteration, never catch -- we want to see the error, as it's likely the cause of the seemingly-infinite iteration
-				if (handling == "reject") {
+				if (handling == "reject" || handling == "rejectAndLog") {
 					reject(ex); // call reject, so that caller of GetAsync() can receives/can-catch the error (rather than the global mobx "reaction()" catching it)
-					throw ex; // also rethrow it, so reaction stops, and we see error message in server log
+
+					//throw ex; // also rethrow it, so reaction stops, and we see error message in server log // commented; caller of GetAsync() may want to catch it
+					if (handling == "rejectAndLog") console.error(ex); // also log error
+					dispose(); // also end reaction
 				} else if (handling == "log") {
 					console.error(ex);
 				}

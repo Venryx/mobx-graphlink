@@ -2,7 +2,7 @@ import { GraphOptions } from "../Graphlink.js";
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 export declare function GetWait<T>(dataGetterFunc: () => T, options?: Partial<GraphOptions>, funcName?: string): T;
 /** reject: caller of "await GetAsync()" receives the error, log: catch error and log it, ignore: catch error */
-export declare type GetAsync_ErrorHandleType = "reject" | "log" | "ignore";
+export declare type GetAsync_ErrorHandleType = "rejectAndLog" | "reject" | "log" | "ignore";
 export declare class GetAsync_Options {
     static default: GetAsync_Options;
     /** Just meant to alert us for infinite-loop-like calls/getter-funcs. Default: 50 [pretty arbitrary] */

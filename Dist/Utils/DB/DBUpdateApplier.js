@@ -1,12 +1,3 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import { Assert, CE, GetTreeNodesInObjTree } from "js-vextensions";
 import u from "updeep";
 import { GetFieldDBInit, GetMGLClass, TableNameToDocSchemaName } from "../../Extensions/Decorators.js";
@@ -60,85 +51,83 @@ export function ApplyDBUpdates_Local(dbData, dbUpdates, simplifyDBUpdates = true
     } while (emptyNodes.length);
     return result;
 }
-export function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true) {
+export async function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true) {
     var _a;
-    return __awaiter(this, void 0, void 0, function* () {
-        dbUpdates = FinalizeDBUpdates(dbUpdates, simplifyDBUpdates);
-        // prepare pg-client and knex
-        const { pgClient, knexModule } = defaultGraphOptions.graph.subs;
-        Assert(pgClient != null, "pgClient must be supplied to Graphlink instance to be able to call ApplyDBUpdates. (only possible from db-server instance)");
-        Assert(knexModule != null, "knexModule (the export of knex npm-module) must be supplied to Graphlink instance to be able to call ApplyDBUpdates. (only possible from db-server instance)");
-        const knex_raw = (_a = pgClient["_knex"]) !== null && _a !== void 0 ? _a : (pgClient["_knex"] = knexModule({ client: "pg" }));
-        /*const knex: typeof knex_raw = ((...args)=>{
-            return knex_raw(...args).connection(pgClient); // add pgClient as connection every time
-        }) as any;
-        // add other fields/methods of "knex_raw" onto the "knex" wrapper
-        for (const key of Object.getOwnPropertyNames(knex_raw)) { // "Object.keys" excludes some needed fields, like "transaction"
-            //if (key == "length" || key == "name") continue;
-            if (key in knex) continue;
-            knex[key] = knex_raw[key];
-        }
-        Object.setPrototypeOf(knex, Object.getPrototypeOf(knex_raw)); // also make sure prototype is the same (not sure if needed)*/
-        // prepare transaction
-        MaybeLog_Base(a => a.commands, l => l(`Applying db-updates...`));
-        yield knex_raw.transaction((knexTx) => __awaiter(this, void 0, void 0, function* () {
-            var _b, _c;
-            // add db-commands to transaction
-            for (const update of dbUpdates) {
-                AssertDBUpdateIsValid(update);
-                const tableName = update.PathSegments[0];
-                const docSchemaName = TableNameToDocSchemaName(tableName);
-                const class_ = GetMGLClass(docSchemaName);
-                Assert(class_ != null, `Could not find class for table: ${tableName} (tried finding by name: "${docSchemaName}")`);
-                const docSchema = GetSchemaJSON(docSchemaName);
-                Assert(docSchema != null, `Could not find schema for table: ${tableName} (tried finding by name: "${docSchemaName}")`);
-                Assert(docSchema.properties != null, `Schema "${docSchemaName}" has no properties, which is invalid for a document/row type.`);
-                const docID = update.PathSegments[1];
-                const FinalizeFieldValue = (rawVal, fieldName) => {
-                    let result = rawVal;
-                    // if db-type for a field is "json"/"jsonb", make sure that the value is stringified
-                    const fieldDBInitFunc = GetFieldDBInit(class_, fieldName);
-                    Assert(fieldDBInitFunc != null, `Could not find db-init-func for field "${fieldName}" on class "${class_.name}".`);
-                    if (fieldDBInitFunc.toString().includes(".json(") || fieldDBInitFunc.toString().includes(".jsonb(")) {
-                        result = typeof result == "string" || result == null ? result : JSON.stringify(result);
+    dbUpdates = FinalizeDBUpdates(dbUpdates, simplifyDBUpdates);
+    // prepare pg-client and knex
+    const { pgClient, knexModule } = defaultGraphOptions.graph.subs;
+    Assert(pgClient != null, "pgClient must be supplied to Graphlink instance to be able to call ApplyDBUpdates. (only possible from db-server instance)");
+    Assert(knexModule != null, "knexModule (the export of knex npm-module) must be supplied to Graphlink instance to be able to call ApplyDBUpdates. (only possible from db-server instance)");
+    const knex_raw = (_a = pgClient["_knex"]) !== null && _a !== void 0 ? _a : (pgClient["_knex"] = knexModule({ client: "pg" }));
+    /*const knex: typeof knex_raw = ((...args)=>{
+        return knex_raw(...args).connection(pgClient); // add pgClient as connection every time
+    }) as any;
+    // add other fields/methods of "knex_raw" onto the "knex" wrapper
+    for (const key of Object.getOwnPropertyNames(knex_raw)) { // "Object.keys" excludes some needed fields, like "transaction"
+        //if (key == "length" || key == "name") continue;
+        if (key in knex) continue;
+        knex[key] = knex_raw[key];
+    }
+    Object.setPrototypeOf(knex, Object.getPrototypeOf(knex_raw)); // also make sure prototype is the same (not sure if needed)*/
+    // prepare transaction
+    MaybeLog_Base(a => a.commands, l => l(`Applying db-updates...`));
+    await knex_raw.transaction(async (knexTx) => {
+        var _a, _b;
+        // add db-commands to transaction
+        for (const update of dbUpdates) {
+            AssertDBUpdateIsValid(update);
+            const tableName = update.PathSegments[0];
+            const docSchemaName = TableNameToDocSchemaName(tableName);
+            const class_ = GetMGLClass(docSchemaName);
+            Assert(class_ != null, `Could not find class for table: ${tableName} (tried finding by name: "${docSchemaName}")`);
+            const docSchema = GetSchemaJSON(docSchemaName);
+            Assert(docSchema != null, `Could not find schema for table: ${tableName} (tried finding by name: "${docSchemaName}")`);
+            Assert(docSchema.properties != null, `Schema "${docSchemaName}" has no properties, which is invalid for a document/row type.`);
+            const docID = update.PathSegments[1];
+            const FinalizeFieldValue = (rawVal, fieldName) => {
+                let result = rawVal;
+                // if db-type for a field is "json"/"jsonb", make sure that the value is stringified
+                const fieldDBInitFunc = GetFieldDBInit(class_, fieldName);
+                Assert(fieldDBInitFunc != null, `Could not find db-init-func for field "${fieldName}" on class "${class_.name}".`);
+                if (fieldDBInitFunc.toString().includes(".json(") || fieldDBInitFunc.toString().includes(".jsonb(")) {
+                    result = typeof result == "string" || result == null ? result : JSON.stringify(result);
+                }
+                return result;
+            };
+            const isSet = update.PathSegments.length == 2 && update.value != null;
+            const isDelete = update.PathSegments.length == 2 && update.value == null;
+            if (isSet) {
+                //const result = await knex(tableName).where({id: docID}).first().insert(update.value);
+                const docValue_final = { ...update.value };
+                for (const column of Object.keys(docSchema.properties)) {
+                    const columnSchema = docSchema.properties[column];
+                    // special key for saying "db writes this field automatically, don't try to specify it" (eg. tsvector column calculated from text/jsonb field)
+                    if (columnSchema["$noWrite"] || ((_b = (_a = columnSchema["anyOf"]) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b["$noWrite"]))
+                        continue;
+                    // make sure every column/field has a value; this way, the "onConflict, merge" behavior is the same as "set"
+                    if (!(column in docValue_final)) {
+                        docValue_final[column] = null;
                     }
-                    return result;
-                };
-                const isSet = update.PathSegments.length == 2 && update.value != null;
-                const isDelete = update.PathSegments.length == 2 && update.value == null;
-                if (isSet) {
-                    //const result = await knex(tableName).where({id: docID}).first().insert(update.value);
-                    const docValue_final = Object.assign({}, update.value);
-                    for (const column of Object.keys(docSchema.properties)) {
-                        const columnSchema = docSchema.properties[column];
-                        // special key for saying "db writes this field automatically, don't try to specify it" (eg. tsvector column calculated from text/jsonb field)
-                        if (columnSchema["$noWrite"] || ((_c = (_b = columnSchema["anyOf"]) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c["$noWrite"]))
-                            continue;
-                        // make sure every column/field has a value; this way, the "onConflict, merge" behavior is the same as "set"
-                        if (!(column in docValue_final)) {
-                            docValue_final[column] = null;
-                        }
-                        docValue_final[column] = FinalizeFieldValue(docValue_final[column], column);
-                    }
-                    // if db-type is "json"/"jsonb", convert value to string before actual insertion
-                    const [row] = yield knexTx(tableName).insert(docValue_final)
-                        .onConflict("id").merge() // if row already exists, set it to the newly-passed data
-                        .returning("*");
+                    docValue_final[column] = FinalizeFieldValue(docValue_final[column], column);
                 }
-                else if (isDelete) {
-                    const [row] = yield knexTx(tableName).where({ id: docID }).delete().returning("*");
-                }
-                else { // else, must be within-doc update
-                    const fieldName = update.PathSegments[2].slice(1);
-                    const [row] = yield knexTx(tableName).where({ id: docID }).update({
-                        [fieldName]: FinalizeFieldValue(update.value, fieldName),
-                    }).returning("*");
-                }
+                // if db-type is "json"/"jsonb", convert value to string before actual insertion
+                const [row] = await knexTx(tableName).insert(docValue_final)
+                    .onConflict("id").merge() // if row already exists, set it to the newly-passed data
+                    .returning("*");
             }
-            // commit transaction
-            console.log("Committing transaction...");
-            // transaction is automatically committed after the promise for this function resolves (and if promise rejects, transaction is automatically rolled back)
-            //await knexTx.commit();
-        }), { connection: pgClient });
-    });
+            else if (isDelete) {
+                const [row] = await knexTx(tableName).where({ id: docID }).delete().returning("*");
+            }
+            else { // else, must be within-doc update
+                const fieldName = update.PathSegments[2].slice(1);
+                const [row] = await knexTx(tableName).where({ id: docID }).update({
+                    [fieldName]: FinalizeFieldValue(update.value, fieldName),
+                }).returning("*");
+            }
+        }
+        // commit transaction
+        console.log("Committing transaction...");
+        // transaction is automatically committed after the promise for this function resolves (and if promise rejects, transaction is automatically rolled back)
+        //await knexTx.commit();
+    }, { connection: pgClient });
 }

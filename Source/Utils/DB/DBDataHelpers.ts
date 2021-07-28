@@ -20,6 +20,13 @@ export function CleanDBData(data) {
 		Object.defineProperty(data, "_", {value: typeName}); // defining it this way, makes the property non-enumerable
 	}
 
+	// remove fields that are null; this works more smoothly with return-data schemas (where its easy to mark field as optional/omittable, but not as easy to mark as nullable)
+	for (const key of Object.keys(data)) {
+		if (data[key] == null) {
+			delete data[key];
+		}
+	}
+
 	return data;
 }
 

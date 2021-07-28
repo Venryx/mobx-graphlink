@@ -1,4 +1,4 @@
-import {ArrayCE, Assert, Clone, E} from "js-vextensions";
+import {ArrayCE, Assert, Clone, E, ObjectCE} from "js-vextensions";
 import {GetAsync, GetAsync_Options} from "../Accessors/Helpers.js";
 import {AssertValidate} from "../Extensions/JSONSchemaHelpers.js";
 import {GenerateUUID} from "../Extensions/KeyGenerator.js";
@@ -85,6 +85,14 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 
 	/** Transforms the payload data (eg. combining it with existing db-data) in preparation for constructing the db-updates-map, while also validating user permissions and such along the way. */
 	protected abstract Validate(): void;
+
+	/** Last validation error, from passing "catchAndStoreError=true" to Validate_Full() or Validate_Async(). */
+	validateError?: Error|string|undefined;
+	get ValidateErrorStr(): string|undefined {
+		const err = this.validateError;
+		return err?.["message"] ?? err?.toString();
+	}
+
 	/** Same as the command-provided Validate() function, except also validating the payload and return-data against their schemas. */
 	Validate_Full() {
 		const meta = GetCommandClassMetadata(this.constructor.name);
@@ -95,20 +103,14 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		}
 		AssertValidate(meta.returnSchema, this.returnData, "Return-data is invalid.", {addSchemaObject: true});
 	}
-
-	/** Last validation error, from calling Validate_Safe(). */
-	validateError: Error|string|null = null;
-	get ValidateErrorStr(): string|null {
-		return this.validateError?.toString() ?? null;
-	}
-	Validate_Safe() {
+	Validate_Safe(): string|undefined {
 		try {
 			this.Validate_Full();
-			this.validateError = null;
-			return null;
+			this.validateError = undefined;
 		} catch (ex) {
 			this.validateError = ex;
-			return ex;
+			//return ex;
+			return ex?.message ?? ex?.toString();
 		}
 	}
 	async Validate_Async(options?: Partial<GraphOptions> & GetAsync_Options) {
@@ -116,6 +118,17 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		//await GetAsync(()=>this.Validate(), {errorHandling: "ignore", maxIterations: OmitIfFalsy(maxIterations)});
 		await GetAsync(()=>this.Validate_Full(), E({throwImmediatelyOnDBWait: true} as Partial<GetAsync_Options>, options));
 	}
+	async Validate_Async_Safe(options?: Partial<GraphOptions> & GetAsync_Options): Promise<string|undefined> {
+		try {
+			await this.Validate_Async(options);
+			this.validateError = undefined;
+		} catch (ex) {
+			this.validateError = ex;
+			//return ex;
+			return ex?.message ?? ex?.toString();
+		}
+	}
+
 	/** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
 	GetDBUpdates() {
 		const helper = new DBHelper();
@@ -196,9 +209,9 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 			`,
 			variables: this.payload,
 		});
-		const result = CleanDBData(fetchResult.data[this.constructor.name]);
-		AssertValidate(returnDataSchema, result, `Return-data for command did not match the expected shape. ReturnData: ${JSON.stringify(result, null, 2)}`);
-		return result as ReturnData;
+		const returnData = CleanDBData(fetchResult.data[this.constructor.name]);
+		AssertValidate(returnDataSchema, returnData, `Return-data for command did not match the expected shape. ReturnData: ${JSON.stringify(returnData, null, 2)}`);
+		return returnData as ReturnData;
 	}
 
 	// standard validation of common paths/object-types; perhaps disable in production

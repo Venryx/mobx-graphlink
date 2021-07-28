@@ -158,7 +158,7 @@ export class TreeNode {
         Assert(this.pathSegments.find(a => a == null || a.trim().length == 0) == null, `Path segments cannot be null/empty. @pathSegments(${this.pathSegments})`);
         this.type = GetTreeNodeTypeForPath(this.pathSegments);
         const query_raw = queryStr ? QueryParams.ParseString(queryStr) : new QueryParams();
-        this.query = new QueryParams_Linked(Object.assign(Object.assign({}, query_raw), { treeNode: this }));
+        this.query = new QueryParams_Linked({ ...query_raw, treeNode: this });
         /*if (this.type != TreeNodeType.Root) {
             this.query.treeNode = this;
             this.query.CalculateDerivatives();

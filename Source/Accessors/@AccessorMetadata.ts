@@ -24,7 +24,7 @@ export class AccessorOptions<RootState = any, DBShape = any> {
 	cache = true;
 	cache_keepAlive = false;
 	cache_unwrapArrays = true;
-	graph?: Graphlink<RootState, DBShape>;
+	declare graph?: Graphlink<RootState, DBShape>;
 	//callArgToDependencyConvertorFunc?: CallArgToDependencyConvertorFunc;
 
 	/** Short for bail-result. */

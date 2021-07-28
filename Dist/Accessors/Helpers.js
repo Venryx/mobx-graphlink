@@ -1,12 +1,3 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import { Assert, E, StringCE, WaitXThenRun } from "js-vextensions";
 import { reaction } from "mobx";
 import { defaultGraphOptions } from "../Graphlink.js";
@@ -86,113 +77,114 @@ export function NotifyWaitingForDB(dbPath) {
 }
 // async helper
 // (one of the rare cases where opt is not the first argument; that's because GetAsync may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
-export function GetAsync(dataGetterFunc, options) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const opt = E(defaultGraphOptions, GetAsync_Options.default, options);
-        let watcher = new TreeRequestWatcher(opt.graph);
-        /*let lastResult;
-        let nodesRequested_obj_last;
-        let nodesRequested_obj;
-        do {
-            nodesRequested_obj_last = nodesRequested_obj;
+export async function GetAsync(dataGetterFunc, options) {
+    const opt = E(defaultGraphOptions, GetAsync_Options.default, options);
+    let watcher = new TreeRequestWatcher(opt.graph);
+    /*let lastResult;
+    let nodesRequested_obj_last;
+    let nodesRequested_obj;
+    do {
+        nodesRequested_obj_last = nodesRequested_obj;
+
+        watcher.Start();
+        //let dispose = autorun(()=> {
+        lastResult = dataGetterFunc();
+        //});
+        //dispose();
+        watcher.Stop();
+
+        const nodesRequested_array = Array.from(watcher.nodesRequested);
+        nodesRequested_obj = CE(nodesRequested_array).ToMap(a=>a.path, a=>true);
+
+        // wait till all requested nodes have their data received
+        await Promise.all(nodesRequested_array.map(node=> {
+            return when(()=>node.status == DataStatus.Received);
+        }));
+    } while (ShallowChanged(nodesRequested_obj, nodesRequested_obj_last));
     
+    return lastResult;*/
+    return new Promise((resolve, reject) => {
+        let iterationIndex = -1;
+        let dispose = reaction(() => {
+            iterationIndex++;
+            // prep for getter-func
             watcher.Start();
-            //let dispose = autorun(()=> {
-            lastResult = dataGetterFunc();
-            //});
-            //dispose();
-            watcher.Stop();
-    
-            const nodesRequested_array = Array.from(watcher.nodesRequested);
-            nodesRequested_obj = CE(nodesRequested_array).ToMap(a=>a.path, a=>true);
-    
-            // wait till all requested nodes have their data received
-            await Promise.all(nodesRequested_array.map(node=> {
-                return when(()=>node.status == DataStatus.Received);
-            }));
-        } while (ShallowChanged(nodesRequested_obj, nodesRequested_obj_last));
-        
-        return lastResult;*/
-        return new Promise((resolve, reject) => {
-            let iterationIndex = -1;
-            let dispose = reaction(() => {
-                iterationIndex++;
-                // prep for getter-func
-                watcher.Start();
-                if (options === null || options === void 0 ? void 0 : options.throwImmediatelyOnDBWait)
-                    GetAsync_throwImmediatelyOnDBWait_activeDepth++;
-                // flip some flag here to say, "don't use cached data -- re-request!"
-                opt.graph.storeAccessorCachingTempDisabled = true;
-                let result;
-                let accessor_lastError;
-                function HandleAccessorError(ex, handling) {
-                    if (ex instanceof BailMessage) {
-                        return; // always ignore bail-messages in GetAsync (is this the ideal behavior?)
-                    }
-                    accessor_lastError = ex;
-                    // if last iteration, never catch -- we want to see the error, as it's likely the cause of the seemingly-infinite iteration
-                    if (handling == "reject") {
-                        reject(ex); // call reject, so that caller of GetAsync() can receives/can-catch the error (rather than the global mobx "reaction()" catching it)
-                        throw ex; // also rethrow it, so reaction stops, and we see error message in server log
-                    }
-                    else if (handling == "log") {
-                        console.error(ex);
-                    }
+            if (options === null || options === void 0 ? void 0 : options.throwImmediatelyOnDBWait)
+                GetAsync_throwImmediatelyOnDBWait_activeDepth++;
+            // flip some flag here to say, "don't use cached data -- re-request!"
+            opt.graph.storeAccessorCachingTempDisabled = true;
+            let result;
+            let accessor_lastError;
+            function HandleAccessorError(ex, handling) {
+                if (ex instanceof BailMessage) {
+                    return; // always ignore bail-messages in GetAsync (is this the ideal behavior?)
                 }
-                // execute getter-func
+                accessor_lastError = ex;
+                // if last iteration, never catch -- we want to see the error, as it's likely the cause of the seemingly-infinite iteration
+                if (handling == "reject" || handling == "rejectAndLog") {
+                    reject(ex); // call reject, so that caller of GetAsync() can receives/can-catch the error (rather than the global mobx "reaction()" catching it)
+                    //throw ex; // also rethrow it, so reaction stops, and we see error message in server log // commented; caller of GetAsync() may want to catch it
+                    if (handling == "rejectAndLog")
+                        console.error(ex); // also log error
+                    dispose(); // also end reaction
+                }
+                else if (handling == "log") {
+                    console.error(ex);
+                }
+            }
+            // execute getter-func
+            try {
+                result = dataGetterFunc();
+            }
+            catch (ex) {
+                HandleAccessorError(ex, opt.errorHandling_during);
+            }
+            // cleanup for getter-func
+            opt.graph.storeAccessorCachingTempDisabled = false;
+            if (options === null || options === void 0 ? void 0 : options.throwImmediatelyOnDBWait)
+                GetAsync_throwImmediatelyOnDBWait_activeDepth--;
+            watcher.Stop();
+            let nodesRequested_array = Array.from(watcher.nodesRequested);
+            //let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status == DataStatus.Waiting);
+            //let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status != DataStatus.Received);
+            let requestsBeingWaitedFor = nodesRequested_array.filter(node => node.status != DataStatus.Received_Full);
+            const dbRequestsAllResolved = requestsBeingWaitedFor.length == 0;
+            const maxIterationsReached = iterationIndex >= opt.maxIterations - 1;
+            let finalCall = dbRequestsAllResolved || maxIterationsReached;
+            if (finalCall && accessor_lastError != null) {
+                //Assert(error == null, `Error occurred during final GetAsync iteration: ${error}`);
+                AssertV_triggerDebugger = true;
                 try {
-                    result = dataGetterFunc();
+                    //result = dataGetterFunc();
+                    //dataGetterFunc();
+                    dataGetterFunc();
                 }
                 catch (ex) {
-                    HandleAccessorError(ex, opt.errorHandling_during);
+                    HandleAccessorError(ex, opt.errorHandling_final);
                 }
-                // cleanup for getter-func
-                opt.graph.storeAccessorCachingTempDisabled = false;
-                if (options === null || options === void 0 ? void 0 : options.throwImmediatelyOnDBWait)
-                    GetAsync_throwImmediatelyOnDBWait_activeDepth--;
-                watcher.Stop();
-                let nodesRequested_array = Array.from(watcher.nodesRequested);
-                //let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status == DataStatus.Waiting);
-                //let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status != DataStatus.Received);
-                let requestsBeingWaitedFor = nodesRequested_array.filter(node => node.status != DataStatus.Received_Full);
-                const dbRequestsAllResolved = requestsBeingWaitedFor.length == 0;
-                const maxIterationsReached = iterationIndex >= opt.maxIterations - 1;
-                let finalCall = dbRequestsAllResolved || maxIterationsReached;
-                if (finalCall && accessor_lastError != null) {
-                    //Assert(error == null, `Error occurred during final GetAsync iteration: ${error}`);
-                    AssertV_triggerDebugger = true;
-                    try {
-                        //result = dataGetterFunc();
-                        //dataGetterFunc();
-                        dataGetterFunc();
-                    }
-                    catch (ex) {
-                        HandleAccessorError(ex, opt.errorHandling_final);
-                    }
-                    finally {
-                        AssertV_triggerDebugger = false;
-                    }
+                finally {
+                    AssertV_triggerDebugger = false;
                 }
-                if (maxIterationsReached && !dbRequestsAllResolved) {
-                    reject(StringCE(`
+            }
+            if (maxIterationsReached && !dbRequestsAllResolved) {
+                reject(StringCE(`
 					GetAsync reached the maxIterations (${opt.maxIterations}) without completely resolving. Call was cancelled/rejected.
 					
 					Setting "window.logTypes.subscriptions = true" in console may help with debugging.
 				`).AsMultiline(0));
-                }
-                return { result, nodesRequested_array, fullyResolved: dbRequestsAllResolved };
-            }, data => {
-                // if data is null, it means an error occured in the computation-func above
-                if (data == null)
-                    return;
-                let { result, nodesRequested_array, fullyResolved } = data;
-                if (!fullyResolved)
-                    return;
-                //Assert(result != null, "GetAsync should not usually return null.");
-                WaitXThenRun(0, () => dispose()); // wait a bit, so dispose-func is ready (for when fired immediately)
-                resolve(result);
-            }, { fireImmediately: true });
-        });
+            }
+            return { result, nodesRequested_array, fullyResolved: dbRequestsAllResolved };
+        }, data => {
+            // if data is null, it means an error occured in the computation-func above
+            if (data == null)
+                return;
+            let { result, nodesRequested_array, fullyResolved } = data;
+            if (!fullyResolved)
+                return;
+            //Assert(result != null, "GetAsync should not usually return null.");
+            WaitXThenRun(0, () => dispose()); // wait a bit, so dispose-func is ready (for when fired immediately)
+            resolve(result);
+        }, { fireImmediately: true });
     });
 }
 export let AssertV_triggerDebugger = false;

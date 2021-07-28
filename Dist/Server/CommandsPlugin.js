@@ -1,12 +1,3 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 //import {makeExtendSchemaPlugin, gql} from "graphile-utils";
 import graphileUtils from "graphile-utils";
 import { Assert, CE, Clone } from "js-vextensions";
@@ -196,7 +187,7 @@ export const CreateCommandsPlugin = (opts) => {
             //allNewTypeDefs_strings.push(typeDefStringsForEntry.join("\n\n")); // postgraphile is picky (bundle types with mutation-type-extension, because each entry must have a mutation-type-extension)
         }
         const mutationResolvers = CE(commandClassMetas_graphQL).ToMapObj(meta => meta.commandClass.name, classInfo => {
-            return (parent, args, context, info) => __awaiter(void 0, void 0, void 0, function* () {
+            return async (parent, args, context, info) => {
                 /*const { rows } = await context.pgClient.query(
                     sqlText, // e.g. "select * from users where id = $1"
                     optionalVariables // e.g. [27]
@@ -213,7 +204,7 @@ export const CreateCommandsPlugin = (opts) => {
                 let returnData;
                 let error;
                 try {
-                    returnData = yield command.RunLocally();
+                    returnData = await command.RunLocally();
                 }
                 catch (ex) {
                     error = ex;
@@ -225,7 +216,7 @@ export const CreateCommandsPlugin = (opts) => {
                     opts, { parent, args, context, info, command, returnData, error });
                 }
                 return returnData;
-            });
+            };
         });
         if (opts.typeDefFinalizer) {
             for (const [i, typeDef] of allNewTypeDefs.entries()) {

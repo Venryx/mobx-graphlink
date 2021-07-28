@@ -1,12 +1,3 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import AJV from "ajv";
 import AJVKeywords from "ajv-keywords";
 import { Clone, ToJSON, IsString, Assert, E, CE, ArrayCE } from "js-vextensions";
@@ -98,10 +89,10 @@ export function AddSchema(...args) {
         // set up schema-adding func to run as soon as possible (without even leaving call-stack)
         RunXOnceSchemasAdded(schemaDeps, proceed);
         // return promise that then provides the ajv instance as this func's return-value (this part can have slight delay)
-        return new Promise((resolve) => __awaiter(this, void 0, void 0, function* () {
-            yield WaitTillSchemaAdded(name);
+        return new Promise(async (resolve) => {
+            await WaitTillSchemaAdded(name);
             resolve(ajvResult);
-        }));
+        });
     }
     // if schema *can* be completed added synchronously, then do so and return the ajv instance (no need for promise)
     proceed();

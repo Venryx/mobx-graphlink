@@ -22,13 +22,14 @@ export declare abstract class Command<Payload, ReturnData extends {
     MarkAsSubcommand(parentCommand: Command<any, any>): this;
     /** Transforms the payload data (eg. combining it with existing db-data) in preparation for constructing the db-updates-map, while also validating user permissions and such along the way. */
     protected abstract Validate(): void;
+    /** Last validation error, from passing "catchAndStoreError=true" to Validate_Full() or Validate_Async(). */
+    validateError?: Error | string | undefined;
+    get ValidateErrorStr(): string | undefined;
     /** Same as the command-provided Validate() function, except also validating the payload and return-data against their schemas. */
     Validate_Full(): void;
-    /** Last validation error, from calling Validate_Safe(). */
-    validateError: Error | string | null;
-    get ValidateErrorStr(): string | null;
-    Validate_Safe(): any;
+    Validate_Safe(): string | undefined;
     Validate_Async(options?: Partial<GraphOptions> & GetAsync_Options): Promise<void>;
+    Validate_Async_Safe(options?: Partial<GraphOptions> & GetAsync_Options): Promise<string | undefined>;
     /** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
     GetDBUpdates(): DBUpdate[];
     abstract DeclareDBUpdates(helper: DBHelper): any;

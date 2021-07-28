@@ -33,12 +33,6 @@ export class AccessorOptions {
             writable: true,
             value: true
         });
-        Object.defineProperty(this, "graph", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
         //callArgToDependencyConvertorFunc?: CallArgToDependencyConvertorFunc;
         /** Short for bail-result. */
         //onBail: T;
