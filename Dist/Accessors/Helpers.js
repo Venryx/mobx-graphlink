@@ -126,7 +126,9 @@ export async function GetAsync(dataGetterFunc, options) {
                     //throw ex; // also rethrow it, so reaction stops, and we see error message in server log // commented; caller of GetAsync() may want to catch it
                     if (handling == "rejectAndLog")
                         console.error(ex); // also log error
-                    dispose(); // also end reaction
+                    // also end/dispose reaction (unless first iteration; attempting it then causes an error, and would be unnecesary anyway)
+                    if (iterationIndex > 0)
+                        dispose();
                 }
                 else if (handling == "log") {
                     console.error(ex);
