@@ -119,15 +119,17 @@ export function GetSchemaJSON(name: string, errorOnMissing = true): JSONSchema7 
 	return Clone(schemaJSON);
 }
 
-export type SchemaModifiers = {
-	includeOnly?: string[];
-	makeOptional?: string[];
+export type SchemaModifiers<T> = {
+	includeOnly?: Array<keyof T>;
+	makeOptional?: Array<keyof T>;
+	makeOptional_all?: boolean;
 };
-export function DeriveJSONSchema(typeName: string, modifiers: SchemaModifiers): Object {
-	const result = Clone(GetSchemaJSON(typeName));
+export function DeriveJSONSchema<T extends {[key: string]: any}>(typeClass: new(..._)=>T, modifiers: SchemaModifiers<T>): Object {
+	const result = Clone(GetSchemaJSON(typeClass.name));
+
 	if (modifiers.includeOnly) {
 		for (const key of Object.keys(result.properties)) {
-			if (!modifiers.includeOnly.includes(key)) {
+			if (!modifiers.includeOnly.includes(key as any)) {
 				delete result.properties[key];
 			}
 		}
@@ -136,7 +138,15 @@ export function DeriveJSONSchema(typeName: string, modifiers: SchemaModifiers): 
 	if (modifiers.makeOptional) {
 		if (result.required) result.required = ArrayCE(result.required).Exclude(...modifiers.makeOptional);
 	}
+	if (modifiers.makeOptional_all) {
+		delete result.required;
+	}
+
 	return result;
+}
+/** Helper for compile-time type-checking. At runtime, it simply returns the passed-in key-array. */
+export function ClassKeys<T extends {[key: string]: any}>(type: new(..._)=>T, keys: Array<keyof T>) {
+	return keys;
 }
 
 /*export type DataWrapper<T> = {data: T};

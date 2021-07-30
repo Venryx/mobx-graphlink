@@ -17,11 +17,18 @@ Note that the "requiredness" of properties should be based on what's valid for a
 export declare function AddSchema(name: string, schemaOrGetter: JSONSchema7 | (() => JSONSchema7)): AJV.Ajv | Promise<AJV.Ajv>;
 export declare function AddSchema(name: string, schemaDeps: string[] | null | undefined, schemaGetter: () => JSONSchema7): AJV.Ajv | Promise<AJV.Ajv>;
 export declare function GetSchemaJSON(name: string, errorOnMissing?: boolean): JSONSchema7;
-export declare type SchemaModifiers = {
-    includeOnly?: string[];
-    makeOptional?: string[];
+export declare type SchemaModifiers<T> = {
+    includeOnly?: Array<keyof T>;
+    makeOptional?: Array<keyof T>;
+    makeOptional_all?: boolean;
 };
-export declare function DeriveJSONSchema(typeName: string, modifiers: SchemaModifiers): Object;
+export declare function DeriveJSONSchema<T extends {
+    [key: string]: any;
+}>(typeClass: new (..._: any[]) => T, modifiers: SchemaModifiers<T>): Object;
+/** Helper for compile-time type-checking. At runtime, it simply returns the passed-in key-array. */
+export declare function ClassKeys<T extends {
+    [key: string]: any;
+}>(type: new (..._: any[]) => T, keys: Array<keyof T>): (keyof T)[];
 export declare function RunXOnceSchemasAdded(schemaDeps: string[], funcX: () => void): void;
 export declare function WaitTillSchemaAdded(schemaName: string): Promise<void> | null;
 declare type AJV_Extended = AJV.Ajv & {
@@ -54,5 +61,5 @@ export declare function GetInvalidPropPaths(data: Object, schemaObject: Object):
 }[];
 export declare function IsJSONSchemaScalar(typeStr: string | undefined): boolean;
 export declare function IsJSONSchemaOfTypeScalar(jsonSchema: JSONSchema7): boolean;
-export declare function JSONSchemaScalarTypeToGraphQLScalarType(jsonSchemaScalarType: string): "Int" | "Float" | "String" | "Boolean" | undefined;
+export declare function JSONSchemaScalarTypeToGraphQLScalarType(jsonSchemaScalarType: string): "String" | "Int" | "Float" | "Boolean" | undefined;
 export {};

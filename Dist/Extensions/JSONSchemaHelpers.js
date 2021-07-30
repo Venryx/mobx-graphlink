@@ -103,8 +103,8 @@ export function GetSchemaJSON(name, errorOnMissing = true) {
     Assert(schemaJSON != null || !errorOnMissing, `Could not find schema "${name}".`);
     return Clone(schemaJSON);
 }
-export function DeriveJSONSchema(typeName, modifiers) {
-    const result = Clone(GetSchemaJSON(typeName));
+export function DeriveJSONSchema(typeClass, modifiers) {
+    const result = Clone(GetSchemaJSON(typeClass.name));
     if (modifiers.includeOnly) {
         for (const key of Object.keys(result.properties)) {
             if (!modifiers.includeOnly.includes(key)) {
@@ -118,7 +118,14 @@ export function DeriveJSONSchema(typeName, modifiers) {
         if (result.required)
             result.required = ArrayCE(result.required).Exclude(...modifiers.makeOptional);
     }
+    if (modifiers.makeOptional_all) {
+        delete result.required;
+    }
     return result;
+}
+/** Helper for compile-time type-checking. At runtime, it simply returns the passed-in key-array. */
+export function ClassKeys(type, keys) {
+    return keys;
 }
 /*export type DataWrapper<T> = {data: T};
 export function DataWrapper(dataSchema: any) {
