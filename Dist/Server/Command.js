@@ -173,8 +173,8 @@ export class Command {
         }
     }
     /** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
-    GetDBUpdates() {
-        const helper = new DBHelper();
+    GetDBUpdates(parentHelper) {
+        const helper = new DBHelper(parentHelper);
         this.DeclareDBUpdates(helper);
         /*const meta = GetCommandClassMetadata(this.constructor.name);
         if (meta.extraDBUpdates) {
@@ -183,7 +183,7 @@ export class Command {
         if (Command.augmentDBUpdates) {
             Command.augmentDBUpdates(this, helper);
         }
-        const dbUpdates = helper._dbUpdates;
+        const dbUpdates = helper.dbUpdates;
         return dbUpdates;
     }
     async PreRun() {
@@ -204,13 +204,14 @@ export class Command {
         try {
             //this.runStartTime = Date.now();
             await this.PreRun();
-            const dbUpdates = this.GetDBUpdates();
+            const helper = new DBHelper(undefined);
+            const dbUpdates = this.GetDBUpdates(helper);
             if (this.options.graph.ValidateDBData) {
                 await this.Validate_LateHeavy(dbUpdates);
             }
             // FixDBUpdates(dbUpdates);
             // await store.firebase.helpers.DBRef().update(dbUpdates);
-            await ApplyDBUpdates(dbUpdates);
+            await ApplyDBUpdates(dbUpdates, true, helper.DeferConstraints);
             // todo: make sure the db-changes we just made are reflected in our mobx store, *before* current command is marked as "completed" (else next command may start operating on not-yet-refreshed data)
             // MaybeLog(a=>a.commands, ()=>`Finishing command. @type:${this.constructor.name} @payload(${ToJSON(this.payload)}) @dbUpdates(${ToJSON(dbUpdates)})`);
             MaybeLog_Base(a => a.commands, l => l("Finishing command. @type:", this.constructor.name, " @command(", this, ") @dbUpdates(", dbUpdates, ")"));
@@ -279,23 +280,48 @@ export class Command {
     }
 }
 export class DBHelper {
-    constructor() {
-        Object.defineProperty(this, "_dbUpdates", {
+    /*static TransferFlags(from: DBHelper, to: DBHelper, chainUp: boolean) {
+        if (from.deferConstraints !== undefined) to.deferConstraints = from.deferConstraints;
+    }*/
+    constructor(parent) {
+        Object.defineProperty(this, "parent", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        // flags
+        Object.defineProperty(this, "deferConstraints", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        // db-updates
+        // ==========
+        Object.defineProperty(this, "dbUpdates", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: []
         });
-        /*delete(path: string, value: any) {
-            this._dbUpdates.push(new DBUpdate({type: DBUpdateType.delete, path, value}));
-        }*/
+        this.parent = parent;
+        // transfer flags from parent to child
+        if (parent && parent.deferConstraints !== undefined)
+            this.deferConstraints = parent.deferConstraints;
+    }
+    get DeferConstraints() { return this.deferConstraints; }
+    set DeferConstraints(value) {
+        this.deferConstraints = value;
+        if (this.parent)
+            this.parent.DeferConstraints = value;
     }
     // add multiple pre-made db-updates (eg. from subcommand)
     add(dbUpdates) {
-        this._dbUpdates.push(...dbUpdates);
+        this.dbUpdates.push(...dbUpdates);
     }
     // helpers for adding one db-update
     set(path, value) {
-        this._dbUpdates.push(new DBUpdate({ type: DBUpdateType.set, path, value }));
+        this.dbUpdates.push(new DBUpdate({ type: DBUpdateType.set, path, value }));
     }
 }

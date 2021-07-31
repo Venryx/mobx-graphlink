@@ -51,7 +51,7 @@ export function ApplyDBUpdates_Local(dbData, dbUpdates, simplifyDBUpdates = true
     } while (emptyNodes.length);
     return result;
 }
-export async function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true) {
+export async function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true, deferConstraints = false) {
     var _a;
     dbUpdates = FinalizeDBUpdates(dbUpdates, simplifyDBUpdates);
     // prepare pg-client and knex
@@ -73,6 +73,10 @@ export async function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true) {
     MaybeLog_Base(a => a.commands, l => l(`Applying db-updates...`));
     await knex_raw.transaction(async (knexTx) => {
         var _a, _b;
+        if (deferConstraints) {
+            // needed for some cases, eg. adding "node" and "nodeRevision", with both having fk-refs to each other
+            await knexTx.raw("SET CONSTRAINTS ALL DEFERRED;");
+        }
         // add db-commands to transaction
         for (const update of dbUpdates) {
             AssertDBUpdateIsValid(update);

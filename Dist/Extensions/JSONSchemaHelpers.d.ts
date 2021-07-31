@@ -28,7 +28,7 @@ export declare function DeriveJSONSchema<T extends {
 /** Helper for compile-time type-checking. At runtime, it simply returns the passed-in key-array. */
 export declare function ClassKeys<T extends {
     [key: string]: any;
-}>(type: new (..._: any[]) => T, keys: Array<keyof T>): (keyof T)[];
+}>(...keys: Array<keyof T>): (keyof T)[];
 export declare function RunXOnceSchemasAdded(schemaDeps: string[], funcX: () => void): void;
 export declare function WaitTillSchemaAdded(schemaName: string): Promise<void> | null;
 declare type AJV_Extended = AJV.Ajv & {

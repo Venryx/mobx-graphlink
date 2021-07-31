@@ -31,7 +31,7 @@ export declare abstract class Command<Payload, ReturnData extends {
     Validate_Async(options?: Partial<GraphOptions> & GetAsync_Options): Promise<void>;
     Validate_Async_Safe(options?: Partial<GraphOptions> & GetAsync_Options): Promise<string | undefined>;
     /** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
-    GetDBUpdates(): DBUpdate[];
+    GetDBUpdates(parentHelper: DBHelper): DBUpdate[];
     abstract DeclareDBUpdates(helper: DBHelper): any;
     PreRun(): Promise<void>;
     /** [async] Validates the data, prepares it, and executes it -- thus applying it into the database. */
@@ -44,7 +44,12 @@ export declare abstract class Command<Payload, ReturnData extends {
     GenerateUUID_Once(path: string): string;
 }
 export declare class DBHelper {
-    _dbUpdates: DBUpdate[];
+    constructor(parent: DBHelper | undefined);
+    parent: DBHelper | undefined;
+    private deferConstraints?;
+    get DeferConstraints(): boolean | undefined;
+    set DeferConstraints(value: boolean | undefined);
+    dbUpdates: DBUpdate[];
     add(dbUpdates: DBUpdate[]): void;
     set(path: DBPPath, value: any): void;
 }

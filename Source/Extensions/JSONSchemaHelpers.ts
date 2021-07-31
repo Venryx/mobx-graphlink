@@ -145,7 +145,10 @@ export function DeriveJSONSchema<T extends {[key: string]: any}>(typeClass: new(
 	return result;
 }
 /** Helper for compile-time type-checking. At runtime, it simply returns the passed-in key-array. */
-export function ClassKeys<T extends {[key: string]: any}>(type: new(..._)=>T, keys: Array<keyof T>) {
+/*export function ClassKeys<T extends {[key: string]: any}>(type: new(..._)=>T, keys: Array<keyof T>) {
+	return keys;
+}*/
+export function ClassKeys<T extends {[key: string]: any}>(...keys: Array<keyof T>) {
 	return keys;
 }
 

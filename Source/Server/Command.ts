@@ -130,8 +130,8 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	}
 
 	/** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
-	GetDBUpdates() {
-		const helper = new DBHelper();
+	GetDBUpdates(parentHelper: DBHelper) {
+		const helper = new DBHelper(parentHelper);
 		this.DeclareDBUpdates(helper);
 
 		/*const meta = GetCommandClassMetadata(this.constructor.name);
@@ -141,8 +141,8 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		if (Command.augmentDBUpdates) {
 			Command.augmentDBUpdates(this, helper);
 		}
-		
-		const dbUpdates = helper._dbUpdates;
+
+		const dbUpdates = helper.dbUpdates;
 		return dbUpdates;
 	}
 	abstract DeclareDBUpdates(helper: DBHelper);
@@ -170,13 +170,14 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 			//this.runStartTime = Date.now();
 			await this.PreRun();
 
-			const dbUpdates = this.GetDBUpdates();
+			const helper = new DBHelper(undefined);
+			const dbUpdates = this.GetDBUpdates(helper);
 			if (this.options.graph.ValidateDBData) {
 				await this.Validate_LateHeavy(dbUpdates);
 			}
 			// FixDBUpdates(dbUpdates);
 			// await store.firebase.helpers.DBRef().update(dbUpdates);
-			await ApplyDBUpdates(dbUpdates);
+			await ApplyDBUpdates(dbUpdates, true, helper.DeferConstraints);
 
 			// todo: make sure the db-changes we just made are reflected in our mobx store, *before* current command is marked as "completed" (else next command may start operating on not-yet-refreshed data)
 
@@ -269,16 +270,38 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 }
 
 export class DBHelper {
-	_dbUpdates = [] as DBUpdate[];
+	/*static TransferFlags(from: DBHelper, to: DBHelper, chainUp: boolean) {
+		if (from.deferConstraints !== undefined) to.deferConstraints = from.deferConstraints;
+	}*/
+
+	constructor(parent: DBHelper|undefined) {
+		this.parent = parent;
+		// transfer flags from parent to child
+		if (parent && parent.deferConstraints !== undefined) this.deferConstraints = parent.deferConstraints;
+	}
+	parent: DBHelper|undefined;
+
+	// flags
+	private deferConstraints?: boolean;
+	get DeferConstraints() { return this.deferConstraints; }
+	set DeferConstraints(value: boolean|undefined) {
+		this.deferConstraints = value;
+		if (this.parent) this.parent.DeferConstraints = value;
+	}
+
+	// db-updates
+	// ==========
+
+	dbUpdates = [] as DBUpdate[];
 	
 	// add multiple pre-made db-updates (eg. from subcommand)
 	add(dbUpdates: DBUpdate[]) {
-		this._dbUpdates.push(...dbUpdates);
+		this.dbUpdates.push(...dbUpdates);
 	}
 
 	// helpers for adding one db-update
 	set(path: DBPPath, value: any) {
-		this._dbUpdates.push(new DBUpdate({type: DBUpdateType.set, path, value}));
+		this.dbUpdates.push(new DBUpdate({type: DBUpdateType.set, path, value}));
 	}
 	/*delete(path: string, value: any) {
 		this._dbUpdates.push(new DBUpdate({type: DBUpdateType.delete, path, value}));
