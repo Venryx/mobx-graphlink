@@ -104,6 +104,7 @@ export function GetSchemaJSON(name, errorOnMissing = true) {
     return Clone(schemaJSON);
 }
 export function DeriveJSONSchema(typeClass, modifiers) {
+    var _a, _b;
     const result = Clone(GetSchemaJSON(typeClass.name));
     if (modifiers.includeOnly) {
         for (const key of Object.keys(result.properties)) {
@@ -120,6 +121,12 @@ export function DeriveJSONSchema(typeClass, modifiers) {
     }
     if (modifiers.makeOptional_all) {
         delete result.required;
+    }
+    if (modifiers.makeRequired) {
+        result.required = CE([...((_a = result.required) !== null && _a !== void 0 ? _a : []), ...modifiers.makeRequired]).Distinct();
+    }
+    if (modifiers.makeRequired_all) {
+        result.required = CE([...((_b = result.required) !== null && _b !== void 0 ? _b : []), Object.keys(result.properties)]).Distinct();
     }
     return result;
 }

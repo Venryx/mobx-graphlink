@@ -123,6 +123,8 @@ export type SchemaModifiers<T> = {
 	includeOnly?: Array<keyof T>;
 	makeOptional?: Array<keyof T>;
 	makeOptional_all?: boolean;
+	makeRequired?: Array<keyof T>;
+	makeRequired_all?: boolean;
 };
 export function DeriveJSONSchema<T extends {[key: string]: any}>(typeClass: new(..._)=>T, modifiers: SchemaModifiers<T>): Object {
 	const result = Clone(GetSchemaJSON(typeClass.name));
@@ -140,6 +142,12 @@ export function DeriveJSONSchema<T extends {[key: string]: any}>(typeClass: new(
 	}
 	if (modifiers.makeOptional_all) {
 		delete result.required;
+	}
+	if (modifiers.makeRequired) {
+		result.required = CE([...(result.required ?? []), ...modifiers.makeRequired]).Distinct();
+	}
+	if (modifiers.makeRequired_all) {
+		result.required = CE([...(result.required ?? []), Object.keys(result.properties)]).Distinct();
 	}
 
 	return result;

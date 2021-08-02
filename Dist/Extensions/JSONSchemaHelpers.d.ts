@@ -21,6 +21,8 @@ export declare type SchemaModifiers<T> = {
     includeOnly?: Array<keyof T>;
     makeOptional?: Array<keyof T>;
     makeOptional_all?: boolean;
+    makeRequired?: Array<keyof T>;
+    makeRequired_all?: boolean;
 };
 export declare function DeriveJSONSchema<T extends {
     [key: string]: any;
