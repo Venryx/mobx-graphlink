@@ -10,6 +10,7 @@ export type {FetchResult, ApolloClient, NormalizedCacheObject, DocumentNode} fro
 //export {gql} from "@apollo/client/core/index.js";
 /*import core_ from "@apollo/client/core/index.js";
 export const {gql} = core_;*/
-export {default as gql} from "graphql-tag"; 
+//export {default as gql} from "graphql-tag"; 
+export {default as gql} from "graphql-tag/lib/index.js"; 
 
 export type {Observable} from "@apollo/client/utilities/index.js";
