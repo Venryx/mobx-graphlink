@@ -38,7 +38,7 @@ export class GraphlinkInitOptions {
             writable: true,
             value: void 0
         });
-        Object.defineProperty(this, "pgClient", {
+        Object.defineProperty(this, "pgPool", {
             enumerable: true,
             configurable: true,
             writable: true,
@@ -137,7 +137,7 @@ export class Graphlink {
         }
     }
     Initialize(initOptions) {
-        let { rootStore, apollo, onServer, knexModule, pgClient } = initOptions;
+        let { rootStore, apollo, onServer, knexModule, pgPool } = initOptions;
         Graphlink.instances.push(this);
         this.rootStore = rootStore;
         //if (initSubs) {
@@ -145,7 +145,7 @@ export class Graphlink {
         this.onServer = onServer;
         this.subs.apollo = apollo;
         this.subs.knexModule = knexModule;
-        this.subs.pgClient = pgClient;
+        this.subs.pgPool = pgPool;
         this.tree = new TreeNode(this, []);
         this.initialized = true;
     }

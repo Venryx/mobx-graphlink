@@ -2,7 +2,7 @@ import {TreeNode} from "./Tree/TreeNode.js";
 import {TreeRequestWatcher} from "./Tree/TreeRequestWatcher.js";
 import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "./Utils/DB/DBPaths.js";
 import {makeObservable, observable, runInAction} from "mobx";
-import type {PoolClient} from "pg";
+import type {Pool} from "pg";
 import type Knex from "knex";
 import {AccessorMetadata} from "./Accessors/@AccessorMetadata.js";
 import {ApolloClient, NormalizedCacheObject} from "./Utils/@NPMFixes/apollo_client.js";
@@ -23,7 +23,7 @@ export class GraphlinkInitOptions<StoreShape> {
 
 	// server-specific
 	knexModule?: typeof Knex;
-	pgClient?: PoolClient;
+	pgPool?: Pool;
 }
 
 export class Graphlink<StoreShape, DBShape> {
@@ -38,7 +38,7 @@ export class Graphlink<StoreShape, DBShape> {
 
 	initialized = false;
 	Initialize(initOptions: GraphlinkInitOptions<StoreShape>) {
-		let {rootStore, apollo, onServer, knexModule, pgClient} = initOptions;
+		let {rootStore, apollo, onServer, knexModule, pgPool} = initOptions;
 
 		Graphlink.instances.push(this);
 		this.rootStore = rootStore;
@@ -47,7 +47,7 @@ export class Graphlink<StoreShape, DBShape> {
 		this.onServer = onServer;
 		this.subs.apollo = apollo;
 		this.subs.knexModule = knexModule;
-		this.subs.pgClient = pgClient;
+		this.subs.pgPool = pgPool;
 		this.tree = new TreeNode(this, []);
 		
 		this.initialized = true;
@@ -67,7 +67,7 @@ export class Graphlink<StoreShape, DBShape> {
 	subs = {} as {
 		apollo: ApolloClient<NormalizedCacheObject>;
 		knexModule?: typeof Knex|null; // only used if on db-server
-		pgClient?: PoolClient|null; // only used if on db-server
+		pgPool?: Pool|null; // only used if on db-server
 	};
 
 	@observable readonly userInfo: UserInfo|null;

@@ -1,9 +1,9 @@
-import { PoolClient } from "pg";
+import { Pool } from "pg";
 import { Context as Context_base } from "postgraphile";
 import { TypeDef } from "../Extensions/GQLSchemaHelpers.js";
 import { Command } from "./Command.js";
 declare type Context = Context_base<any> & {
-    pgClient: PoolClient;
+    pgPool: Pool;
 };
 export declare class CommandRunInfo {
     parent: any;

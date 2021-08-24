@@ -1,6 +1,6 @@
 import { TreeNode } from "./Tree/TreeNode.js";
 import { TreeRequestWatcher } from "./Tree/TreeRequestWatcher.js";
-import type { PoolClient } from "pg";
+import type { Pool } from "pg";
 import type Knex from "knex";
 import { AccessorMetadata } from "./Accessors/@AccessorMetadata.js";
 import { ApolloClient, NormalizedCacheObject } from "./Utils/@NPMFixes/apollo_client.js";
@@ -14,7 +14,7 @@ export declare class GraphlinkInitOptions<StoreShape> {
     apollo: ApolloClient<NormalizedCacheObject>;
     onServer: boolean;
     knexModule?: typeof Knex;
-    pgClient?: PoolClient;
+    pgPool?: Pool;
 }
 export declare class Graphlink<StoreShape, DBShape> {
     static instances: Graphlink<any, any>[];
@@ -29,7 +29,7 @@ export declare class Graphlink<StoreShape, DBShape> {
     subs: {
         apollo: ApolloClient<NormalizedCacheObject>;
         knexModule?: typeof Knex | null | undefined;
-        pgClient?: PoolClient | null | undefined;
+        pgPool?: Pool | null | undefined;
     };
     readonly userInfo: UserInfo | null;
     SetUserInfo(userInfo: UserInfo, clearCaches?: boolean): Promise<void> | undefined;

@@ -3,7 +3,7 @@ import graphileUtils from "graphile-utils";
 import {DocumentNode} from "graphql";
 import {Assert, CE, Clone} from "js-vextensions";
 import {JSONSchema7, JSONSchema7Definition, JSONSchema7Type} from "json-schema";
-import {PoolClient} from "pg";
+import {Pool} from "pg";
 import {Context as Context_base} from "postgraphile";
 import {FinalizeSchemaForConversionToGraphQL, GetGQLSchemaInfoFromJSONSchema, TypeDef} from "../Extensions/GQLSchemaHelpers.js";
 import {GetSchemaJSON, IsJSONSchemaOfTypeScalar, IsJSONSchemaScalar, schemaEntryJSONs} from "../Extensions/JSONSchemaHelpers.js";
@@ -13,7 +13,7 @@ import {GetCommandClassMetadatas} from "./CommandMetadata.js";
 const {makeExtendSchemaPlugin, gql} = graphileUtils;
 
 type Context = Context_base<any> & {
-	pgClient: PoolClient;
+	pgPool: Pool;
 };
 
 function GQL_BetterErrorHandling(str: string) {

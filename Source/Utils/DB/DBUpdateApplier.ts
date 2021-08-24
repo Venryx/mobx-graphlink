@@ -64,11 +64,11 @@ export async function ApplyDBUpdates(dbUpdates: DBUpdate[], simplifyDBUpdates = 
 	dbUpdates = FinalizeDBUpdates(dbUpdates, simplifyDBUpdates);
 
 	// prepare pg-client and knex
-	const {pgClient, knexModule} = defaultGraphOptions.graph.subs;
-	Assert(pgClient != null, "pgClient must be supplied to Graphlink instance to be able to call ApplyDBUpdates. (only possible from db-server instance)")
+	const {pgPool, knexModule} = defaultGraphOptions.graph.subs;
+	Assert(pgPool != null, "pgPool must be supplied to Graphlink instance to be able to call ApplyDBUpdates. (only possible from db-server instance)")
 	Assert(knexModule != null, "knexModule (the export of knex npm-module) must be supplied to Graphlink instance to be able to call ApplyDBUpdates. (only possible from db-server instance)")
 	type KnexInstance = ReturnType<typeof Knex>;
-	const knex_raw: KnexInstance = pgClient!["_knex"] ?? (pgClient!["_knex"] = knexModule!({client: "pg"}));
+	const knex_raw: KnexInstance = pgPool!["_knex"] ?? (pgPool!["_knex"] = knexModule!({client: "pg"}));
 	/*const knex: typeof knex_raw = ((...args)=>{
 		return knex_raw(...args).connection(pgClient); // add pgClient as connection every time
 	}) as any;
@@ -146,5 +146,5 @@ export async function ApplyDBUpdates(dbUpdates: DBUpdate[], simplifyDBUpdates = 
 		console.log("Committing transaction...");
 		// transaction is automatically committed after the promise for this function resolves (and if promise rejects, transaction is automatically rolled back)
 		//await knexTx.commit();
-	}, {connection: pgClient});
+	}, {connection: pgPool});
 }
