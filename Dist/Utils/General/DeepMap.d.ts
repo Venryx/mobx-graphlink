@@ -1,20 +1,19 @@
+export declare const $finalValue: unique symbol;
+export declare class DeepMap<T> {
+    rootStore: Map<any, any>;
+    lastEntry: DeepMapEntry<T>;
+    entry(args: any[]): DeepMapEntry<T>;
+}
 export declare class DeepMapEntry<T> {
-    private base;
+    constructor(deepMap: DeepMap<any>, args: any[]);
+    private deepMap;
     private args;
-    private root;
-    private closest;
-    private closestIdx;
+    private closestStore;
+    private closestStore_depth;
     isDisposed: boolean;
-    constructor(base: Map<any, any>, args: any[]);
     exists(): boolean;
     get(): T;
     set(value: T): void;
     delete(): void;
     private assertNotDisposed;
-}
-export declare const $finalValue: unique symbol;
-export declare class DeepMap<T> {
-    private store;
-    private last;
-    entry(args: any[]): DeepMapEntry<T>;
 }

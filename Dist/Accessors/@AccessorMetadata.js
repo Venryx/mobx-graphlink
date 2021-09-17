@@ -4,14 +4,6 @@ import { CE } from "js-vextensions";
 const { DeepMap } = deepMap_; // wrapper for ts-node (eg. init-db scripts)*/
 import { DeepMap } from "../Utils/General/DeepMap.js";
 import { AccessorCallPlan } from "./@AccessorCallPlan.js";
-// profiling
-export function LogAccessorRunTimes() {
-    const accessorRunTimes_ordered = CE(CE(accessorMetadata).VValues()).OrderByDescending(a => a.totalRunTime);
-    //console.log(`Accessor cumulative run-times: @TotalCalls(${CE(accessorRunTimes_ordered.map(a=>a.callCount)).Sum()}) @TotalTimeInRootAccessors(${CE(accessorRunTimes_ordered.map(a=>a.totalRunTime_asRoot)).Sum()})`);
-    console.log(`Accessor cumulative run-times: @TotalCalls(${CE(accessorRunTimes_ordered.map(a => a.callCount)).Sum()})`);
-    //Log({}, accessorRunTimes_ordered);
-    console.table(accessorRunTimes_ordered);
-}
 //export class AccessorOptions<T> {
 export class AccessorOptions {
     constructor() {
@@ -150,7 +142,34 @@ export class AccessorMetadata {
         const entry = this.callPlans.entry(cacheKey);
         if (!entry.exists()) {
             entry.set(callPlan);
+            this.numberOfCallPlansStored++;
         }
         return entry.get();
     }
+}
+// helpers, for profiling and such
+// ==========
+export function LogAccessorMetadatas() {
+    const accessorRunTimes_ordered = CE(CE(accessorMetadata).VValues()).OrderByDescending(a => a.totalRunTime);
+    //console.log(`Accessor cumulative run-times: @TotalCalls(${CE(accessorRunTimes_ordered.map(a=>a.callCount)).Sum()}) @TotalTimeInRootAccessors(${CE(accessorRunTimes_ordered.map(a=>a.totalRunTime_asRoot)).Sum()})`);
+    console.log(`Accessor cumulative run-times: @TotalCalls(${CE(accessorRunTimes_ordered.map(a => a.callCount)).Sum()})`);
+    //Log({}, accessorRunTimes_ordered);
+    console.table(accessorRunTimes_ordered);
+}
+export function GetAccessorRunInfos() {
+    //const result = {} as {[key: string]: RunInfo};
+    const result = [];
+    const entries = Array.from(accessorMetadata);
+    for (const [key, value] of CE(entries).OrderByDescending(a => a[1].totalRunTime)) {
+        //result[key] = {callCount: value.callCount, totalRunTime: value.totalRunTime, rest: value};
+        result.push({ name: key, totalRunTime: value.totalRunTime, callCount: value.callCount, callPlansStored: value.numberOfCallPlansStored, rest: value });
+    }
+    return result;
+}
+export function LogAccessorRunInfos() {
+    const runInfos = GetAccessorRunInfos();
+    //console.log(`Accessor cumulative run-times: @TotalCalls(${CE(accessorRunTimes_ordered.map(a=>a.callCount)).Sum()}) @TotalTimeInRootAccessors(${CE(accessorRunTimes_ordered.map(a=>a.totalRunTime_asRoot)).Sum()})`);
+    console.log(`Accessor cumulative info: @TotalCalls(${CE(runInfos.map(a => a.callCount)).Sum()})`);
+    //Log({}, accessorRunTimes_ordered);
+    console.table(runInfos);
 }

@@ -4,47 +4,66 @@ Extracted from mobx-utils, for two reasons:
 2) mobx-utils does not export the "DeepMap" or "DeepMapEntry" classes. (tried just importing the deepMap.ts file, but then ts-node errors, since it thinks it's commonjs)
 */
 
-export class DeepMapEntry<T> {
-	private root: Map<any, any>;
-	private closest: Map<any, any>;
-	private closestIdx: number = 0;
-	isDisposed = false;
+export const $finalValue = Symbol("$finalValue");
 
-	constructor(private base: Map<any, any>, private args: any[]) {
-		let current: undefined | Map<any, any> = (this.closest = this.root = base);
+export class DeepMap<T> {
+	rootStore = new Map<any, any>();
+	lastEntry: DeepMapEntry<T>;
+
+	entry(args: any[]): DeepMapEntry<T> {
+		if (this.lastEntry) this.lastEntry.isDisposed = true;
+
+		return (this.lastEntry = new DeepMapEntry(this, args.concat($finalValue)));
+	}
+}
+
+export class DeepMapEntry<T> {
+	constructor(deepMap: DeepMap<any>, args: any[]) {
+		this.deepMap = deepMap;
+		this.args = args;
+
+		let currentStore: undefined | Map<any, any> = deepMap.rootStore;
+		this.closestStore = currentStore;
 		let i = 0;
 		for (; i < this.args.length - 1; i++) {
-			current = current!.get(args[i]);
-			if (current) this.closest = current;
+			currentStore = currentStore!.get(args[i]);
+			if (currentStore) this.closestStore = currentStore;
 			else break;
 		}
-		this.closestIdx = i;
+		this.closestStore_depth = i;
 	}
+	
+	private deepMap: DeepMap<any>;
+	private args: any[];
+	
+	private closestStore: Map<any, any>;
+	private closestStore_depth = 0;
+	isDisposed = false;
 
 	exists(): boolean {
 		this.assertNotDisposed();
 		const l = this.args.length;
-		return this.closestIdx >= l - 1 && this.closest.has(this.args[l - 1]);
+		return this.closestStore_depth >= l - 1 && this.closestStore.has(this.args[l - 1]);
 	}
 
 	get(): T {
 		this.assertNotDisposed();
 		if (!this.exists()) throw new Error("Entry doesn't exist");
-		return this.closest.get(this.args[this.args.length - 1]);
+		return this.closestStore.get(this.args[this.args.length - 1]);
 	}
 
 	set(value: T) {
 		this.assertNotDisposed();
 		const l = this.args.length;
-		let current: Map<any, any> = this.closest;
+		let current: Map<any, any> = this.closestStore;
 		// create remaining maps
-		for (let i = this.closestIdx; i < l - 1; i++) {
+		for (let i = this.closestStore_depth; i < l - 1; i++) {
 			const m = new Map();
 			current.set(this.args[i], m);
 			current = m;
 		}
-		this.closestIdx = l - 1;
-		this.closest = current;
+		this.closestStore_depth = l - 1;
+		this.closestStore = current;
 		current.set(this.args[l - 1], value);
 	}
 
@@ -52,13 +71,13 @@ export class DeepMapEntry<T> {
 		this.assertNotDisposed()
 		if (!this.exists()) throw new Error("Entry doesn't exist");
 		const l = this.args.length;
-		this.closest.delete(this.args[l - 1]);
+		this.closestStore.delete(this.args[l - 1]);
 		// clean up remaining maps if needed (reconstruct stack first)
-		let c = this.root;
-		const maps: Map<any, any>[] = [c];
+		let current = this.deepMap.rootStore;
+		const maps: Map<any, any>[] = [current];
 		for (let i = 0; i < l - 1; i++) {
-			c = c.get(this.args[i])!;
-			maps.push(c);
+			current = current.get(this.args[i])!;
+			maps.push(current);
 		}
 		for (let i = maps.length - 1; i > 0; i--) {
 			if (maps[i].size === 0) maps[i - 1].delete(this.args[i - 1]);
@@ -69,18 +88,5 @@ export class DeepMapEntry<T> {
 	private assertNotDisposed() {
 		// TODO: once this becomes annoying, we should introduce a reset method to re-run the constructor logic
 		if (this.isDisposed) throw new Error("Concurrent modification exception");
-	}
-}
-
-export const $finalValue = Symbol("$finalValue");
-
-export class DeepMap<T> {
-	private store = new Map<any, any>();
-	private last: DeepMapEntry<T>;
-
-	entry(args: any[]): DeepMapEntry<T> {
-		if (this.last) this.last.isDisposed = true;
-
-		return (this.last = new DeepMapEntry(this.store, args.concat($finalValue)));
 	}
 }

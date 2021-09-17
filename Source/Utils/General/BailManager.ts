@@ -93,7 +93,7 @@ export function Bail(messageOrMessageFunc?: string | Function | null, triggerDeb
 		if (lastRunAccessor_meta) {
 			//message = `[generic bail error, at: ${accessorCallStack.map(a=>GetAccessorName(a.meta.accessor)).join("->")}]`
 			//message = `[generic bail error, at: ${accessorCallStack.map(a=>a.meta.accessor.name).join("->")}]`
-			message = `[generic bail error, at: ${lastRunAccessor_meta.accessor.name}]`
+			message = `[generic bail error, at: ${lastRunAccessor_meta.accessor.name ?? lastRunAccessor_meta.accessor.toString()}]`
 		} else {
 			message = "[generic bail error]";
 		}

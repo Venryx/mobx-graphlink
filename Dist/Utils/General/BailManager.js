@@ -74,6 +74,7 @@ export function CatchBail(bailResultOrGetter, func, args, thisArg) {
 ;
 export let bailContext;
 export function Bail(messageOrMessageFunc, triggerDebugger = false) {
+    var _a;
     let message = messageOrMessageFunc instanceof Function ? messageOrMessageFunc() : messageOrMessageFunc;
     if (message == null) {
         const lastRunAccessor_meta = defaultGraphOptions.graph.lastRunAccessor_meta;
@@ -81,7 +82,7 @@ export function Bail(messageOrMessageFunc, triggerDebugger = false) {
         if (lastRunAccessor_meta) {
             //message = `[generic bail error, at: ${accessorCallStack.map(a=>GetAccessorName(a.meta.accessor)).join("->")}]`
             //message = `[generic bail error, at: ${accessorCallStack.map(a=>a.meta.accessor.name).join("->")}]`
-            message = `[generic bail error, at: ${lastRunAccessor_meta.accessor.name}]`;
+            message = `[generic bail error, at: ${(_a = lastRunAccessor_meta.accessor.name) !== null && _a !== void 0 ? _a : lastRunAccessor_meta.accessor.toString()}]`;
         }
         else {
             message = "[generic bail error]";
