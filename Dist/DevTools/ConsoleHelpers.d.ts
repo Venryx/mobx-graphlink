@@ -1,9 +1,9 @@
-import { AccessorMetadata } from "../Accessors/@AccessorMetadata.js";
+import { AccessorMetadata, ProfilingInfo } from "../Accessors/@AccessorMetadata.js";
 export declare function GetAccessorMetadatas(): AccessorMetadata[];
 export declare function LogAccessorMetadatas(): void;
 export declare function GetAccessorRunInfos(): ({
     name: string;
-} & Pick<AccessorMetadata, "callCount" | "totalRunTime"> & {
+} & Omit<ProfilingInfo, "NotifyOfCall"> & {
     callPlansStored: number;
     rest: AccessorMetadata;
 })[];

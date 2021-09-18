@@ -1,6 +1,7 @@
 import { IsPrimitive } from "js-vextensions";
 import { computed, onBecomeUnobserved, _isComputingDerivation } from "mobx";
 import { CatchBail } from "../index.js";
+import { ProfilingInfo } from "./@AccessorMetadata.js";
 export class CallPlanMeta {
     constructor(callPlan) {
         Object.defineProperty(this, "index", {
@@ -15,18 +16,11 @@ export class CallPlanMeta {
             writable: true,
             value: void 0
         });
-        // profiling data
-        Object.defineProperty(this, "callCount", {
+        Object.defineProperty(this, "profilingInfo", {
             enumerable: true,
             configurable: true,
             writable: true,
-            value: 0
-        });
-        Object.defineProperty(this, "totalRunTime", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
+            value: new ProfilingInfo()
         });
         this.index = callPlan.callPlanIndex;
         this.argsStr = callPlan.callArgs.map(arg => {

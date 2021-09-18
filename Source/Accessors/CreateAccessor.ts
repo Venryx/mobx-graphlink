@@ -115,14 +115,12 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 		}*/
 		finally {
 			const runTime = performance.now() - startTime;
-			meta.callCount++;
-			meta.totalRunTime += runTime;
+			meta.profilingInfo.NotifyOfCall(runTime);
 			/*if (isRootAccessor) {
 				meta.totalRunTime_asRoot += runTime;
 			}*/
 
-			callPlan.callPlanMeta.callCount++;
-			callPlan.callPlanMeta.totalRunTime += runTime;
+			callPlan.callPlanMeta.profilingInfo.NotifyOfCall(runTime);
 		}
 
 		return result;

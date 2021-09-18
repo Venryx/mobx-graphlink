@@ -24,11 +24,18 @@ export declare class AccessorMetadata {
     nextCall_catchItemBails: boolean;
     nextCall_catchItemBails_asX: any;
     ResetNextCallFields(): void;
-    callCount: number;
-    totalRunTime: number;
+    profilingInfo: ProfilingInfo;
     mobxCacheOpts: IComputedValueOptions<any>;
     callPlans: DeepMap<AccessorCallPlan>;
     callPlanMetas: CallPlanMeta[];
     callPlansStored: number;
     GetCallPlan(graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[], allowPersist: boolean): AccessorCallPlan;
+}
+export declare class ProfilingInfo {
+    callCount: number;
+    totalRunTime: number;
+    firstRunTime: number;
+    minRunTime: number;
+    maxRunTime: number;
+    NotifyOfCall(runTime: number): void;
 }

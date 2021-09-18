@@ -84,17 +84,11 @@ export class AccessorMetadata {
             value: void 0
         });
         // profiling
-        Object.defineProperty(this, "callCount", {
+        Object.defineProperty(this, "profilingInfo", {
             enumerable: true,
             configurable: true,
             writable: true,
-            value: 0
-        });
-        Object.defineProperty(this, "totalRunTime", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
+            value: new ProfilingInfo()
         });
         //totalRunTime_asRoot = 0;
         // result-caching
@@ -156,5 +150,47 @@ export class AccessorMetadata {
             this.callPlansStored++;
         }
         return entry.get();
+    }
+}
+export class ProfilingInfo {
+    constructor() {
+        Object.defineProperty(this, "callCount", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "totalRunTime", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "firstRunTime", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "minRunTime", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "maxRunTime", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+    }
+    NotifyOfCall(runTime) {
+        this.callCount++;
+        this.totalRunTime += runTime;
+        if (this.callCount == 1)
+            this.firstRunTime = runTime;
+        this.minRunTime = this.callCount == 1 ? runTime : Math.min(runTime, this.minRunTime);
+        this.maxRunTime = this.callCount == 1 ? runTime : Math.max(runTime, this.maxRunTime);
     }
 }

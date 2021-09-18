@@ -54,8 +54,7 @@ export class AccessorMetadata {
 	}
 
 	// profiling
-	callCount = 0;
-	totalRunTime = 0;
+	profilingInfo = new ProfilingInfo();
 	//totalRunTime_asRoot = 0;
 
 	// result-caching
@@ -81,5 +80,20 @@ export class AccessorMetadata {
 			this.callPlansStored++;
 		}
 		return entry.get();
+	}
+}
+
+export class ProfilingInfo {
+	callCount = 0;
+	totalRunTime = 0;
+	firstRunTime = 0;
+	minRunTime = 0;
+	maxRunTime = 0;
+	NotifyOfCall(runTime: number) {
+		this.callCount++;
+		this.totalRunTime += runTime;
+		if (this.callCount == 1) this.firstRunTime = runTime;
+		this.minRunTime = this.callCount == 1 ? runTime : Math.min(runTime, this.minRunTime);
+		this.maxRunTime = this.callCount == 1 ? runTime : Math.max(runTime, this.maxRunTime);
 	}
 }

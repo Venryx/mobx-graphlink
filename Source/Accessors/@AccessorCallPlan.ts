@@ -2,7 +2,7 @@ import {IsPrimitive} from "js-vextensions";
 import {computed, IComputedValue, IComputedValueOptions, onBecomeUnobserved, _isComputingDerivation} from "mobx";
 import {Graphlink, CatchBail} from "../index.js";
 import {UT_StoreShape} from "../UserTypes.js";
-import {AccessorMetadata} from "./@AccessorMetadata.js";
+import {AccessorMetadata, ProfilingInfo} from "./@AccessorMetadata.js";
 
 export class CallPlanMeta {
 	constructor(callPlan: AccessorCallPlan) {
@@ -17,10 +17,7 @@ export class CallPlanMeta {
 
 	index: number;
 	argsStr: string;
-
-	// profiling data
-	callCount = 0;
-	totalRunTime = 0;
+	profilingInfo = new ProfilingInfo();
 }
 
 export class AccessorCallPlan {
