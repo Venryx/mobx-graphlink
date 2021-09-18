@@ -92,7 +92,7 @@ export class AccessorCallPlan {
 		}
 		this.graph.lastRunAccessor_meta = this.accessorMeta; // run after cache-hit check (if mere cache-hit, the accessor's code was not actually run)
 
-		const cachingHasPurpose = !_isComputingDerivation() || this.accessorMeta.options.cache_keepAlive; // caching does not have purpose unless we're in a reactive context, or user has specified it as purposeful
+		const cachingHasPurpose = _isComputingDerivation() || this.accessorMeta.options.cache_keepAlive; // caching does not have purpose unless we're in a reactive context, or user has specified it as purposeful
 		//const useCaching = cachingHasPurpose && this.accessorMeta.options.cache;
 		const useCaching = cachingHasPurpose;
 		if (!useCaching) {
