@@ -70,6 +70,7 @@ export const CreateAccessor = (...args) => {
         let result;
         const startTime = performance.now();
         //const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
+        const resultIsCached = callPlan.cachedResult_wrapper != null;
         try {
             result = callPlan.Call_OrReturnCache();
         }
@@ -82,11 +83,11 @@ export const CreateAccessor = (...args) => {
         }*/
         finally {
             const runTime = performance.now() - startTime;
-            meta.profilingInfo.NotifyOfCall(runTime);
+            meta.profilingInfo.NotifyOfCall(runTime, resultIsCached);
             /*if (isRootAccessor) {
                 meta.totalRunTime_asRoot += runTime;
             }*/
-            callPlan.callPlanMeta.profilingInfo.NotifyOfCall(runTime);
+            callPlan.callPlanMeta.profilingInfo.NotifyOfCall(runTime, resultIsCached);
         }
         return result;
     };

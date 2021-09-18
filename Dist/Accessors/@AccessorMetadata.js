@@ -154,7 +154,13 @@ export class AccessorMetadata {
 }
 export class ProfilingInfo {
     constructor() {
-        Object.defineProperty(this, "callCount", {
+        Object.defineProperty(this, "calls", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "calls_cached", {
             enumerable: true,
             configurable: true,
             writable: true,
@@ -185,12 +191,14 @@ export class ProfilingInfo {
             value: 0
         });
     }
-    NotifyOfCall(runTime) {
-        this.callCount++;
+    NotifyOfCall(runTime, cached) {
+        this.calls++;
+        if (cached)
+            this.calls_cached++;
         this.totalRunTime += runTime;
-        if (this.callCount == 1)
+        if (this.calls == 1)
             this.firstRunTime = runTime;
-        this.minRunTime = this.callCount == 1 ? runTime : Math.min(runTime, this.minRunTime);
-        this.maxRunTime = this.callCount == 1 ? runTime : Math.max(runTime, this.maxRunTime);
+        this.minRunTime = this.calls == 1 ? runTime : Math.min(runTime, this.minRunTime);
+        this.maxRunTime = this.calls == 1 ? runTime : Math.max(runTime, this.maxRunTime);
     }
 }

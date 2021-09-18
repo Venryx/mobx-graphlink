@@ -32,10 +32,11 @@ export declare class AccessorMetadata {
     GetCallPlan(graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[], allowPersist: boolean): AccessorCallPlan;
 }
 export declare class ProfilingInfo {
-    callCount: number;
+    calls: number;
+    calls_cached: number;
     totalRunTime: number;
     firstRunTime: number;
     minRunTime: number;
     maxRunTime: number;
-    NotifyOfCall(runTime: number): void;
+    NotifyOfCall(runTime: number, cached: boolean): void;
 }

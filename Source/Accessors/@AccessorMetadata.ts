@@ -84,16 +84,18 @@ export class AccessorMetadata {
 }
 
 export class ProfilingInfo {
-	callCount = 0;
+	calls = 0;
+	calls_cached = 0;
 	totalRunTime = 0;
 	firstRunTime = 0;
 	minRunTime = 0;
 	maxRunTime = 0;
-	NotifyOfCall(runTime: number) {
-		this.callCount++;
+	NotifyOfCall(runTime: number, cached: boolean) {
+		this.calls++;
+		if (cached) this.calls_cached++;
 		this.totalRunTime += runTime;
-		if (this.callCount == 1) this.firstRunTime = runTime;
-		this.minRunTime = this.callCount == 1 ? runTime : Math.min(runTime, this.minRunTime);
-		this.maxRunTime = this.callCount == 1 ? runTime : Math.max(runTime, this.maxRunTime);
+		if (this.calls == 1) this.firstRunTime = runTime;
+		this.minRunTime = this.calls == 1 ? runTime : Math.min(runTime, this.minRunTime);
+		this.maxRunTime = this.calls == 1 ? runTime : Math.max(runTime, this.maxRunTime);
 	}
 }

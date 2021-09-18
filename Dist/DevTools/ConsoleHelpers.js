@@ -6,7 +6,7 @@ export function GetAccessorMetadatas() {
 export function LogAccessorMetadatas() {
     const metadatas = GetAccessorMetadatas();
     //console.log(`Accessor cumulative run-times: @TotalCalls(${CE(accessorRunTimes_ordered.map(a=>a.callCount)).Sum()}) @TotalTimeInRootAccessors(${CE(accessorRunTimes_ordered.map(a=>a.totalRunTime_asRoot)).Sum()})`);
-    console.log(`Accessor cumulative run-times: @TotalCalls(${CE(metadatas.map(a => a.profilingInfo.callCount)).Sum()})`);
+    console.log(`Accessor cumulative run-times: @TotalCalls(${CE(metadatas.map(a => a.profilingInfo.calls)).Sum()})`);
     //Log({}, accessorRunTimes_ordered);
     console.table(metadatas);
 }
@@ -23,7 +23,7 @@ export function GetAccessorRunInfos() {
 export function LogAccessorRunInfos() {
     const runInfos = GetAccessorRunInfos();
     //console.log(`Accessor cumulative run-times: @TotalCalls(${CE(accessorRunTimes_ordered.map(a=>a.callCount)).Sum()}) @TotalTimeInRootAccessors(${CE(accessorRunTimes_ordered.map(a=>a.totalRunTime_asRoot)).Sum()})`);
-    console.log(`Accessor cumulative info: @TotalCalls(${CE(runInfos.map(a => a.callCount)).Sum()})`);
+    console.log(`Accessor cumulative info: @TotalCalls(${CE(runInfos.map(a => a.calls)).Sum()})`);
     //Log({}, accessorRunTimes_ordered);
     console.table(runInfos);
 }
