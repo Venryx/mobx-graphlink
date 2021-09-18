@@ -1,7 +1,27 @@
+import {IsPrimitive} from "js-vextensions";
 import {computed, IComputedValue, IComputedValueOptions, onBecomeUnobserved, _isComputingDerivation} from "mobx";
 import {Graphlink, CatchBail} from "../index.js";
 import {UT_StoreShape} from "../UserTypes.js";
 import {AccessorMetadata} from "./@AccessorMetadata.js";
+
+export class CallPlanMeta {
+	constructor(callPlan: AccessorCallPlan) {
+		this.index = callPlan.callPlanIndex;
+		this.argsStr = callPlan.callArgs.map(arg=>{
+			if (IsPrimitive(arg)) return JSON.stringify(arg);
+			if (arg == null) return JSON.stringify(null);
+			if (arg.id) return JSON.stringify({id: arg.id});
+			return "?";
+		}).join(", ");
+	}
+
+	index: number;
+	argsStr: string;
+
+	// profiling data
+	callCount = 0;
+	totalRunTime = 0;
+}
 
 export class AccessorCallPlan {
 	constructor(
@@ -30,6 +50,7 @@ export class AccessorCallPlan {
 
 	// internal helpers
 	callPlanIndex: number;
+	callPlanMeta: CallPlanMeta;
 	onUnobserved: ()=>any;
 	GetCacheKey() {
 		const contextArgs = [

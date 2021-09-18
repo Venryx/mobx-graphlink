@@ -7,7 +7,7 @@ import {UT_StoreShape} from "../UserTypes.js";
 /*import deepMap_ from "mobx-utils/lib/deepMap.js";
 const { DeepMap } = deepMap_; // wrapper for ts-node (eg. init-db scripts)*/
 import {DeepMap} from "../Utils/General/DeepMap.js";
-import {AccessorCallPlan} from "./@AccessorCallPlan.js";
+import {AccessorCallPlan, CallPlanMeta} from "./@AccessorCallPlan.js";
 
 //export class AccessorOptions<T> {
 export class AccessorOptions<RootState = any, DBShape = any> {
@@ -61,49 +61,25 @@ export class AccessorMetadata {
 	// result-caching
 	mobxCacheOpts: IComputedValueOptions<any> = {};
 	callPlans = new DeepMap<AccessorCallPlan>();
-   numberOfCallPlansStored = 0;
-   GetCallPlan(graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[], allowCacheGetOrSet: boolean) {
-		const callPlan = new AccessorCallPlan(this, graph, store, catchItemBails, catchItemBails_asX, callArgs, this.numberOfCallPlansStored, ()=>{
-			this.callPlans.entry(cacheKey).delete();
+	callPlanMetas = [] as CallPlanMeta[]; // stored separately, because the meta should be kept even after the call-plan itself is unobserved->destroyed
+   callPlansStored = 0;
+   GetCallPlan(graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[], allowPersist: boolean) {
+		const callPlan_new_index = allowPersist ? this.callPlansStored : -1;
+		const callPlan_new = new AccessorCallPlan(this, graph, store, catchItemBails, catchItemBails_asX, callArgs, callPlan_new_index, ()=>{
+			if (allowPersist) {
+				this.callPlans.entry(cacheKey).delete();
+			}
 		});
-		if (!allowCacheGetOrSet) return callPlan;
+		callPlan_new.callPlanMeta = this.callPlanMetas[callPlan_new.callPlanIndex] ?? new CallPlanMeta(callPlan_new);
+		if (!allowPersist) return callPlan_new;
 
-		const cacheKey = callPlan.GetCacheKey();
+		const cacheKey = callPlan_new.GetCacheKey();
 		const entry = this.callPlans.entry(cacheKey);
 		if (!entry.exists()) {
-			entry.set(callPlan);
-			this.numberOfCallPlansStored++;
+			entry.set(callPlan_new);
+			this.callPlanMetas[callPlan_new_index] = callPlan_new.callPlanMeta;
+			this.callPlansStored++;
 		}
 		return entry.get();
 	}
-}
-
-// helpers, for profiling and such
-// ==========
-
-export function LogAccessorMetadatas() {
-	const accessorRunTimes_ordered = CE(CE(accessorMetadata).VValues()).OrderByDescending(a=>a.totalRunTime);
-	//console.log(`Accessor cumulative run-times: @TotalCalls(${CE(accessorRunTimes_ordered.map(a=>a.callCount)).Sum()}) @TotalTimeInRootAccessors(${CE(accessorRunTimes_ordered.map(a=>a.totalRunTime_asRoot)).Sum()})`);
-	console.log(`Accessor cumulative run-times: @TotalCalls(${CE(accessorRunTimes_ordered.map(a=>a.callCount)).Sum()})`);
-	//Log({}, accessorRunTimes_ordered);
-	console.table(accessorRunTimes_ordered);
-}
-
-export function GetAccessorRunInfos() {
-	type RunInfo = {name: string} & Pick<AccessorMetadata, "totalRunTime" | "callCount"> & {callPlansStored: number, rest: AccessorMetadata};
-	//const result = {} as {[key: string]: RunInfo};
-	const result = [] as RunInfo[];
-	const entries = Array.from(accessorMetadata);
-	for (const [key, value] of CE(entries).OrderByDescending(a=>a[1].totalRunTime)) {
-		//result[key] = {callCount: value.callCount, totalRunTime: value.totalRunTime, rest: value};
-		result.push({name: key, totalRunTime: value.totalRunTime, callCount: value.callCount, callPlansStored: value.numberOfCallPlansStored, rest: value});
-	}
-	return result;
-}
-export function LogAccessorRunInfos() {
-	const runInfos = GetAccessorRunInfos();
-	//console.log(`Accessor cumulative run-times: @TotalCalls(${CE(accessorRunTimes_ordered.map(a=>a.callCount)).Sum()}) @TotalTimeInRootAccessors(${CE(accessorRunTimes_ordered.map(a=>a.totalRunTime_asRoot)).Sum()})`);
-	console.log(`Accessor cumulative info: @TotalCalls(${CE(runInfos.map(a=>a.callCount)).Sum()})`);
-	//Log({}, accessorRunTimes_ordered);
-	console.table(runInfos);
 }

@@ -2,7 +2,7 @@ import { IComputedValueOptions } from "mobx";
 import { Graphlink } from "../index.js";
 import { UT_StoreShape } from "../UserTypes.js";
 import { DeepMap } from "../Utils/General/DeepMap.js";
-import { AccessorCallPlan } from "./@AccessorCallPlan.js";
+import { AccessorCallPlan, CallPlanMeta } from "./@AccessorCallPlan.js";
 export declare class AccessorOptions<RootState = any, DBShape = any> {
     static default: AccessorOptions<any, any>;
     cache: boolean;
@@ -28,14 +28,7 @@ export declare class AccessorMetadata {
     totalRunTime: number;
     mobxCacheOpts: IComputedValueOptions<any>;
     callPlans: DeepMap<AccessorCallPlan>;
-    numberOfCallPlansStored: number;
-    GetCallPlan(graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[], allowCacheGetOrSet: boolean): AccessorCallPlan;
-}
-export declare function LogAccessorMetadatas(): void;
-export declare function GetAccessorRunInfos(): ({
-    name: string;
-} & Pick<AccessorMetadata, "callCount" | "totalRunTime"> & {
+    callPlanMetas: CallPlanMeta[];
     callPlansStored: number;
-    rest: AccessorMetadata;
-})[];
-export declare function LogAccessorRunInfos(): void;
+    GetCallPlan(graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[], allowPersist: boolean): AccessorCallPlan;
+}

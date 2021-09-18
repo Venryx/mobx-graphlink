@@ -1,5 +1,45 @@
+import { IsPrimitive } from "js-vextensions";
 import { computed, onBecomeUnobserved, _isComputingDerivation } from "mobx";
 import { CatchBail } from "../index.js";
+export class CallPlanMeta {
+    constructor(callPlan) {
+        Object.defineProperty(this, "index", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "argsStr", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        // profiling data
+        Object.defineProperty(this, "callCount", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "totalRunTime", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        this.index = callPlan.callPlanIndex;
+        this.argsStr = callPlan.callArgs.map(arg => {
+            if (IsPrimitive(arg))
+                return JSON.stringify(arg);
+            if (arg == null)
+                return JSON.stringify(null);
+            if (arg.id)
+                return JSON.stringify({ id: arg.id });
+            return "?";
+        }).join(", ");
+    }
+}
 export class AccessorCallPlan {
     constructor(accessorMeta, graph, store, catchItemBails, catchItemBails_asX, callArgs, callPlanIndex, onUnobserved) {
         // core properties (those which make up the call-context's identity)
@@ -43,6 +83,12 @@ export class AccessorCallPlan {
         });
         // internal helpers
         Object.defineProperty(this, "callPlanIndex", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "callPlanMeta", {
             enumerable: true,
             configurable: true,
             writable: true,

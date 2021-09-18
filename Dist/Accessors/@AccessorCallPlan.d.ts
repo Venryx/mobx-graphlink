@@ -2,6 +2,13 @@ import { IComputedValue } from "mobx";
 import { Graphlink } from "../index.js";
 import { UT_StoreShape } from "../UserTypes.js";
 import { AccessorMetadata } from "./@AccessorMetadata.js";
+export declare class CallPlanMeta {
+    constructor(callPlan: AccessorCallPlan);
+    index: number;
+    argsStr: string;
+    callCount: number;
+    totalRunTime: number;
+}
 export declare class AccessorCallPlan {
     constructor(accessorMeta: AccessorMetadata, graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[], callPlanIndex: number, onUnobserved: () => any);
     accessorMeta: AccessorMetadata;
@@ -11,6 +18,7 @@ export declare class AccessorCallPlan {
     catchItemBails_asX: any;
     callArgs: any[];
     callPlanIndex: number;
+    callPlanMeta: CallPlanMeta;
     onUnobserved: () => any;
     GetCacheKey(): any[];
     MaybeCatchItemBail<T>(itemGetter: () => T): T;

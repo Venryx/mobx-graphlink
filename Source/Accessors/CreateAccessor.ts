@@ -120,6 +120,9 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 			/*if (isRootAccessor) {
 				meta.totalRunTime_asRoot += runTime;
 			}*/
+
+			callPlan.callPlanMeta.callCount++;
+			callPlan.callPlanMeta.totalRunTime += runTime;
 		}
 
 		return result;
