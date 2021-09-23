@@ -21,6 +21,8 @@ export const CreateAccessor_Typed = Create_CreateAccessor_Typed<RootStoreShape>(
 export const GetPerson = CreateAccessor_Typed({}, ...);
 */
 export declare function Create_CreateAccessor_Typed<StoreShape>(): CreateAccessor_Shape<StoreShape>;
+export declare let callPlan_callStack: AccessorCallPlan[];
+export declare function GetDeepestCallPlanCurrentlyRunning(): AccessorCallPlan;
 /**
 Wrap a function with CreateAccessor if it's under the "Store/" path, and one of the following:
 1) It accesses the store directly (ie. store.main.page). (thus, "WithStore(testStoreContents, ()=>GetThingFromStore())" works, without hacky overriding of project-wide "store" export)

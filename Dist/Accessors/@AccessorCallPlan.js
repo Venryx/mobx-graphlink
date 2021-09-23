@@ -22,6 +22,12 @@ export class CallPlanMeta {
             writable: true,
             value: new ProfilingInfo()
         });
+        Object.defineProperty(this, "madeRawDBAccess", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: false
+        });
         this.index = callPlan.callPlanIndex;
         this.argsStr = callPlan.callArgs.map(arg => {
             if (IsPrimitive(arg))

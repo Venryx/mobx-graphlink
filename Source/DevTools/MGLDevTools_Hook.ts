@@ -6,8 +6,8 @@ function CreateMGLDevToolsHook() {
 	const result = {
 		GetAccessorMetadatas() {
 			return GetAccessorMetadatas().map(meta=>{
-				const result = CE(meta).IncludeKeys("name", "profilingInfo", "callPlansStored", "callPlanMetas");
-				result.callPlanMetas = CE(result.callPlanMetas).OrderByDescending(a=>a.profilingInfo.totalRunTime);
+				const result = CE(meta).IncludeKeys("name", "profilingInfo", "madeRawDBAccess", "callPlansStored", "callPlanMetas");
+				result.callPlanMetas = CE(result.callPlanMetas).OrderByDescending(a=>a.profilingInfo.runTime_sum + a.profilingInfo.waitTime_sum);
 				return result;
 			});
 		},

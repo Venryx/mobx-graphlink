@@ -1,3 +1,4 @@
+import { BailMessage } from "../Utils/General/BailManager.js";
 //import {DeepMap} from "mobx-utils/lib/deepMap.js";
 /*import deepMap_ from "mobx-utils/lib/deepMap.js";
 const { DeepMap } = deepMap_; // wrapper for ts-node (eg. init-db scripts)*/
@@ -83,7 +84,7 @@ export class AccessorMetadata {
             writable: true,
             value: void 0
         });
-        // profiling
+        // profiling and such
         Object.defineProperty(this, "profilingInfo", {
             enumerable: true,
             configurable: true,
@@ -91,6 +92,12 @@ export class AccessorMetadata {
             value: new ProfilingInfo()
         });
         //totalRunTime_asRoot = 0;
+        Object.defineProperty(this, "madeRawDBAccess", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: false
+        });
         // result-caching
         Object.defineProperty(this, "mobxCacheOpts", {
             enumerable: true,
@@ -166,39 +173,95 @@ export class ProfilingInfo {
             writable: true,
             value: 0
         });
-        Object.defineProperty(this, "totalRunTime", {
+        Object.defineProperty(this, "calls_waited", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: 0
         });
-        Object.defineProperty(this, "firstRunTime", {
+        Object.defineProperty(this, "runTime_sum", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: 0
         });
-        Object.defineProperty(this, "minRunTime", {
+        Object.defineProperty(this, "runTime_first", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: 0
         });
-        Object.defineProperty(this, "maxRunTime", {
+        Object.defineProperty(this, "runTime_min", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: 0
+        });
+        Object.defineProperty(this, "runTime_max", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "waitTime_sum", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "waitTime_first", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "waitTime_min", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "waitTime_max", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "currentWaitTime_startedAt", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
         });
     }
-    NotifyOfCall(runTime, cached) {
+    NotifyOfCall(runTime, cached, error) {
+        let waitTime = 0;
+        const waitActiveFromLastCall = this.currentWaitTime_startedAt != null;
+        if (waitActiveFromLastCall) {
+            waitTime = performance.now() - this.currentWaitTime_startedAt;
+            this.currentWaitTime_startedAt = undefined;
+        }
+        if (error instanceof BailMessage) {
+            this.currentWaitTime_startedAt = performance.now();
+        }
         this.calls++;
         if (cached)
             this.calls_cached++;
-        this.totalRunTime += runTime;
+        if (waitActiveFromLastCall)
+            this.calls_waited++;
+        this.runTime_sum += runTime;
         if (this.calls == 1)
-            this.firstRunTime = runTime;
-        this.minRunTime = this.calls == 1 ? runTime : Math.min(runTime, this.minRunTime);
-        this.maxRunTime = this.calls == 1 ? runTime : Math.max(runTime, this.maxRunTime);
+            this.runTime_first = runTime;
+        this.runTime_min = this.calls == 1 ? runTime : Math.min(runTime, this.runTime_min);
+        this.runTime_max = this.calls == 1 ? runTime : Math.max(runTime, this.runTime_max);
+        // probably todo: change to the type of approach below (where only non-cached calls are included for metric calculation)
+        /*if (calls_nonCached == 1) this.runTime_nonCached_first = runTime;
+        this.runTime_nonCached_min = calls_nonCached == 1 ? runTime : Math.min(runTime, this.runTime_nonCached_min);
+        this.runTime_nonCached_max = this.calls == 1 ? runTime : Math.max(runTime, this.runTime_nonCached_max);*/
+        this.waitTime_sum += waitTime;
+        if (this.calls_waited == 1)
+            this.waitTime_first = waitTime;
+        this.waitTime_min = this.calls_waited == 1 ? waitTime : Math.min(waitTime, this.waitTime_min);
+        this.waitTime_max = this.calls_waited == 1 ? waitTime : Math.max(waitTime, this.waitTime_max);
     }
 }

@@ -2,6 +2,7 @@ import {CE} from "js-vextensions";
 import {IComputedValue, IComputedValueOptions, computed, onBecomeUnobserved, _isComputingDerivation, onBecomeObserved} from "mobx"
 import {Graphlink} from "../index.js";
 import {UT_StoreShape} from "../UserTypes.js";
+import {BailMessage} from "../Utils/General/BailManager.js";
 
 //import {DeepMap} from "mobx-utils/lib/deepMap.js";
 /*import deepMap_ from "mobx-utils/lib/deepMap.js";
@@ -53,9 +54,10 @@ export class AccessorMetadata {
 		this.nextCall_catchItemBails_asX = undefined;
 	}
 
-	// profiling
+	// profiling and such
 	profilingInfo = new ProfilingInfo();
 	//totalRunTime_asRoot = 0;
+	madeRawDBAccess = false;
 
 	// result-caching
 	mobxCacheOpts: IComputedValueOptions<any> = {};
@@ -86,16 +88,46 @@ export class AccessorMetadata {
 export class ProfilingInfo {
 	calls = 0;
 	calls_cached = 0;
-	totalRunTime = 0;
-	firstRunTime = 0;
-	minRunTime = 0;
-	maxRunTime = 0;
-	NotifyOfCall(runTime: number, cached: boolean) {
+	calls_waited = 0;
+
+	runTime_sum = 0;
+	runTime_first = 0;
+	runTime_min = 0;
+	runTime_max = 0;
+
+	waitTime_sum = 0;
+	waitTime_first = 0;
+	waitTime_min = 0;
+	waitTime_max = 0;
+	
+	currentWaitTime_startedAt: number|undefined;
+	NotifyOfCall(runTime: number, cached: boolean, error: BailMessage | Error | string) {
+		let waitTime = 0;
+		const waitActiveFromLastCall = this.currentWaitTime_startedAt != null;
+		if (waitActiveFromLastCall) {
+			waitTime = performance.now() - this.currentWaitTime_startedAt!;
+			this.currentWaitTime_startedAt = undefined;
+		}
+		if (error instanceof BailMessage) {
+			this.currentWaitTime_startedAt = performance.now();
+		}
+
 		this.calls++;
 		if (cached) this.calls_cached++;
-		this.totalRunTime += runTime;
-		if (this.calls == 1) this.firstRunTime = runTime;
-		this.minRunTime = this.calls == 1 ? runTime : Math.min(runTime, this.minRunTime);
-		this.maxRunTime = this.calls == 1 ? runTime : Math.max(runTime, this.maxRunTime);
+		if (waitActiveFromLastCall) this.calls_waited++;
+
+		this.runTime_sum += runTime;
+		if (this.calls == 1) this.runTime_first = runTime;
+		this.runTime_min = this.calls == 1 ? runTime : Math.min(runTime, this.runTime_min);
+		this.runTime_max = this.calls == 1 ? runTime : Math.max(runTime, this.runTime_max);
+		// probably todo: change to the type of approach below (where only non-cached calls are included for metric calculation)
+		/*if (calls_nonCached == 1) this.runTime_nonCached_first = runTime;
+		this.runTime_nonCached_min = calls_nonCached == 1 ? runTime : Math.min(runTime, this.runTime_nonCached_min);
+		this.runTime_nonCached_max = this.calls == 1 ? runTime : Math.max(runTime, this.runTime_nonCached_max);*/
+
+		this.waitTime_sum += waitTime;
+		if (this.calls_waited == 1) this.waitTime_first = waitTime;
+		this.waitTime_min = this.calls_waited == 1 ? waitTime : Math.min(waitTime, this.waitTime_min);
+		this.waitTime_max = this.calls_waited == 1 ? waitTime : Math.max(waitTime, this.waitTime_max);
 	}
 }

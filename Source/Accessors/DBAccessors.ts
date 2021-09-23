@@ -7,7 +7,16 @@ import {UT_DBShape} from "../UserTypes.js";
 import {PathOrPathGetterToPathSegments} from "../Utils/DB/DBPaths.js";
 import {Bail} from "../Utils/General/BailManager.js";
 import {DoX_ComputationSafe, RunInAction} from "../Utils/General/MobX.js";
+import {callPlan_callStack, GetDeepestCallPlanCurrentlyRunning} from "./CreateAccessor.js";
 import {NotifyWaitingForDB} from "./Helpers.js";
+
+export function NotifyRawDBAccess() {
+	const deepestCallPlanRunning = GetDeepestCallPlanCurrentlyRunning();
+	if (deepestCallPlanRunning) {
+		deepestCallPlanRunning.accessorMeta.madeRawDBAccess = true;
+		deepestCallPlanRunning.callPlanMeta.madeRawDBAccess = true;
+	}
+}
 
 /*
 Why use explicit GetDocs, GetDoc, etc. calls instead of just Proxy's in mobx store fields?
@@ -27,6 +36,7 @@ export class GetDocs_Options {
 	//resultForEmpty? = emptyArray;
 }
 export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphOptions<any, DB>> & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>ObservableMap<any, DocT>)): DocT[] {
+	NotifyRawDBAccess();
 	const opt = E(defaultGraphOptions, GetDocs_Options.default, options) as GraphOptions & GetDocs_Options;
 	let subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
 	//let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
@@ -85,6 +95,7 @@ export class GetDoc_Options {
 	ifLoading_returnVal? = undefined;
 }
 export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphOptions<any, DB>> & GetDoc_Options, docPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>DocT)): DocT|null|undefined {
+	NotifyRawDBAccess();
 	const opt = E(defaultGraphOptions, GetDoc_Options.default, options) as GraphOptions & GetDoc_Options;
 	let subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
 	//let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;

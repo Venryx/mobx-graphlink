@@ -1,6 +1,7 @@
 import { IComputedValueOptions } from "mobx";
 import { Graphlink } from "../index.js";
 import { UT_StoreShape } from "../UserTypes.js";
+import { BailMessage } from "../Utils/General/BailManager.js";
 import { DeepMap } from "../Utils/General/DeepMap.js";
 import { AccessorCallPlan, CallPlanMeta } from "./@AccessorCallPlan.js";
 export declare class AccessorOptions<RootState = any, DBShape = any> {
@@ -25,6 +26,7 @@ export declare class AccessorMetadata {
     nextCall_catchItemBails_asX: any;
     ResetNextCallFields(): void;
     profilingInfo: ProfilingInfo;
+    madeRawDBAccess: boolean;
     mobxCacheOpts: IComputedValueOptions<any>;
     callPlans: DeepMap<AccessorCallPlan>;
     callPlanMetas: CallPlanMeta[];
@@ -34,9 +36,15 @@ export declare class AccessorMetadata {
 export declare class ProfilingInfo {
     calls: number;
     calls_cached: number;
-    totalRunTime: number;
-    firstRunTime: number;
-    minRunTime: number;
-    maxRunTime: number;
-    NotifyOfCall(runTime: number, cached: boolean): void;
+    calls_waited: number;
+    runTime_sum: number;
+    runTime_first: number;
+    runTime_min: number;
+    runTime_max: number;
+    waitTime_sum: number;
+    waitTime_first: number;
+    waitTime_min: number;
+    waitTime_max: number;
+    currentWaitTime_startedAt: number | undefined;
+    NotifyOfCall(runTime: number, cached: boolean, error: BailMessage | Error | string): void;
 }

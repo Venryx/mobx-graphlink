@@ -1,7 +1,7 @@
 import { CE } from "js-vextensions";
 import { accessorMetadata } from "../Accessors/@AccessorMetadata.js";
 export function GetAccessorMetadatas() {
-    return CE(CE(accessorMetadata).VValues()).OrderByDescending(a => a.profilingInfo.totalRunTime);
+    return CE(CE(accessorMetadata).VValues()).OrderByDescending(a => a.profilingInfo.runTime_sum + a.profilingInfo.waitTime_sum);
 }
 export function LogAccessorMetadatas() {
     const metadatas = GetAccessorMetadatas();
@@ -14,7 +14,7 @@ export function GetAccessorRunInfos() {
     //const result = {} as {[key: string]: RunInfo};
     const result = [];
     const entries = Array.from(accessorMetadata);
-    for (const [key, value] of CE(entries).OrderByDescending(a => a[1].profilingInfo.totalRunTime)) {
+    for (const [key, value] of CE(entries).OrderByDescending(a => a[1].profilingInfo.runTime_sum + a[1].profilingInfo.waitTime_sum)) {
         //result[key] = {callCount: value.callCount, totalRunTime: value.totalRunTime, rest: value};
         result.push({ name: key, ...value.profilingInfo, callPlansStored: value.callPlansStored, rest: value });
     }

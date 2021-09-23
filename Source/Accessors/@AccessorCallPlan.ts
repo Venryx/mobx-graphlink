@@ -18,6 +18,7 @@ export class CallPlanMeta {
 	index: number;
 	argsStr: string;
 	profilingInfo = new ProfilingInfo();
+	madeRawDBAccess = false;
 }
 
 export class AccessorCallPlan {

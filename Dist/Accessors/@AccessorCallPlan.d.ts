@@ -7,6 +7,7 @@ export declare class CallPlanMeta {
     index: number;
     argsStr: string;
     profilingInfo: ProfilingInfo;
+    madeRawDBAccess: boolean;
 }
 export declare class AccessorCallPlan {
     constructor(accessorMeta: AccessorMetadata, graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[], callPlanIndex: number, onUnobserved: () => any);

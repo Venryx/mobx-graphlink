@@ -4,7 +4,15 @@ import { DataStatus } from "../Tree/TreeNode.js";
 import { PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
 import { Bail } from "../Utils/General/BailManager.js";
 import { DoX_ComputationSafe, RunInAction } from "../Utils/General/MobX.js";
+import { GetDeepestCallPlanCurrentlyRunning } from "./CreateAccessor.js";
 import { NotifyWaitingForDB } from "./Helpers.js";
+export function NotifyRawDBAccess() {
+    const deepestCallPlanRunning = GetDeepestCallPlanCurrentlyRunning();
+    if (deepestCallPlanRunning) {
+        deepestCallPlanRunning.accessorMeta.madeRawDBAccess = true;
+        deepestCallPlanRunning.callPlanMeta.madeRawDBAccess = true;
+    }
+}
 /*
 Why use explicit GetDocs, GetDoc, etc. calls instead of just Proxy's in mobx store fields?
 1) It lets you add options (like filters) in a consistent way. (consistent among sync db-accesses, and, old: consistent with async db-accesses, eg. GetDocAsync)
@@ -54,6 +62,7 @@ Object.defineProperty(GetDocs_Options, "default", {
 });
 export function GetDocs(options, collectionPathOrGetterFunc) {
     var _a;
+    NotifyRawDBAccess();
     const opt = E(defaultGraphOptions, GetDocs_Options.default, options);
     let subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
     //let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
@@ -136,6 +145,7 @@ Object.defineProperty(GetDoc_Options, "default", {
     value: new GetDoc_Options()
 });
 export function GetDoc(options, docPathOrGetterFunc) {
+    NotifyRawDBAccess();
     const opt = E(defaultGraphOptions, GetDoc_Options.default, options);
     let subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
     //let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;

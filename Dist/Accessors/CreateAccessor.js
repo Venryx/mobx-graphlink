@@ -1,6 +1,6 @@
 import { CE, E } from "js-vextensions";
 import { defaultGraphOptions } from "../Graphlink.js";
-import { CatchBail } from "../Utils/General/BailManager.js";
+import { BailMessage, CatchBail } from "../Utils/General/BailManager.js";
 import { AccessorMetadata, accessorMetadata, AccessorOptions } from "./@AccessorMetadata.js";
 import { GetAsync, GetWait } from "./Helpers.js";
 export function WithStore(options, store, accessorFunc) {
@@ -33,6 +33,12 @@ export function Create_CreateAccessor_Typed() {
     //return State_Base as typeof State_Base<RootStateType, any>;
     //return State_Base as StateFunc_WithWatch<RootState>;
     return CreateAccessor;
+}
+//export let currentDeepestCallPlanActive: AccessorCallPlan;
+// only use this for determining the "current deepest call-plan"; cannot construct a true/traditional "call-stack" since mobx-based "call-stacks" can trigger either top-down or bottom-up
+export let callPlan_callStack = [];
+export function GetDeepestCallPlanCurrentlyRunning() {
+    return callPlan_callStack[callPlan_callStack.length - 1];
 }
 /**
 Wrap a function with CreateAccessor if it's under the "Store/" path, and one of the following:
@@ -67,27 +73,31 @@ export const CreateAccessor = (...args) => {
         const allowCacheGetOrSet = opt.cache && !graph.storeAccessorCachingTempDisabled;
         const callPlan = meta.GetCallPlan(graph, store, meta.nextCall_catchItemBails, meta.nextCall_catchItemBails_asX, callArgs, allowCacheGetOrSet);
         meta.ResetNextCallFields();
-        let result;
+        let result, error;
         const startTime = performance.now();
+        callPlan_callStack.push(callPlan);
         //const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
         const resultIsCached = callPlan.cachedResult_wrapper != null;
         try {
             result = callPlan.Call_OrReturnCache();
         }
-        /*catch (ex) {
-            if (ex instanceof BailMessage && isRootAccessor) {
-                result = opt.onBail; // if not set, will be "undefined", which is fine (it's traditionally what I've used to indicate "still loading")
-            } else {
-                throw ex;
+        catch (ex) {
+            if (ex instanceof BailMessage) {
+                /*if (isRootAccessor) {
+                    return opt.onBail; // if not set, will be "undefined", which is fine (it's traditionally what I've used to indicate "still loading")
+                }*/
+                error = ex;
             }
-        }*/
+            throw ex;
+        }
         finally {
+            callPlan_callStack.pop();
             const runTime = performance.now() - startTime;
-            meta.profilingInfo.NotifyOfCall(runTime, resultIsCached);
+            meta.profilingInfo.NotifyOfCall(runTime, resultIsCached, error);
+            callPlan.callPlanMeta.profilingInfo.NotifyOfCall(runTime, resultIsCached, error);
             /*if (isRootAccessor) {
                 meta.totalRunTime_asRoot += runTime;
             }*/
-            callPlan.callPlanMeta.profilingInfo.NotifyOfCall(runTime, resultIsCached);
         }
         return result;
     };
