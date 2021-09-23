@@ -4,10 +4,9 @@ import { DataStatus } from "../Tree/TreeNode.js";
 import { PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
 import { Bail } from "../Utils/General/BailManager.js";
 import { DoX_ComputationSafe, RunInAction } from "../Utils/General/MobX.js";
-import { GetDeepestCallPlanCurrentlyRunning } from "./CreateAccessor.js";
 import { NotifyWaitingForDB } from "./Helpers.js";
-export function NotifyRawDBAccess() {
-    const deepestCallPlanRunning = GetDeepestCallPlanCurrentlyRunning();
+export function NotifyRawDBAccess(graph) {
+    const deepestCallPlanRunning = graph.GetDeepestCallPlanCurrentlyRunning();
     if (deepestCallPlanRunning) {
         deepestCallPlanRunning.accessorMeta.madeRawDBAccess = true;
         deepestCallPlanRunning.callPlanMeta.madeRawDBAccess = true;
@@ -62,8 +61,8 @@ Object.defineProperty(GetDocs_Options, "default", {
 });
 export function GetDocs(options, collectionPathOrGetterFunc) {
     var _a;
-    NotifyRawDBAccess();
     const opt = E(defaultGraphOptions, GetDocs_Options.default, options);
+    NotifyRawDBAccess(opt.graph);
     let subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
     //let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
     let pathSegments = subpathSegments;
@@ -145,8 +144,8 @@ Object.defineProperty(GetDoc_Options, "default", {
     value: new GetDoc_Options()
 });
 export function GetDoc(options, docPathOrGetterFunc) {
-    NotifyRawDBAccess();
     const opt = E(defaultGraphOptions, GetDoc_Options.default, options);
+    NotifyRawDBAccess(opt.graph);
     let subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
     //let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
     let pathSegments = subpathSegments;

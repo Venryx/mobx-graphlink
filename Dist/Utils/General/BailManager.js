@@ -1,5 +1,4 @@
 import { emptyArray_forLoading } from "js-vextensions";
-import { defaultGraphOptions } from "../../Graphlink.js";
 export class BailMessage {
     constructor(message) {
         Object.defineProperty(this, "message", {
@@ -74,19 +73,18 @@ export function CatchBail(bailResultOrGetter, func, args, thisArg) {
 ;
 export let bailContext;
 export function Bail(messageOrMessageFunc, triggerDebugger = false) {
-    var _a;
     let message = messageOrMessageFunc instanceof Function ? messageOrMessageFunc() : messageOrMessageFunc;
     if (message == null) {
-        const lastRunAccessor_meta = defaultGraphOptions.graph.lastRunAccessor_meta;
+        /*const lastRunAccessor_meta = defaultGraphOptions.graph.lastRunAccessor_meta;
         // if in accessor-call-stack, use that to make a more informative bail-message
         if (lastRunAccessor_meta) {
             //message = `[generic bail error, at: ${accessorCallStack.map(a=>GetAccessorName(a.meta.accessor)).join("->")}]`
             //message = `[generic bail error, at: ${accessorCallStack.map(a=>a.meta.accessor.name).join("->")}]`
-            message = `[generic bail error, at: ${(_a = lastRunAccessor_meta.accessor.name) !== null && _a !== void 0 ? _a : lastRunAccessor_meta.accessor.toString()}]`;
-        }
-        else {
+            message = `[generic bail error, at: ${lastRunAccessor_meta.accessor.name || lastRunAccessor_meta.accessor.toString()}]`
+        } else {
             message = "[generic bail error]";
-        }
+        }*/
+        message = "[generic bail error]"; // additional info is inserted by the catch-block of CreateAccessor
     }
     //const skipBail = false; // add flag which you can use to skip the bailing, when paused in debugger
     if (triggerDebugger) {

@@ -73,11 +73,15 @@ export class Graphlink {
             value: false
         });
         //accessorContext: AccessorContext<RootStoreShape> = new AccessorContext<RootStoreShape>(this);
-        Object.defineProperty(this, "lastRunAccessor_meta", {
+        // call-stack stuff
+        //lastRunAccessor_meta: AccessorMetadata|undefined;
+        //currentDeepestCallPlanActive: AccessorCallPlan;
+        // only use this for determining the "current deepest call-plan"; cannot construct a true/traditional "call-stack" since mobx-based "call-stacks" can trigger either top-down or bottom-up
+        Object.defineProperty(this, "callPlan_callStack", {
             enumerable: true,
             configurable: true,
             writable: true,
-            value: void 0
+            value: []
         });
         /*InitSubs() {
             // todo
@@ -148,6 +152,9 @@ export class Graphlink {
         this.subs.pgPool = pgPool;
         this.tree = new TreeNode(this, []);
         this.initialized = true;
+    }
+    GetDeepestCallPlanCurrentlyRunning() {
+        return this.callPlan_callStack[this.callPlan_callStack.length - 1];
     }
     SetUserInfo(userInfo, clearCaches = true) {
         this.userInfo = userInfo;

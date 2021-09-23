@@ -6,6 +6,7 @@ import type {Pool} from "pg";
 import type Knex from "knex";
 import {AccessorMetadata} from "./Accessors/@AccessorMetadata.js";
 import {ApolloClient, NormalizedCacheObject} from "./Utils/@NPMFixes/apollo_client.js";
+import {AccessorCallPlan} from "./Accessors/@AccessorCallPlan.js";
 
 export let defaultGraphOptions: GraphOptions;
 export function SetDefaultGraphOptions(opt: GraphOptions) {
@@ -57,7 +58,14 @@ export class Graphlink<StoreShape, DBShape> {
 	storeOverridesStack = [] as StoreShape[];
 	storeAccessorCachingTempDisabled = false;
 	//accessorContext: AccessorContext<RootStoreShape> = new AccessorContext<RootStoreShape>(this);
-	lastRunAccessor_meta: AccessorMetadata|undefined;
+	// call-stack stuff
+	//lastRunAccessor_meta: AccessorMetadata|undefined;
+	//currentDeepestCallPlanActive: AccessorCallPlan;
+	// only use this for determining the "current deepest call-plan"; cannot construct a true/traditional "call-stack" since mobx-based "call-stacks" can trigger either top-down or bottom-up
+	callPlan_callStack = [] as AccessorCallPlan[];
+	GetDeepestCallPlanCurrentlyRunning() {
+		return this.callPlan_callStack[this.callPlan_callStack.length - 1];
+	}
 
 	/*InitSubs() {
 		// todo

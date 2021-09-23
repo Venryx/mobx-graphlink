@@ -2,6 +2,15 @@ import { IsPrimitive } from "js-vextensions";
 import { computed, onBecomeUnobserved, _isComputingDerivation } from "mobx";
 import { CatchBail } from "../index.js";
 import { ProfilingInfo } from "./@AccessorMetadata.js";
+export function StringifyDocOrPrimitive(val, strForFailure = "?") {
+    if (IsPrimitive(val))
+        return JSON.stringify(val);
+    if (val == null)
+        return JSON.stringify(null);
+    if (val.id)
+        return JSON.stringify({ id: val.id });
+    return strForFailure;
+}
 export class CallPlanMeta {
     constructor(callPlan) {
         Object.defineProperty(this, "index", {
@@ -29,15 +38,7 @@ export class CallPlanMeta {
             value: false
         });
         this.index = callPlan.callPlanIndex;
-        this.argsStr = callPlan.callArgs.map(arg => {
-            if (IsPrimitive(arg))
-                return JSON.stringify(arg);
-            if (arg == null)
-                return JSON.stringify(null);
-            if (arg.id)
-                return JSON.stringify({ id: arg.id });
-            return "?";
-        }).join(", ");
+        this.argsStr = callPlan.callArgs.map(arg => StringifyDocOrPrimitive(arg)).join(", ");
     }
 }
 export class AccessorCallPlan {
@@ -116,13 +117,7 @@ export class AccessorCallPlan {
         this.callPlanIndex = callPlanIndex;
         this.onUnobserved = onUnobserved;
     }
-    GetCacheKey() {
-        const contextArgs = [
-            this.graph,
-            this.store,
-            this.catchItemBails,
-            this.catchItemBails_asX,
-        ];
+    get CallArgs_Unwrapped() {
         let callArgs_unwrapped = this.callArgs;
         if (this.accessorMeta.options.cache_unwrapArrays) {
             //Assert(options.cache, "There is no point to unwrapping-args if caching is disabled.");
@@ -135,7 +130,27 @@ export class AccessorCallPlan {
                 callArgs_unwrapped.splice(argIndex, 1, "$ARRAY_ITEMS_START", ...callArg, "$ARRAY_ITEMS_END");
             }
         }
+        ;
+        return callArgs_unwrapped;
+    }
+    GetCacheKey() {
+        const contextArgs = [
+            this.graph,
+            this.store,
+            this.catchItemBails,
+            this.catchItemBails_asX,
+        ];
+        let callArgs_unwrapped = this.CallArgs_Unwrapped;
         return [...contextArgs, ...callArgs_unwrapped];
+    }
+    toString() {
+        return JSON.stringify({
+            contextArgs: {
+                catchItemBails: this.catchItemBails,
+                catchItemBails_asX: this.catchItemBails_asX,
+            },
+            callArgs_unwrapped: this.CallArgs_Unwrapped.map(a => StringifyDocOrPrimitive(a)),
+        });
     }
     // helpers for user/in-accessor code
     MaybeCatchItemBail(itemGetter) {
@@ -152,7 +167,7 @@ export class AccessorCallPlan {
         if (this.cachedResult_wrapper != null) {
             return this.cachedResult_wrapper.get();
         }
-        this.graph.lastRunAccessor_meta = this.accessorMeta; // run after cache-hit check (if mere cache-hit, the accessor's code was not actually run)
+        //this.graph.lastRunAccessor_meta = this.accessorMeta; // run after cache-hit check (if mere cache-hit, the accessor's code was not actually run)
         const cachingHasPurpose = _isComputingDerivation() || this.accessorMeta.options.cache_keepAlive; // caching does not have purpose unless we're in a reactive context, or user has specified it as purposeful
         //const useCaching = cachingHasPurpose && this.accessorMeta.options.cache;
         const useCaching = cachingHasPurpose;

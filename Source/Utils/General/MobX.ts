@@ -35,6 +35,23 @@ export function DoX_ComputationSafe(funcThatChangesObservables: ()=>any) {
 		funcThatChangesObservables();
 	} else {
 		// else, wait till we're out of computation/render call-stack, *then* run it
-		WaitXThenRun(0, funcThatChangesObservables);
+		//WaitXThenRun(0, funcThatChangesObservables);
+		// (use bundled version of setImmediate; this is important, because it allows multiple TreeNode.Request() calls to activate in the same tick -- preventing ancestor accessors from triggering for every tree-node's attachment)
+		RunInNextTick_BundledInOneAction(funcThatChangesObservables);
+	}
+}
+export let RunInNextTick_Bundled_AndInSharedAction_funcs = [] as Function[];
+export function RunInNextTick_BundledInOneAction(func: Function) {
+	const funcs = RunInNextTick_Bundled_AndInSharedAction_funcs;
+	funcs.push(func);
+	if (funcs.length == 1) {
+		WaitXThenRun(0, ()=>{
+			RunInAction("SharedAction", ()=>{
+				for (const func of funcs) {
+					func();
+				}
+				funcs.length = 0;
+			});
+		});
 	}
 }

@@ -2,8 +2,8 @@ import { TreeNode } from "./Tree/TreeNode.js";
 import { TreeRequestWatcher } from "./Tree/TreeRequestWatcher.js";
 import type { Pool } from "pg";
 import type Knex from "knex";
-import { AccessorMetadata } from "./Accessors/@AccessorMetadata.js";
 import { ApolloClient, NormalizedCacheObject } from "./Utils/@NPMFixes/apollo_client.js";
+import { AccessorCallPlan } from "./Accessors/@AccessorCallPlan.js";
 export declare let defaultGraphOptions: GraphOptions;
 export declare function SetDefaultGraphOptions(opt: GraphOptions): void;
 export interface GraphOptions<StoreShape = any, DBShape = any> {
@@ -24,7 +24,8 @@ export declare class Graphlink<StoreShape, DBShape> {
     rootStore: StoreShape;
     storeOverridesStack: StoreShape[];
     storeAccessorCachingTempDisabled: boolean;
-    lastRunAccessor_meta: AccessorMetadata | undefined;
+    callPlan_callStack: AccessorCallPlan[];
+    GetDeepestCallPlanCurrentlyRunning(): AccessorCallPlan;
     onServer: boolean;
     subs: {
         apollo: ApolloClient<NormalizedCacheObject>;

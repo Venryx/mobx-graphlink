@@ -9,7 +9,7 @@ import { makeObservable, observable } from "mobx";
 import { CleanDBData } from "../Utils/DB/DBDataHelpers.js";
 import { PathOrPathGetterToPath, PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
 import { MaybeLog_Base } from "../Utils/General/General.js";
-import { MobX_AllowStateChanges, RunInAction } from "../Utils/General/MobX.js";
+import { MobX_AllowStateChanges, RunInAction, RunInNextTick_BundledInOneAction } from "../Utils/General/MobX.js";
 import { QueryParams, QueryParams_Linked } from "./QueryParams.js";
 export var TreeNodeType;
 (function (TreeNodeType) {
@@ -188,7 +188,7 @@ export class TreeNode {
         //Assert(MobX_GetGlobalState().computationDepth == 0, "Cannot call TreeNode.Subscribe from within a computation.");
         Assert(MobX_AllowStateChanges(), "Cannot call TreeNode.Subscribe from within a computation.");
         RunInAction("TreeNode.Subscribe_prep", () => this.status = DataStatus.Waiting);
-        MaybeLog_Base(a => a.subscriptions, () => `Subscribing to: ${this.path}`);
+        MaybeLog_Base(a => a.subscriptions, l => l(`Subscribing to: ${this.path}`));
         if (this.type == TreeNodeType.Document) {
             this.observable = this.graph.subs.apollo.subscribe({
                 query: this.query.GraphQLQuery,
@@ -202,9 +202,9 @@ export class TreeNode {
                     Assert(Object.values(returnedData).length == 1);
                     const returnedDocument = Object.values(returnedData)[0]; // so unwrap it here
                     MaybeLog_Base(a => a.subscriptions, l => l(`Got doc snapshot. @path(${this.path}) @snapshot:`, returnedDocument));
-                    RunInAction("TreeNode.Subscribe.onSnapshot_doc", () => {
+                    RunInNextTick_BundledInOneAction(() => RunInAction("TreeNode.Subscribe.onSnapshot_doc", () => {
                         this.SetData(returnedDocument, false);
-                    });
+                    }));
                 },
                 error: err => console.error("SubscriptionError:", err),
             });
@@ -221,7 +221,7 @@ export class TreeNode {
                     Assert(docs != null && docs instanceof Array);
                     const fromCache = false;
                     MaybeLog_Base(a => a.subscriptions, l => l(`Got collection snapshot. @path(${this.path}) @docs:`, docs));
-                    RunInAction("TreeNode.Subscribe.onSnapshot_collection", () => {
+                    RunInNextTick_BundledInOneAction(() => RunInAction("TreeNode.Subscribe.onSnapshot_collection", () => {
                         const deletedDocIDs = CE(Array.from(this.docNodes.keys())).Exclude(...docs.map(a => a.id));
                         let dataChanged = false;
                         for (const doc of docs) {
@@ -243,7 +243,7 @@ export class TreeNode {
                         if (newStatus != this.status && !isIgnorableStatusChange) {
                             this.status = newStatus;
                         }
-                    });
+                    }));
                 },
                 error: err => console.error("SubscriptionError:", err),
             });
@@ -254,6 +254,7 @@ export class TreeNode {
             return null;
         let { observable, subscription } = this;
         this.observable = null;
+        MaybeLog_Base(a => a.subscriptions, l => l(`Unsubscribing from: ${this.path}`));
         this.subscription.unsubscribe();
         this.subscription = null;
         return { observable, subscription };

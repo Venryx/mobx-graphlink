@@ -1,8 +1,9 @@
 import { ObservableMap } from "mobx";
 import { GraphOptions } from "../Graphlink.js";
+import { Graphlink } from "../index.js";
 import { QueryParams } from "../Tree/QueryParams.js";
 import { UT_DBShape } from "../UserTypes.js";
-export declare function NotifyRawDBAccess(): void;
+export declare function NotifyRawDBAccess(graph: Graphlink<any, any>): void;
 export declare class GetDocs_Options {
     static default: GetDocs_Options;
     inLinkRoot?: boolean | undefined;

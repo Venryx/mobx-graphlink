@@ -67,13 +67,6 @@ export function Create_CreateAccessor_Typed<StoreShape>() {
 	return CreateAccessor as CreateAccessor_Shape<StoreShape>;
 }
 
-//export let currentDeepestCallPlanActive: AccessorCallPlan;
-// only use this for determining the "current deepest call-plan"; cannot construct a true/traditional "call-stack" since mobx-based "call-stacks" can trigger either top-down or bottom-up
-export let callPlan_callStack = [] as AccessorCallPlan[];
-export function GetDeepestCallPlanCurrentlyRunning() {
-	return callPlan_callStack[callPlan_callStack.length - 1];
-}
-
 /**
 Wrap a function with CreateAccessor if it's under the "Store/" path, and one of the following:
 1) It accesses the store directly (ie. store.main.page). (thus, "WithStore(testStoreContents, ()=>GetThingFromStore())" works, without hacky overriding of project-wide "store" export)
@@ -109,13 +102,20 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 
 		let result, error;
 		const startTime = performance.now();
-		callPlan_callStack.push(callPlan);
+		graph.callPlan_callStack.push(callPlan);
 		//const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
 		const resultIsCached = callPlan.cachedResult_wrapper != null;
 		try {
 			result = callPlan.Call_OrReturnCache();
 		} catch (ex) {
 			if (ex instanceof BailMessage) {
+				// add more debugging info
+				ex["callPlan"] = callPlan;
+				if (ex.message == "[generic bail error]") {
+					ex.message += `\n@accessor:${accessor.name || accessor.toString()}`;
+					ex.message += `\n@callPlan:${callPlan.toString()}`;
+				}
+				
 				/*if (isRootAccessor) {
 					return opt.onBail; // if not set, will be "undefined", which is fine (it's traditionally what I've used to indicate "still loading")
 				}*/
@@ -123,7 +123,7 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 			}
 			throw ex;
 		} finally {
-			callPlan_callStack.pop();
+			graph.callPlan_callStack.pop();
 
 			const runTime = performance.now() - startTime;
 			meta.profilingInfo.NotifyOfCall(runTime, resultIsCached, error);
