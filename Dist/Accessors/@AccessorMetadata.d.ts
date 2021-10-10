@@ -31,7 +31,7 @@ export declare class AccessorMetadata {
     callPlans: DeepMap<AccessorCallPlan>;
     callPlanMetas: CallPlanMeta[];
     callPlansStored: number;
-    GetCallPlan(graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[], allowPersist: boolean): AccessorCallPlan;
+    GetCallPlan(graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[], useCache: boolean): AccessorCallPlan;
 }
 export declare class ProfilingInfo {
     calls: number;

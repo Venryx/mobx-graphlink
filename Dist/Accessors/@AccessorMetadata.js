@@ -138,16 +138,16 @@ export class AccessorMetadata {
         this.nextCall_catchItemBails = false;
         this.nextCall_catchItemBails_asX = undefined;
     }
-    GetCallPlan(graph, store, catchItemBails, catchItemBails_asX, callArgs, allowPersist) {
+    GetCallPlan(graph, store, catchItemBails, catchItemBails_asX, callArgs, useCache) {
         var _a;
-        const callPlan_new_index = allowPersist ? this.callPlansStored : -1;
+        const callPlan_new_index = useCache ? this.callPlansStored : -1;
         const callPlan_new = new AccessorCallPlan(this, graph, store, catchItemBails, catchItemBails_asX, callArgs, callPlan_new_index, () => {
-            if (allowPersist) {
+            if (useCache) {
                 this.callPlans.entry(cacheKey).delete();
             }
         });
         callPlan_new.callPlanMeta = (_a = this.callPlanMetas[callPlan_new.callPlanIndex]) !== null && _a !== void 0 ? _a : new CallPlanMeta(callPlan_new);
-        if (!allowPersist)
+        if (!useCache)
             return callPlan_new;
         const cacheKey = callPlan_new.GetCacheKey();
         const entry = this.callPlans.entry(cacheKey);

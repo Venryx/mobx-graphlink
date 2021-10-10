@@ -64,15 +64,15 @@ export class AccessorMetadata {
 	callPlans = new DeepMap<AccessorCallPlan>();
 	callPlanMetas = [] as CallPlanMeta[]; // stored separately, because the meta should be kept even after the call-plan itself is unobserved->destroyed
    callPlansStored = 0;
-   GetCallPlan(graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[], allowPersist: boolean) {
-		const callPlan_new_index = allowPersist ? this.callPlansStored : -1;
+   GetCallPlan(graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[], useCache: boolean) {
+		const callPlan_new_index = useCache ? this.callPlansStored : -1;
 		const callPlan_new = new AccessorCallPlan(this, graph, store, catchItemBails, catchItemBails_asX, callArgs, callPlan_new_index, ()=>{
-			if (allowPersist) {
+			if (useCache) {
 				this.callPlans.entry(cacheKey).delete();
 			}
 		});
 		callPlan_new.callPlanMeta = this.callPlanMetas[callPlan_new.callPlanIndex] ?? new CallPlanMeta(callPlan_new);
-		if (!allowPersist) return callPlan_new;
+		if (!useCache) return callPlan_new;
 
 		const cacheKey = callPlan_new.GetCacheKey();
 		const entry = this.callPlans.entry(cacheKey);
