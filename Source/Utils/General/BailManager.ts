@@ -27,7 +27,7 @@ Old:
 declare global {
 	interface Function {
 		/** The function itself, unchanged. */
-		normal<Func extends ((..._: any)=>any)>(this: Func, ..._: ArgumentsType<Func>): ReturnType<Func>;
+		Normal<Func extends ((..._: any)=>any)>(this: Func, ..._: ArgumentsType<Func>): ReturnType<Func>;
 
 		/*#* Short for "bail unless". */
 		//BU<Func extends ((..._: any)=>any)>(this: Func, ..._: ArgumentsType<Func>): NonNullable<ReturnType<Func>>;
@@ -41,7 +41,7 @@ declare global {
 }
 
 // only set prototype methods if they don't already exist (ie. if this is the first copy of the mobx-graphlink lib being loaded)
-if (Function.prototype.normal != null) {
+if (Function.prototype.Normal != null) {
 	// if overrides already exist, it means this library must have been loaded more than once; warn
 	console.warn("It appears that more than one copy of the mobx-graphlink package has been loaded, which is generally not desired."
 		+ " If you're using mobx-graphlink in multiple places (eg. root project, and a library like graphql-feedback), make them resolve to the same path/instance:"
@@ -50,7 +50,7 @@ if (Function.prototype.normal != null) {
 		+ 		" make sure that mobx-graphlink is symlinked as well (from both the root project and that local lib copy), so they resolve to the same path."
 		+ 		` Note: The same-symlinked-mobx-graphlink approach can have some complications, where npm messes up its subdeps; if that happens, just run "npm install" in mobx-graphlink again.`);
 } else {
-	Object.defineProperty(Function.prototype, "normal", {get() { return this; }});
+	Object.defineProperty(Function.prototype, "Normal", {get() { return this; }});
 	Object.defineProperty(Function.prototype, "BIN", {value: function(this: Function, ...args) {
 		const result = this.apply(null, args);
 		BailIfNull(result, `Function "${this.name}" returned value ${result}, which violates a non-null type-guard. Execution will bubble-up until it hits a bail-handler. The caller will try again once the underlying data changes.`);
