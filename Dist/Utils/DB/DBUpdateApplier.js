@@ -111,8 +111,10 @@ export async function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true, deferC
             };
             const isSet = update.value != null;
             const isDelete = update.value == null;
-            const isWithinJSONB = pathSegments_plain.length > 2;
-            if (!isWithinJSONB) {
+            const targetingRow = pathSegments_plain.length == 2;
+            const targetingCell = pathSegments_plain.length == 3;
+            const targetingJSONBPath = pathSegments_plain.length > 3;
+            if (targetingRow) {
                 if (isSet) {
                     //const result = await knex(tableName).where({id: docID}).first().insert(update.value);
                     const docValue_final = { ...update.value };
@@ -136,17 +138,14 @@ export async function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true, deferC
                     const [row] = await knexTx(tableName).where({ id: docID }).delete().returning("*");
                 }
             }
-            // if set/delete is targeting a path within jsonb
-            else {
-                // if update/delete of single-depth path (todo: make sure this handles deletes correctly)
-                /*if (pathSegments_plain.length == 3) {
-                    const fieldName = pathSegments_plain[2];
-                    const [row] = await knexTx(tableName).where({id: docID}).update({
-                        [fieldName]: FinalizeFieldValue(update.value, fieldName),
-                    }).returning("*");
-                }
-                // if deep update (ie. update that modifies a specific path within a JSONB field/cell)
-                else {*/
+            else if (targetingCell) {
+                // todo: make sure this handles deletes correctly
+                const fieldName = pathSegments_plain[2];
+                const [row] = await knexTx(tableName).where({ id: docID }).update({
+                    [fieldName]: FinalizeFieldValue(update.value, fieldName),
+                }).returning("*");
+            }
+            else if (targetingJSONBPath) {
                 const jsonbFieldName = pathSegments_plain[2];
                 const pathSegmentsInJSONB = pathSegments_plain.slice(3);
                 if (isSet) {
