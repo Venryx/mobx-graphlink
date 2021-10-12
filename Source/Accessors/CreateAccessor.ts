@@ -112,8 +112,8 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 				// add more debugging info
 				ex["callPlan"] = callPlan;
 				if (ex.message == "[generic bail error]") {
-					ex.message += `\n@accessor:${accessor.name || accessor.toString()}`;
 					ex.message += `\n@callPlan:${callPlan.toString()}`;
+					ex.message += `\n@accessor:${accessor.name || accessor.toString()}`;
 				}
 				
 				/*if (isRootAccessor) {

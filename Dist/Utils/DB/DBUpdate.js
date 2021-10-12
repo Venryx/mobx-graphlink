@@ -52,4 +52,7 @@ export class DBUpdate {
         //return SplitStringBySlash_Cached(this.path);
         return this.path.split("/");
     }
+    get PathSegments_Plain() {
+        return this.PathSegments.map(a => a.replace(".", ""));
+    }
 }

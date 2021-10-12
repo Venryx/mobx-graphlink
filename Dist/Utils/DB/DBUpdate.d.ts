@@ -8,9 +8,10 @@ export declare enum DBUpdateType {
     set = "set"
 }
 export declare class DBUpdate {
-    constructor(data: Omit<DBUpdate, "PathSegments">);
+    constructor(data: Omit<DBUpdate, "PathSegments" | "PathSegments_Plain">);
     type: DBUpdateType;
     path: DBPPath;
     get PathSegments(): string[];
+    get PathSegments_Plain(): string[];
     value?: any;
 }

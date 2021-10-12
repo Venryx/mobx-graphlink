@@ -19,7 +19,7 @@ export enum DBUpdateType {
 }
 
 export class DBUpdate {
-	constructor(data: Omit<DBUpdate, "PathSegments">) {
+	constructor(data: Omit<DBUpdate, "PathSegments" | "PathSegments_Plain">) {
 		CE(this).VSet(data);
 	}
 	
@@ -28,6 +28,9 @@ export class DBUpdate {
 	get PathSegments() {
 		//return SplitStringBySlash_Cached(this.path);
 		return this.path.split("/");
+	}
+	get PathSegments_Plain() {
+		return this.PathSegments.map(a=>a.replace(".", ""));
 	}
 	value?: any;
 }

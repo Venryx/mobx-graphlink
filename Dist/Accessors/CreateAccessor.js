@@ -80,8 +80,8 @@ export const CreateAccessor = (...args) => {
                 // add more debugging info
                 ex["callPlan"] = callPlan;
                 if (ex.message == "[generic bail error]") {
-                    ex.message += `\n@accessor:${accessor.name || accessor.toString()}`;
                     ex.message += `\n@callPlan:${callPlan.toString()}`;
+                    ex.message += `\n@accessor:${accessor.name || accessor.toString()}`;
                 }
                 /*if (isRootAccessor) {
                     return opt.onBail; // if not set, will be "undefined", which is fine (it's traditionally what I've used to indicate "still loading")

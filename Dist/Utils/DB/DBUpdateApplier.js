@@ -23,9 +23,14 @@ export function FinalizeDBUpdates(dbUpdates, simplifyDBUpdates = true) {
     return dbUpdates;
 }
 export function AssertDBUpdateIsValid(update) {
-    Assert(CE(update.PathSegments.length).IsBetween(2, 3), `DB-updates must set the value of either a whole document/row, or a direct-child field/column.${""} For deep updates, apply changes locally, then submit the entire new document or field/column.`);
-    if (update.PathSegments.length == 3) {
-        Assert(update.PathSegments[2].startsWith(".") && CE(update.PathSegments[2]).Matches(".").length == 1, `DB-updates for a specific field/column must start the field/column name with the "." character.`);
+    /*Assert(CE(update.PathSegments.length).IsBetween(2, 3), `DB-updates must set the value of either a whole document/row, or a direct-child field/column.${""
+        } For deep updates, apply changes locally, then submit the entire new document or field/column.`);*/
+    if (update.PathSegments.length >= 3) {
+        const hasOneDotAtStart = (str) => str.startsWith(".") && CE(str).Matches(".").length == 1;
+        Assert(hasOneDotAtStart(update.PathSegments[2]), `For db-updates targeting a specific field/cell, the field/cell path-segment must start with the "." character.`);
+        if (update.PathSegments.length >= 4) {
+            Assert(update.PathSegments.slice(3).every(a => hasOneDotAtStart(a)), `For db-updates targeting a specific path within a JSONB field/cell, the cell-internal path-segments must start with the "." character.`);
+        }
     }
 }
 // tries to approximate the application of db-updates, to a local copy of part of the db's data
@@ -88,6 +93,9 @@ export async function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true, deferC
             Assert(docSchema != null, `Could not find schema for table: ${tableName} (tried finding by name: "${docSchemaName}")`);
             Assert(docSchema.properties != null, `Schema "${docSchemaName}" has no properties, which is invalid for a document/row type.`);
             const docID = update.PathSegments[1];
+            // sanity checks
+            const plainStrRegex = /^[a-zA-Z0-9_-]+$/;
+            Assert(update.PathSegments_Plain.every(a => plainStrRegex.test(a)), `Path-segment characters must be alphanumerics, underscores, or hyphens. Got:${update.PathSegments_Plain.join(",")}`);
             const FinalizeFieldValue = (rawVal, fieldName) => {
                 let result = rawVal;
                 // if db-type for a field is "json"/"jsonb", make sure that the value is stringified
@@ -123,10 +131,59 @@ export async function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true, deferC
                 const [row] = await knexTx(tableName).where({ id: docID }).delete().returning("*");
             }
             else { // else, must be within-doc update
-                const fieldName = update.PathSegments[2].slice(1);
-                const [row] = await knexTx(tableName).where({ id: docID }).update({
-                    [fieldName]: FinalizeFieldValue(update.value, fieldName),
-                }).returning("*");
+                // if simple single-field update
+                if (update.PathSegments.length == 3) {
+                    const fieldName = update.PathSegments_Plain[2];
+                    const [row] = await knexTx(tableName).where({ id: docID }).update({
+                        [fieldName]: FinalizeFieldValue(update.value, fieldName),
+                    }).returning("*");
+                }
+                // if deep update (ie. update that modifies a specific path within a JSONB field/cell)
+                else {
+                    const jsonbFieldName = update.PathSegments_Plain[2];
+                    const pathSegmentsInJSONB = update.PathSegments_Plain.slice(3);
+                    const pathPlaceholdersStr = pathSegmentsInJSONB.map(a => "??").join(",");
+                    //const value_final = FinalizeFieldValue(update.value, fieldName);
+                    const value_final = JSON.stringify(update.value); // the value for this code-path will always be within a JSONB cell, so just stringify it (rather than calling FinalizeFieldValue)
+                    /*await CE(knexTx(tableName).where({id: docID}).update({
+                        //[jsonbFieldName]: FinalizeFieldValue(update.value, fieldName),
+                        [jsonbFieldName]: knex_raw.raw(`jsonb_set(??, '{${pathPlaceholdersStr}}', ?)`, [jsonbFieldName, ...pathSegmentsInJSONB, value_final]),
+                    }).returning("*")).VAct(a=>console.log("SQL:", a.toSQL()));*/
+                    let jsonbSet_startLines = [];
+                    let jsonbSet_endLine = "";
+                    let jsonbSet_values = [];
+                    for (const [i, pathSegment] of pathSegmentsInJSONB.entries()) {
+                        const pathPriorToThisSegment_placeholders = [];
+                        const pathPriorToThisSegment_segments = [];
+                        for (const priorSegment of pathSegmentsInJSONB.slice(0, i)) {
+                            pathPriorToThisSegment_placeholders.push("??");
+                            pathPriorToThisSegment_segments.push(priorSegment);
+                        }
+                        jsonbSet_startLines.push(`jsonb_set(COALESCE("??"${pathPriorToThisSegment_placeholders.length ? "->" : ""}${pathPriorToThisSegment_placeholders.join("->")}, '{}'), '{??}',`);
+                        jsonbSet_values.push(jsonbFieldName);
+                        jsonbSet_values.push(...pathPriorToThisSegment_segments);
+                        jsonbSet_values.push(pathSegment);
+                        if (i == pathSegmentsInJSONB.length - 1) {
+                            jsonbSet_startLines.push("??");
+                            jsonbSet_values.push(value_final);
+                        }
+                        jsonbSet_endLine += `)`;
+                    }
+                    const jsonbSet_str = [...jsonbSet_startLines, jsonbSet_endLine].join("\n");
+                    const promise = knexTx(tableName).where({ id: docID }).update({
+                        [jsonbFieldName]: knex_raw.raw(jsonbSet_str, jsonbSet_values),
+                    }).returning("*");
+                    console.log("SQL:", promise.toSQL());
+                    // should get a result following this pattern: (as seen here: https://stackoverflow.com/a/69534368/2441655)
+                    /*update "myTable" set "myField" =
+                        jsonb_set(COALESCE("myField", '{}'), '{"depth1"}',
+                        jsonb_set(COALESCE("myField"->'depth1', '{}'), '{"depth2"}',
+                        jsonb_set(COALESCE("myField"->'depth1'->'depth2', '{}'), '{"depth3"}',
+                        jsonb_set(COALESCE("myField"->'depth1'->'depth2'->'depth3', '{}'), '{"depth4"}',
+                        '"newValue"'
+                    )))) where "id" = 'myRowID' returning *;*/
+                    await promise;
+                }
             }
         }
         // commit transaction
@@ -135,3 +192,4 @@ export async function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true, deferC
         //await knexTx.commit();
     }, { connection: pgPool });
 }
+console.log("Test1");
