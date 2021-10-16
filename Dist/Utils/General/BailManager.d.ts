@@ -1,7 +1,6 @@
 import { ArgumentsType } from "updeep/types/types";
-export declare class BailMessage {
-    message: string;
-    static main: BailMessage;
+export declare class BailMessage extends Error {
+    static createdCount: number;
     constructor(message: string);
 }
 declare global {

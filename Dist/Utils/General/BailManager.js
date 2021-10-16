@@ -1,20 +1,17 @@
 import { emptyArray_forLoading } from "js-vextensions";
-export class BailMessage {
+export class BailMessage extends Error {
+    //static main = new BailMessage("[generic bail error]");
     constructor(message) {
-        Object.defineProperty(this, "message", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: message
-        });
+        super(message);
+        BailMessage.createdCount++;
     }
 }
-Object.defineProperty(BailMessage, "main", {
+Object.defineProperty(BailMessage, "createdCount", {
     enumerable: true,
     configurable: true,
     writable: true,
-    value: new BailMessage("[generic bail error]")
-});
+    value: 0
+}); // for estimating the performance impact of the associated error-creations/stack-trace-unwinds (see: https://stackoverflow.com/questions/11502052/throwing-strings-instead-of-errors#comment120540097_27501348)
 // only set prototype methods if they don't already exist (ie. if this is the first copy of the mobx-graphlink lib being loaded)
 if (Function.prototype.Normal != null) {
     // if overrides already exist, it means this library must have been loaded more than once; warn
@@ -91,8 +88,9 @@ export function Bail(messageOrMessageFunc, triggerDebugger = false) {
         debugger;
     }
     //if (!skipBail) {
-    BailMessage.main.message = message;
-    throw BailMessage.main;
+    /*BailMessage.main.message = message;
+    throw BailMessage.main;*/
+    throw new BailMessage(message);
     //}
     //return undefined as any;
 }

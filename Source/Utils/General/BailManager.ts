@@ -2,10 +2,14 @@ import {Assert, emptyArray_forLoading} from "js-vextensions";
 import {ArgumentsType} from "updeep/types/types";
 import {defaultGraphOptions} from "../../Graphlink.js";
 
-export class BailMessage {
-	static main = new BailMessage("[generic bail error]");
+export class BailMessage extends Error {
+	static createdCount = 0; // for estimating the performance impact of the associated error-creations/stack-trace-unwinds (see: https://stackoverflow.com/questions/11502052/throwing-strings-instead-of-errors#comment120540097_27501348)
+	//static main = new BailMessage("[generic bail error]");
 
-	constructor(public message: string) {}
+	constructor(message: string) {
+		super(message);
+		BailMessage.createdCount++;
+	}
 }
 
 /*
@@ -105,8 +109,9 @@ export function Bail(messageOrMessageFunc?: string | Function | null, triggerDeb
 		debugger;
 	}
 	//if (!skipBail) {
-	BailMessage.main.message = message;
-	throw BailMessage.main;
+	/*BailMessage.main.message = message;
+	throw BailMessage.main;*/
+	throw new BailMessage(message);
 	//}
 	//return undefined as any;
 }
