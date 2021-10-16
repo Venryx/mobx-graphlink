@@ -5,7 +5,7 @@ export declare function GetWait<T>(dataGetterFunc: () => T, options?: Partial<Gr
 export declare type GetAsync_ErrorHandleType = "rejectAndLog" | "reject" | "log" | "ignore";
 export declare class GetAsync_Options {
     static default: GetAsync_Options;
-    /** Just meant to alert us for infinite-loop-like calls/getter-funcs. Default: 50 [pretty arbitrary] */
+    /** Just meant to alert us for infinite-loop-like calls/getter-funcs. Default: 100 [pretty arbitrary] */
     maxIterations?: number | undefined;
     /** How to handle errors that occur in accessor, when there are still db-requests in progress. (ie. when accessor is still progressing) */
     errorHandling_during?: GetAsync_ErrorHandleType | undefined;

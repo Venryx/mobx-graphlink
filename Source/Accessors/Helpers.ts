@@ -45,8 +45,8 @@ export type GetAsync_ErrorHandleType = "rejectAndLog" | "reject" | "log" | "igno
 
 export class GetAsync_Options {
 	static default = new GetAsync_Options();
-	/** Just meant to alert us for infinite-loop-like calls/getter-funcs. Default: 50 [pretty arbitrary] */
-	maxIterations? = 50; // todo: maybe replace this with system that tracks the list of paths accessed, and which halts if it "senses no progression" [eg. max-iterations-without-change-to-access-paths]
+	/** Just meant to alert us for infinite-loop-like calls/getter-funcs. Default: 100 [pretty arbitrary] */
+	maxIterations? = 100; // todo: maybe replace this with system that tracks the list of paths accessed, and which halts if it "senses no progression" [eg. max-iterations-without-change-to-access-paths]
 	/** How to handle errors that occur in accessor, when there are still db-requests in progress. (ie. when accessor is still progressing) */
 	errorHandling_during? = "ignore" as GetAsync_ErrorHandleType;
 	/** How to handle errors that occur in accessor, when no db-requests are still in progress. (ie. on final accessor call) */

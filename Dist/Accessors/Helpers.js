@@ -33,12 +33,12 @@ export function GetWait(dataGetterFunc, options, funcName) {
 }
 export class GetAsync_Options {
     constructor() {
-        /** Just meant to alert us for infinite-loop-like calls/getter-funcs. Default: 50 [pretty arbitrary] */
+        /** Just meant to alert us for infinite-loop-like calls/getter-funcs. Default: 100 [pretty arbitrary] */
         Object.defineProperty(this, "maxIterations", {
             enumerable: true,
             configurable: true,
             writable: true,
-            value: 50
+            value: 100
         }); // todo: maybe replace this with system that tracks the list of paths accessed, and which halts if it "senses no progression" [eg. max-iterations-without-change-to-access-paths]
         /** How to handle errors that occur in accessor, when there are still db-requests in progress. (ie. when accessor is still progressing) */
         Object.defineProperty(this, "errorHandling_during", {
