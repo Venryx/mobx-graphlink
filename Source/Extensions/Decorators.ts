@@ -1,6 +1,6 @@
 import {AddSchema, collection_docSchemaName, WaitTillSchemaAdded} from "./JSONSchemaHelpers.js";
 import type {Knex} from "knex";
-import {BailMessage} from "../Utils/General/BailManager.js";
+import {BailError} from "../Utils/General/BailManager.js";
 import {Assert, E} from "js-vextensions";
 import {n} from "../Utils/@Internal/Types.js";
 
@@ -26,7 +26,7 @@ export function BailHandler_loadingUI_default_Set(value: BailHandler) {
 	BailHandler_loadingUI_default = value;
 }
 
-export type BailInfo = {comp: any, bailMessage: BailMessage};
+export type BailInfo = {comp: any, bailMessage: BailError};
 export type BailHandler = (info: BailInfo)=>any;
 export class BailHandler_Options {
 	loadingUI?: BailHandler;
@@ -49,7 +49,7 @@ export function BailHandler(...args) {
 				const result = render_old.apply(this, args);
 				return result;
 			} catch (ex) {
-				if (ex instanceof BailMessage) {
+				if (ex instanceof BailError) {
 					const loadingUI = this.loadingUI ?? targetClass.prototype.loadingUI ?? opts.loadingUI ?? BailHandler_loadingUI_default;
 					return loadingUI.call(this, {comp: this, bailMessage: ex});
 				} else {

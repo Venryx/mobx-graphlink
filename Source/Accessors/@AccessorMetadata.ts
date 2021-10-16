@@ -2,7 +2,7 @@ import {CE} from "js-vextensions";
 import {IComputedValue, IComputedValueOptions, computed, onBecomeUnobserved, _isComputingDerivation, onBecomeObserved} from "mobx"
 import {Graphlink} from "../index.js";
 import {UT_StoreShape} from "../UserTypes.js";
-import {BailMessage} from "../Utils/General/BailManager.js";
+import {BailError} from "../Utils/General/BailManager.js";
 
 //import {DeepMap} from "mobx-utils/lib/deepMap.js";
 /*import deepMap_ from "mobx-utils/lib/deepMap.js";
@@ -101,14 +101,14 @@ export class ProfilingInfo {
 	waitTime_max = 0;
 	
 	currentWaitTime_startedAt: number|undefined;
-	NotifyOfCall(runTime: number, cached: boolean, error: BailMessage | Error | string) {
+	NotifyOfCall(runTime: number, cached: boolean, error: BailError | Error | string) {
 		let waitTime = 0;
 		const waitActiveFromLastCall = this.currentWaitTime_startedAt != null;
 		if (waitActiveFromLastCall) {
 			waitTime = performance.now() - this.currentWaitTime_startedAt!;
 			this.currentWaitTime_startedAt = undefined;
 		}
-		if (error instanceof BailMessage) {
+		if (error instanceof BailError) {
 			this.currentWaitTime_startedAt = performance.now();
 		}
 

@@ -1,4 +1,4 @@
-import { BailMessage } from "../Utils/General/BailManager.js";
+import { BailError } from "../Utils/General/BailManager.js";
 //import {DeepMap} from "mobx-utils/lib/deepMap.js";
 /*import deepMap_ from "mobx-utils/lib/deepMap.js";
 const { DeepMap } = deepMap_; // wrapper for ts-node (eg. init-db scripts)*/
@@ -241,7 +241,7 @@ export class ProfilingInfo {
             waitTime = performance.now() - this.currentWaitTime_startedAt;
             this.currentWaitTime_startedAt = undefined;
         }
-        if (error instanceof BailMessage) {
+        if (error instanceof BailError) {
             this.currentWaitTime_startedAt = performance.now();
         }
         this.calls++;

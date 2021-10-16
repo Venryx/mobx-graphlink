@@ -1,5 +1,5 @@
 import { ArgumentsType } from "updeep/types/types";
-export declare class BailMessage extends Error {
+export declare class BailError extends Error {
     static createdCount: number;
     constructor(message: string);
 }

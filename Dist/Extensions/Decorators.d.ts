@@ -1,5 +1,5 @@
 import type { Knex } from "knex";
-import { BailMessage } from "../Utils/General/BailManager.js";
+import { BailError } from "../Utils/General/BailManager.js";
 import { n } from "../Utils/@Internal/Types.js";
 export declare function TableNameToDocSchemaName(tableName: string, errorIfMissing?: boolean): string;
 export declare function TableNameToGraphQLDocRetrieverKey(tableName: string): string;
@@ -7,7 +7,7 @@ export declare let BailHandler_loadingUI_default: BailHandler;
 export declare function BailHandler_loadingUI_default_Set(value: BailHandler): void;
 export declare type BailInfo = {
     comp: any;
-    bailMessage: BailMessage;
+    bailMessage: BailError;
 };
 export declare type BailHandler = (info: BailInfo) => any;
 export declare class BailHandler_Options {

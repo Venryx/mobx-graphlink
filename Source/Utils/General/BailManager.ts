@@ -2,13 +2,13 @@ import {Assert, emptyArray_forLoading} from "js-vextensions";
 import {ArgumentsType} from "updeep/types/types";
 import {defaultGraphOptions} from "../../Graphlink.js";
 
-export class BailMessage extends Error {
+export class BailError extends Error {
 	static createdCount = 0; // for estimating the performance impact of the associated error-creations/stack-trace-unwinds (see: https://stackoverflow.com/questions/11502052/throwing-strings-instead-of-errors#comment120540097_27501348)
 	//static main = new BailMessage("[generic bail error]");
 
 	constructor(message: string) {
 		super(message);
-		BailMessage.createdCount++;
+		BailError.createdCount++;
 	}
 }
 
@@ -78,7 +78,7 @@ export function CatchBail<T, ReturnTypeX>(bailResultOrGetter: T, func: (...args:
 	try {
 		result = func.apply(thisArg, args);
 	} catch (ex) {
-		if (ex instanceof BailMessage) {
+		if (ex instanceof BailError) {
 			const bailResult = bailResultOrGetter instanceof Function ? bailResultOrGetter() : bailResultOrGetter;
 			return bailResult;
 		} else {
@@ -111,7 +111,7 @@ export function Bail(messageOrMessageFunc?: string | Function | null, triggerDeb
 	//if (!skipBail) {
 	/*BailMessage.main.message = message;
 	throw BailMessage.main;*/
-	throw new BailMessage(message);
+	throw new BailError(message);
 	//}
 	//return undefined as any;
 }

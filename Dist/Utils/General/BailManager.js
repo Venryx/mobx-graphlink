@@ -1,12 +1,12 @@
 import { emptyArray_forLoading } from "js-vextensions";
-export class BailMessage extends Error {
+export class BailError extends Error {
     //static main = new BailMessage("[generic bail error]");
     constructor(message) {
         super(message);
-        BailMessage.createdCount++;
+        BailError.createdCount++;
     }
 }
-Object.defineProperty(BailMessage, "createdCount", {
+Object.defineProperty(BailError, "createdCount", {
     enumerable: true,
     configurable: true,
     writable: true,
@@ -57,7 +57,7 @@ export function CatchBail(bailResultOrGetter, func, args, thisArg) {
         result = func.apply(thisArg, args);
     }
     catch (ex) {
-        if (ex instanceof BailMessage) {
+        if (ex instanceof BailError) {
             const bailResult = bailResultOrGetter instanceof Function ? bailResultOrGetter() : bailResultOrGetter;
             return bailResult;
         }
@@ -90,7 +90,7 @@ export function Bail(messageOrMessageFunc, triggerDebugger = false) {
     //if (!skipBail) {
     /*BailMessage.main.message = message;
     throw BailMessage.main;*/
-    throw new BailMessage(message);
+    throw new BailError(message);
     //}
     //return undefined as any;
 }

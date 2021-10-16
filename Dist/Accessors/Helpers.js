@@ -1,9 +1,10 @@
 import { Assert, E, StringCE, WaitXThenRun } from "js-vextensions";
-import { reaction } from "mobx";
+import { reaction, when } from "mobx";
 import { defaultGraphOptions } from "../Graphlink.js";
 import { DataStatus } from "../Tree/TreeNode.js";
 import { TreeRequestWatcher } from "../Tree/TreeRequestWatcher.js";
-import { BailMessage } from "../Utils/General/BailManager.js";
+import { BailError } from "../Utils/General/BailManager.js";
+import { RunInAction } from "../Utils/General/MobX.js";
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 // (one of the rare cases where opt is not the first argument; that's because GetWait may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
 // Note: This function doesn't really have a purpose atm, as Command.Validate functions already use a GetAsync wrapper that quick-throws as soon as any db-request has to wait.
@@ -116,7 +117,7 @@ export async function GetAsync(dataGetterFunc, options) {
             let result;
             let accessor_lastError;
             function HandleAccessorError(ex, handling) {
-                if (ex instanceof BailMessage) {
+                if (ex instanceof BailError) {
                     return; // always ignore bail-messages in GetAsync (is this the ideal behavior?)
                 }
                 accessor_lastError = ex;
@@ -187,6 +188,69 @@ export async function GetAsync(dataGetterFunc, options) {
             WaitXThenRun(0, () => dispose()); // wait a bit, so dispose-func is ready (for when fired immediately)
             resolve(result);
         }, { fireImmediately: true });
+    });
+}
+/** Similar to GetAsync, except includes helper for delaying effect-execution (ie. mobx changes) till end, and without certain data-centric behaviors (like disabling db-cache during resolution). */
+export async function WaitTillResolvedThenExecuteSideEffects({ resolveCondition = "no bail-error", effectExecution = "action", 
+// Why a default timeout? Because if user tries to perform an action, but db-wait causes pause, we don't want it executing an hour later when they aren't expecting it.
+timeout = 5000, onTimeout = "reject promise", timeoutMessage = "WaitTillResolvedThenExecuteSideEffects call timed out.", }, func) {
+    return new Promise((resolve, reject) => {
+        const effectFuncs = [];
+        const addEffect = (effectFunc) => {
+            effectFuncs.push(effectFunc);
+        };
+        let result, error, errorHit = false;
+        let done = false;
+        const disposeEarly = when(() => {
+            // reset variables
+            effectFuncs.length = 0;
+            result = undefined;
+            error = undefined;
+            errorHit = false;
+            try {
+                result = func(addEffect);
+            }
+            catch (ex) {
+                error = ex;
+                errorHit = true;
+            }
+            if (resolveCondition == "returns true")
+                return result === true;
+            if (resolveCondition == "no bail-error")
+                return !(error instanceof BailError);
+            if (resolveCondition == "no error")
+                return !errorHit;
+            return false;
+        }, () => {
+            if (effectFuncs.length == 0)
+                return;
+            if (effectExecution == "plain") {
+                effectFuncs.forEach(a => a());
+            }
+            else if (effectExecution == "action") {
+                RunInAction("WaitTillResolvedThenExecuteSideEffects_effectExecution", () => {
+                    effectFuncs.forEach(a => a());
+                });
+            }
+            done = true;
+            resolve({ result, error, errorHit });
+        });
+        if (timeout != null) {
+            setTimeout(() => {
+                if (!done) {
+                    disposeEarly();
+                    if (onTimeout == "resolve promise") {
+                        resolve({ result, error, errorHit });
+                    }
+                    else if (onTimeout == "reject promise") {
+                        reject(timeoutMessage);
+                    }
+                    else if (onTimeout == "do nothing") {
+                        // do nothing ;)
+                    }
+                }
+            }, timeout);
+        }
     });
 }
 export let AssertV_triggerDebugger = false;

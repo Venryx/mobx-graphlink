@@ -1,7 +1,7 @@
 import {Assert, CE, E} from "js-vextensions";
 import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
 import {UT_StoreShape} from "../UserTypes.js";
-import {BailMessage, CatchBail} from "../Utils/General/BailManager.js";
+import {BailError, CatchBail} from "../Utils/General/BailManager.js";
 import {AccessorCallPlan} from "./@AccessorCallPlan.js";
 import {AccessorMetadata, accessorMetadata, AccessorOptions} from "./@AccessorMetadata.js";
 import {GetAsync, GetWait} from "./Helpers.js";
@@ -108,7 +108,7 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 		try {
 			result = callPlan.Call_OrReturnCache();
 		} catch (ex) {
-			if (ex instanceof BailMessage) {
+			if (ex instanceof BailError) {
 				// add more debugging info
 				ex["callPlan"] = callPlan;
 				if (ex.message == "[generic bail error]") {

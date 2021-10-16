@@ -1,5 +1,5 @@
 import { AddSchema, collection_docSchemaName } from "./JSONSchemaHelpers.js";
-import { BailMessage } from "../Utils/General/BailManager.js";
+import { BailError } from "../Utils/General/BailManager.js";
 import { Assert, E } from "js-vextensions";
 // metadata-retrieval helpers
 // ==========
@@ -48,7 +48,7 @@ export function BailHandler(...args) {
                 return result;
             }
             catch (ex) {
-                if (ex instanceof BailMessage) {
+                if (ex instanceof BailError) {
                     const loadingUI = (_c = (_b = (_a = this.loadingUI) !== null && _a !== void 0 ? _a : targetClass.prototype.loadingUI) !== null && _b !== void 0 ? _b : opts.loadingUI) !== null && _c !== void 0 ? _c : BailHandler_loadingUI_default;
                     return loadingUI.call(this, { comp: this, bailMessage: ex });
                 }

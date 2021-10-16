@@ -1,4 +1,5 @@
 import { GraphOptions } from "../Graphlink.js";
+import { n } from "../Utils/@Internal/Types.js";
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 export declare function GetWait<T>(dataGetterFunc: () => T, options?: Partial<GraphOptions>, funcName?: string): T;
 /** reject: caller of "await GetAsync()" receives the error, log: catch error and log it, ignore: catch error */
@@ -17,6 +18,20 @@ export declare class GetAsync_Options {
 export declare let GetAsync_throwImmediatelyOnDBWait_activeDepth: number;
 export declare function NotifyWaitingForDB(dbPath: string): void;
 export declare function GetAsync<T>(dataGetterFunc: () => T, options?: Partial<GraphOptions> & GetAsync_Options): Promise<T>;
+export declare type EffectFunc = () => any;
+export declare type AddEffect = (effectFunc: EffectFunc) => void;
+/** Similar to GetAsync, except includes helper for delaying effect-execution (ie. mobx changes) till end, and without certain data-centric behaviors (like disabling db-cache during resolution). */
+export declare function WaitTillResolvedThenExecuteSideEffects({ resolveCondition, effectExecution, timeout, onTimeout, timeoutMessage, }: {
+    resolveCondition?: "returns true" | "no bail-error" | "no error" | undefined;
+    effectExecution?: "plain" | "action" | undefined;
+    timeout?: number | n;
+    onTimeout?: "resolve promise" | "reject promise" | "do nothing" | undefined;
+    timeoutMessage?: string | undefined;
+}, func: (addEffect: AddEffect) => any): Promise<{
+    result: any;
+    error: any;
+    errorHit: boolean;
+}>;
 export declare let AssertV_triggerDebugger: boolean;
 /** Variant of Assert, which does not trigger the debugger. (to be used in mobx-graphlink Command.Validate functions, since it's okay/expected for those to fail asserts) */
 export declare function AssertV(condition: any, messageOrMessageFunc?: string | Function | null): asserts condition;

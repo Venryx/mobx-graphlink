@@ -1,7 +1,7 @@
 import { IComputedValueOptions } from "mobx";
 import { Graphlink } from "../index.js";
 import { UT_StoreShape } from "../UserTypes.js";
-import { BailMessage } from "../Utils/General/BailManager.js";
+import { BailError } from "../Utils/General/BailManager.js";
 import { DeepMap } from "../Utils/General/DeepMap.js";
 import { AccessorCallPlan, CallPlanMeta } from "./@AccessorCallPlan.js";
 export declare class AccessorOptions<RootState = any, DBShape = any> {
@@ -46,5 +46,5 @@ export declare class ProfilingInfo {
     waitTime_min: number;
     waitTime_max: number;
     currentWaitTime_startedAt: number | undefined;
-    NotifyOfCall(runTime: number, cached: boolean, error: BailMessage | Error | string): void;
+    NotifyOfCall(runTime: number, cached: boolean, error: BailError | Error | string): void;
 }
