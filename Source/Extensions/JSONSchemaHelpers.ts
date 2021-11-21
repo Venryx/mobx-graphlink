@@ -1,4 +1,4 @@
-import AJV from "ajv";
+import Ajv from "ajv";
 import AJVKeywords from "ajv-keywords";
 import {Clone, ToJSON, IsString, Assert, IsObject, E, CE, IsArray, DEL, ArrayCE} from "js-vextensions";
 import {JSONSchema4, JSONSchema7, JSONSchema7Definition, JSONSchema7Object, JSONSchema7Type} from "json-schema";
@@ -6,7 +6,7 @@ import {AssertV} from "../Accessors/Helpers.js";
 import {UUID_regex} from "./KeyGenerator.js";
 //import {RemoveHelpers, WithoutHelpers} from "./DatabaseHelpers.js";
 
-export const ajv = AJVKeywords(new AJV({allErrors: true})) as AJV_Extended;
+export const ajv = AJVKeywords(new Ajv({allErrors: true})) as AJV_Extended;
 
 export const collection_docSchemaName = new Map<string, string>(); // populated by funcs in Decorators.ts
 
@@ -65,8 +65,8 @@ export const schemaEntryJSONs = new Map<string, JSONSchema7>();
 Adds the given schema to the schema collection.
 Note that the "requiredness" of properties should be based on what's valid for an entry during submission to the database. (ie. within the type's main AddXXX command)
 */
-export function AddSchema(name: string, schemaOrGetter: JSONSchema7 | (()=>JSONSchema7)): AJV.Ajv | Promise<AJV.Ajv>;
-export function AddSchema(name: string, schemaDeps: string[] | null | undefined, schemaGetter: ()=>JSONSchema7): AJV.Ajv | Promise<AJV.Ajv>; // only accept schema-getter, since otherwise there's no point to adding the dependency-schemas
+export function AddSchema(name: string, schemaOrGetter: JSONSchema7 | (()=>JSONSchema7)): Ajv | Promise<Ajv>;
+export function AddSchema(name: string, schemaDeps: string[] | null | undefined, schemaGetter: ()=>JSONSchema7): Ajv | Promise<Ajv>; // only accept schema-getter, since otherwise there's no point to adding the dependency-schemas
 export function AddSchema(...args: any[]) {
 	let name: string, schemaDeps: string[], schemaOrGetter: any;
 	if (args.length == 2) [name, schemaOrGetter] = args;
@@ -81,7 +81,7 @@ export function AddSchema(...args: any[]) {
 		}
 	}*/
 
-	let ajvResult: AJV.Ajv|undefined;
+	let ajvResult: Ajv|undefined;
 	const proceed = ()=>{
 		let schema = schemaOrGetter instanceof Function ? schemaOrGetter() : schemaOrGetter;
 
@@ -224,14 +224,14 @@ export function DeriveSchema(baseSchemaNameOrJSON: string | Object, schemaPropsT
 	return newSchema;
 }*/
 
-type AJV_Extended = AJV.Ajv & {
+type AJV_Extended = Ajv & {
 	// AddSchema(schema, name: string): void;
 	FullErrorsText(): string;
 };
 /* AJV.prototype.AddSchema = function(this: AJV_Extended, schema, name: string) {
 	return `${this.errorsText()} (${ToJSON(this.errors)})`;
 }; */
-AJV.prototype.FullErrorsText = function(this: AJV_Extended) {
+Ajv.prototype["FullErrorsText"] = function(this: AJV_Extended) {
 	return `${this.errorsText()}
 
 Details: ${ToJSON(this.errors, undefined, 3)}
@@ -355,7 +355,7 @@ export function GetInvalidPropPaths(data: Object, schemaObject: Object) {
 	if (passed) return [];
 
 	return ajv.errors!.map(error=>{
-		let propPath = error.dataPath
+		let propPath = error.schemaPath
 			.replace(/^\./, "") // remove starting dot
 			.replace(/[.[\]]/g, "/") // replace instances of ".", "[", and "]" with "/"
 			.replace(/\/+/g, "/"); // collapse each sequence of "/" into a single "/" (can be caused by: "arrayProp[0].prop" -> "arrayProp/0//prop")

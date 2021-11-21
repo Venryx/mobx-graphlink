@@ -1,4 +1,4 @@
-import AJV from "ajv";
+import Ajv from "ajv";
 import { JSONSchema7 } from "json-schema";
 export declare const ajv: AJV_Extended;
 export declare const collection_docSchemaName: Map<string, string>;
@@ -14,8 +14,8 @@ export declare const schemaEntryJSONs: Map<string, JSONSchema7>;
 Adds the given schema to the schema collection.
 Note that the "requiredness" of properties should be based on what's valid for an entry during submission to the database. (ie. within the type's main AddXXX command)
 */
-export declare function AddSchema(name: string, schemaOrGetter: JSONSchema7 | (() => JSONSchema7)): AJV.Ajv | Promise<AJV.Ajv>;
-export declare function AddSchema(name: string, schemaDeps: string[] | null | undefined, schemaGetter: () => JSONSchema7): AJV.Ajv | Promise<AJV.Ajv>;
+export declare function AddSchema(name: string, schemaOrGetter: JSONSchema7 | (() => JSONSchema7)): Ajv | Promise<Ajv>;
+export declare function AddSchema(name: string, schemaDeps: string[] | null | undefined, schemaGetter: () => JSONSchema7): Ajv | Promise<Ajv>;
 export declare function GetSchemaJSON(name: string, errorOnMissing?: boolean): JSONSchema7;
 export declare type SchemaModifiers<T> = {
     includeOnly?: Array<keyof T>;
@@ -33,7 +33,7 @@ export declare function ClassKeys<T extends {
 }>(...keys: Array<keyof T>): (keyof T)[];
 export declare function RunXOnceSchemasAdded(schemaDeps: string[], funcX: () => void): void;
 export declare function WaitTillSchemaAdded(schemaName: string): Promise<void> | null;
-declare type AJV_Extended = AJV.Ajv & {
+declare type AJV_Extended = Ajv & {
     FullErrorsText(): string;
 };
 export declare type AJVExtraCheckFunc = (item: any) => string;
@@ -59,7 +59,7 @@ export declare function AssertValidate_Full(schemaObject: JSONSchema7, schemaNam
 export declare function Schema_WithOptionalPropsAllowedNull(schema: any): any;
 export declare function GetInvalidPropPaths(data: Object, schemaObject: Object): {
     propPath: string;
-    error: AJV.ErrorObject;
+    error: import("ajv").ErrorObject<string, Record<string, any>, unknown>;
 }[];
 export declare function IsJSONSchemaScalar(typeStr: string | undefined): boolean;
 export declare function IsJSONSchemaOfTypeScalar(jsonSchema: JSONSchema7): boolean;

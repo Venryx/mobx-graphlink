@@ -1,10 +1,10 @@
-import AJV from "ajv";
+import Ajv from "ajv";
 import AJVKeywords from "ajv-keywords";
 import { Clone, ToJSON, IsString, Assert, E, CE, ArrayCE } from "js-vextensions";
 import { AssertV } from "../Accessors/Helpers.js";
 import { UUID_regex } from "./KeyGenerator.js";
 //import {RemoveHelpers, WithoutHelpers} from "./DatabaseHelpers.js";
-export const ajv = AJVKeywords(new AJV({ allErrors: true }));
+export const ajv = AJVKeywords(new Ajv({ allErrors: true }));
 export const collection_docSchemaName = new Map(); // populated by funcs in Decorators.ts
 // needed so that apollo knows postgraphile get-single-doc queries can be found in cache simply by typename and id (eg. as cached from collection-based query results)
 export function GetTypePolicyFieldsMappingSingleDocQueriesToCache() {
@@ -177,7 +177,7 @@ export function WaitTillSchemaAdded(schemaName) {
 /* AJV.prototype.AddSchema = function(this: AJV_Extended, schema, name: string) {
     return `${this.errorsText()} (${ToJSON(this.errors)})`;
 }; */
-AJV.prototype.FullErrorsText = function () {
+Ajv.prototype["FullErrorsText"] = function () {
     return `${this.errorsText()}
 
 Details: ${ToJSON(this.errors, undefined, 3)}
@@ -324,7 +324,7 @@ export function GetInvalidPropPaths(data, schemaObject) {
     if (passed)
         return [];
     return ajv.errors.map(error => {
-        let propPath = error.dataPath
+        let propPath = error.schemaPath
             .replace(/^\./, "") // remove starting dot
             .replace(/[.[\]]/g, "/") // replace instances of ".", "[", and "]" with "/"
             .replace(/\/+/g, "/"); // collapse each sequence of "/" into a single "/" (can be caused by: "arrayProp[0].prop" -> "arrayProp/0//prop")
