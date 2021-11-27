@@ -74,10 +74,16 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	// these methods are executed on the server (well, will be later)
 	// ==========
 
-	// parent commands should call MarkAsSubcommand() immediately after setting a subcommand's payload
-	up: Command<any, any>;
+	/** The parent command, ie. the prior command that constructed this command. */
+	parentCommand: Command<any, any>;
+	/** Alias for the parent command, ie. the prior command that constructed this command. */
+	get up() { return this.parentCommand; }
+	Up<T>(type: new(..._)=>T) {
+		return this.parentCommand ? CE(this.parentCommand).As(type) : null;
+	}
+	/** Parent commands should call MarkAsSubcommand() immediately after setting a subcommand's payload. */
 	MarkAsSubcommand(parentCommand: Command<any, any>) {
-		this.up = parentCommand;
+		this.parentCommand = parentCommand;
 		this._userInfo_override = parentCommand._userInfo_override;
 		//this.Validate_Early();
 		return this;

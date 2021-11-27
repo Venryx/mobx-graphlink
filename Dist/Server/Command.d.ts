@@ -18,7 +18,12 @@ export declare abstract class Command<Payload, ReturnData extends {
     payload_orig: Payload;
     payload: Payload;
     returnData: ReturnData;
-    up: Command<any, any>;
+    /** The parent command, ie. the prior command that constructed this command. */
+    parentCommand: Command<any, any>;
+    /** Alias for the parent command, ie. the prior command that constructed this command. */
+    get up(): Command<any, any>;
+    Up<T>(type: new (..._: any[]) => T): T | null;
+    /** Parent commands should call MarkAsSubcommand() immediately after setting a subcommand's payload. */
     MarkAsSubcommand(parentCommand: Command<any, any>): this;
     /** Transforms the payload data (eg. combining it with existing db-data) in preparation for constructing the db-updates-map, while also validating user permissions and such along the way. */
     protected abstract Validate(): void;

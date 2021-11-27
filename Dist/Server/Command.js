@@ -1,4 +1,4 @@
-import { ArrayCE, Assert, Clone, E } from "js-vextensions";
+import { ArrayCE, Assert, CE, Clone, E } from "js-vextensions";
 import { GetAsync } from "../Accessors/Helpers.js";
 import { AssertValidate } from "../Extensions/JSONSchemaHelpers.js";
 import { GenerateUUID } from "../Extensions/KeyGenerator.js";
@@ -69,8 +69,8 @@ export class Command {
         });
         // these methods are executed on the server (well, will be later)
         // ==========
-        // parent commands should call MarkAsSubcommand() immediately after setting a subcommand's payload
-        Object.defineProperty(this, "up", {
+        /** The parent command, ie. the prior command that constructed this command. */
+        Object.defineProperty(this, "parentCommand", {
             enumerable: true,
             configurable: true,
             writable: true,
@@ -122,8 +122,14 @@ export class Command {
             return this.options.graph.userInfo;
         }
     }
+    /** Alias for the parent command, ie. the prior command that constructed this command. */
+    get up() { return this.parentCommand; }
+    Up(type) {
+        return this.parentCommand ? CE(this.parentCommand).As(type) : null;
+    }
+    /** Parent commands should call MarkAsSubcommand() immediately after setting a subcommand's payload. */
     MarkAsSubcommand(parentCommand) {
-        this.up = parentCommand;
+        this.parentCommand = parentCommand;
         this._userInfo_override = parentCommand._userInfo_override;
         //this.Validate_Early();
         return this;
