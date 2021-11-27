@@ -5,6 +5,8 @@ import { AssertV } from "../Accessors/Helpers.js";
 import { UUID_regex } from "./KeyGenerator.js";
 //import {RemoveHelpers, WithoutHelpers} from "./DatabaseHelpers.js";
 export const ajv = AJVKeywords(new Ajv({ allErrors: true }));
+ajv.addKeyword("$gqlType");
+ajv.addKeyword("$noWrite");
 export const collection_docSchemaName = new Map(); // populated by funcs in Decorators.ts
 // needed so that apollo knows postgraphile get-single-doc queries can be found in cache simply by typename and id (eg. as cached from collection-based query results)
 export function GetTypePolicyFieldsMappingSingleDocQueriesToCache() {

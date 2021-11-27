@@ -7,6 +7,8 @@ import {UUID_regex} from "./KeyGenerator.js";
 //import {RemoveHelpers, WithoutHelpers} from "./DatabaseHelpers.js";
 
 export const ajv = AJVKeywords(new Ajv({allErrors: true})) as AJV_Extended;
+ajv.addKeyword("$gqlType");
+ajv.addKeyword("$noWrite");
 
 export const collection_docSchemaName = new Map<string, string>(); // populated by funcs in Decorators.ts
 
