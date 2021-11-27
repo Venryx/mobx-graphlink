@@ -124,6 +124,7 @@ export function GetSchemaJSON(name: string, errorOnMissing = true): JSONSchema7 
 export type SchemaModifiers<T> = {
 	includeOnly?: Array<keyof T>;
 	makeOptional?: Array<keyof T>;
+	/** This is applied prior to makeRequired[_all] -- so they can be combined to make X required, and all else optional. */
 	makeOptional_all?: boolean;
 	makeRequired?: Array<keyof T>;
 	makeRequired_all?: boolean;

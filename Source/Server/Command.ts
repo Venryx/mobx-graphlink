@@ -1,4 +1,4 @@
-import {ArrayCE, Assert, Clone, E, ObjectCE} from "js-vextensions";
+import {ArrayCE, Assert, CE, Clone, E, ObjectCE} from "js-vextensions";
 import {GetAsync, GetAsync_Options} from "../Accessors/Helpers.js";
 import {AssertValidate} from "../Extensions/JSONSchemaHelpers.js";
 import {GenerateUUID} from "../Extensions/KeyGenerator.js";
@@ -75,13 +75,16 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	// ==========
 
 	// parent commands should call MarkAsSubcommand() immediately after setting a subcommand's payload
-	parentCommand: Command<any, any>;
+	up: Command<any, any>;
 	MarkAsSubcommand(parentCommand: Command<any, any>) {
-		this.parentCommand = parentCommand;
+		this.up = parentCommand;
 		this._userInfo_override = parentCommand._userInfo_override;
 		//this.Validate_Early();
 		return this;
 	}
+	/*Up(type?: new(..._)=>Command<any>) {
+		return CE(this.parentCommand).As(type);
+	}*/
 
 	/** Transforms the payload data (eg. combining it with existing db-data) in preparation for constructing the db-updates-map, while also validating user permissions and such along the way. */
 	protected abstract Validate(): void;
@@ -182,7 +185,7 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 			// todo: make sure the db-changes we just made are reflected in our mobx store, *before* current command is marked as "completed" (else next command may start operating on not-yet-refreshed data)
 
 			// MaybeLog(a=>a.commands, ()=>`Finishing command. @type:${this.constructor.name} @payload(${ToJSON(this.payload)}) @dbUpdates(${ToJSON(dbUpdates)})`);
-			MaybeLog_Base(a=>a.commands, l=>l("Finishing command. @type:", this.constructor.name, " @command(", this, ") @dbUpdates(", dbUpdates, ")"));
+			MaybeLog_Base(a=>a.commands, l=>l("Finishing command (locally). @type:", this.constructor.name, " @command(", this, ") @dbUpdates(", dbUpdates, ")"));
 		} /*catch (ex) {
 			console.error(`Hit error while executing command of type "${this.constructor.name}". @error:`, ex, "@payload:", this.payload);
 		}*/ finally {
@@ -200,6 +203,8 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		const returnDataSchema = meta.returnSchema;
 		//const returnData_propPairs = ObjectCE(returnDataSchema.properties).Pairs();
 
+		MaybeLog_Base(a=>a.commands, l=>l("Running command (on server). @type:", this.constructor.name, " @payload(", this.payload, ")"));
+
 		const fetchResult = await this.options.graph.subs.apollo.mutate({
 			mutation: gql`
 				mutation ${this.constructor.name}${WithBrackets(meta.Args_GetVarDefsStr())} {
@@ -212,6 +217,9 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		});
 		const returnData = CleanDBData(fetchResult.data[this.constructor.name]);
 		AssertValidate(returnDataSchema, returnData, `Return-data for command did not match the expected shape. ReturnData: ${JSON.stringify(returnData, null, 2)}`);
+
+		MaybeLog_Base(a=>a.commands, l=>l("Command completed (on server). @type:", this.constructor.name, " @command(", this, ") @fetchResult(", fetchResult, ")"));
+
 		return returnData as ReturnData;
 	}
 

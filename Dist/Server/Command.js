@@ -70,7 +70,7 @@ export class Command {
         // these methods are executed on the server (well, will be later)
         // ==========
         // parent commands should call MarkAsSubcommand() immediately after setting a subcommand's payload
-        Object.defineProperty(this, "parentCommand", {
+        Object.defineProperty(this, "up", {
             enumerable: true,
             configurable: true,
             writable: true,
@@ -123,7 +123,7 @@ export class Command {
         }
     }
     MarkAsSubcommand(parentCommand) {
-        this.parentCommand = parentCommand;
+        this.up = parentCommand;
         this._userInfo_override = parentCommand._userInfo_override;
         //this.Validate_Early();
         return this;
@@ -214,7 +214,7 @@ export class Command {
             await ApplyDBUpdates(dbUpdates, true, helper.DeferConstraints);
             // todo: make sure the db-changes we just made are reflected in our mobx store, *before* current command is marked as "completed" (else next command may start operating on not-yet-refreshed data)
             // MaybeLog(a=>a.commands, ()=>`Finishing command. @type:${this.constructor.name} @payload(${ToJSON(this.payload)}) @dbUpdates(${ToJSON(dbUpdates)})`);
-            MaybeLog_Base(a => a.commands, l => l("Finishing command. @type:", this.constructor.name, " @command(", this, ") @dbUpdates(", dbUpdates, ")"));
+            MaybeLog_Base(a => a.commands, l => l("Finishing command (locally). @type:", this.constructor.name, " @command(", this, ") @dbUpdates(", dbUpdates, ")"));
         } /*catch (ex) {
             console.error(`Hit error while executing command of type "${this.constructor.name}". @error:`, ex, "@payload:", this.payload);
         }*/
@@ -231,6 +231,7 @@ export class Command {
         const meta = GetCommandClassMetadata(this.constructor.name);
         const returnDataSchema = meta.returnSchema;
         //const returnData_propPairs = ObjectCE(returnDataSchema.properties).Pairs();
+        MaybeLog_Base(a => a.commands, l => l("Running command (on server). @type:", this.constructor.name, " @payload(", this.payload, ")"));
         const fetchResult = await this.options.graph.subs.apollo.mutate({
             mutation: gql `
 				mutation ${this.constructor.name}${WithBrackets(meta.Args_GetVarDefsStr())} {
@@ -243,6 +244,7 @@ export class Command {
         });
         const returnData = CleanDBData(fetchResult.data[this.constructor.name]);
         AssertValidate(returnDataSchema, returnData, `Return-data for command did not match the expected shape. ReturnData: ${JSON.stringify(returnData, null, 2)}`);
+        MaybeLog_Base(a => a.commands, l => l("Command completed (on server). @type:", this.constructor.name, " @command(", this, ") @fetchResult(", fetchResult, ")"));
         return returnData;
     }
     // standard validation of common paths/object-types; perhaps disable in production
