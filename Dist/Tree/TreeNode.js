@@ -186,7 +186,7 @@ export class TreeNode {
             runInAction("TreeNode.Subscribe_prep", ()=>this.status = DataStatus.Waiting);
         });*/
         //Assert(MobX_GetGlobalState().computationDepth == 0, "Cannot call TreeNode.Subscribe from within a computation.");
-        Assert(MobX_AllowStateChanges(), "Cannot call TreeNode.Subscribe from within a computation.");
+        Assert(MobX_AllowStateChanges(), "TreeNode.Subscribe must be called from within a mobx action. (and not be run within a mobx computation)");
         RunInAction("TreeNode.Subscribe_prep", () => this.status = DataStatus.Waiting);
         MaybeLog_Base(a => a.subscriptions, l => l(`Subscribing to: ${this.path}`));
         if (this.type == TreeNodeType.Document) {

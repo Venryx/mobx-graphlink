@@ -5,6 +5,7 @@ import {GenerateUUID} from "../Extensions/KeyGenerator.js";
 import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
 import {CleanDBData, UserInfo} from "../index.js";
 import {WithBrackets} from "../Tree/QueryParams.js";
+import {n} from "../Utils/@Internal/Types.js";
 import {gql} from "../Utils/@NPMFixes/apollo_client.js";
 import {DBPPath} from "../Utils/DB/DBPaths.js";
 import {DBUpdate, DBUpdateType} from "../Utils/DB/DBUpdate.js";
@@ -162,7 +163,7 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	}
 
 	/** [async] Validates the data, prepares it, and executes it -- thus applying it into the database. */
-	async RunLocally(): Promise<ReturnData> {
+	async RunLocally(): Promise<{returnData: ReturnData, dbUpdates: DBUpdate[]}> {
 		if (commandsWaitingToComplete_new.length > 0) {
 			MaybeLog_Base(a=>a.commands, l=>l(`Queing command, since ${commandsWaitingToComplete_new.length} ${commandsWaitingToComplete_new.length == 1 ? "is" : "are"} already waiting for completion.${""
 				}@type:`, this.constructor.name, " @payload(", this.payload, ")"));
@@ -175,12 +176,13 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 
 		MaybeLog_Base(a=>a.commands, l=>l("Running command. @type:", this.constructor.name, " @payload(", this.payload, ")"));
 
+		let dbUpdates: DBUpdate[]|n;
 		try {
 			//this.runStartTime = Date.now();
 			await this.PreRun();
 
 			const helper = new DBHelper(undefined);
-			const dbUpdates = this.GetDBUpdates(helper);
+			dbUpdates = this.GetDBUpdates(helper);
 			if (this.options.graph.ValidateDBData) {
 				await this.Validate_LateHeavy(dbUpdates);
 			}
@@ -201,7 +203,7 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		}
 
 		// later on (once set up on server), this will send the data back to the client, rather than return it
-		return this.returnData;
+		return {returnData: this.returnData, dbUpdates};
 	}
 	/** Same as Run(), except with the server executing the command rather than the current context. */
 	async RunOnServer(): Promise<ReturnData> {

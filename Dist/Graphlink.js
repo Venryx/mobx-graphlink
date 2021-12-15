@@ -160,18 +160,19 @@ export class Graphlink {
         this.userInfo = userInfo;
         if (clearCaches) {
             console.log("Clearing mobx-graphlink and apollo cache, due to user-info change.");
-            return (async () => {
-                /*for (const node of this.tree.AllDescendantNodes) {
-                    node.data
-                }*/
-                // delete all the collection tree-nodes; this is equivalent to clearing the mobx-graphlink cache
-                for (const [key, collectionNode] of this.tree.collectionNodes) {
-                    this.tree.collectionNodes.delete(key);
-                }
-                await this.subs.apollo.cache.reset();
-                await this.subs.apollo.clearStore();
-            })();
+            return this.ClearCaches();
         }
+    }
+    async ClearCaches() {
+        /*for (const node of this.tree.AllDescendantNodes) {
+            node.data
+        }*/
+        // delete all the collection tree-nodes; this is equivalent to clearing the mobx-graphlink cache
+        for (const [key, collectionNode] of this.tree.collectionNodes) {
+            this.tree.collectionNodes.delete(key);
+        }
+        await this.subs.apollo.cache.reset();
+        await this.subs.apollo.clearStore();
     }
     //pathSubscriptions: Map<string, PathSubscription>;
     UnsubscribeAll() {

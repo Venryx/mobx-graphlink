@@ -40,7 +40,10 @@ export declare abstract class Command<Payload, ReturnData extends {
     abstract DeclareDBUpdates(helper: DBHelper): any;
     PreRun(): Promise<void>;
     /** [async] Validates the data, prepares it, and executes it -- thus applying it into the database. */
-    RunLocally(): Promise<ReturnData>;
+    RunLocally(): Promise<{
+        returnData: ReturnData;
+        dbUpdates: DBUpdate[];
+    }>;
     /** Same as Run(), except with the server executing the command rather than the current context. */
     RunOnServer(): Promise<ReturnData>;
     Validate_LateHeavy(dbUpdates: any): Promise<void>;

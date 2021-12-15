@@ -202,9 +202,10 @@ export const CreateCommandsPlugin = (opts) => {
                 //console.log(`@Command:${CommandClass.name} UserInfo:`, context.req.user);
                 (_a = opts.preCommandRun) === null || _a === void 0 ? void 0 : _a.call(opts, { parent, args, context, info, command });
                 let returnData;
+                let dbUpdates;
                 let error;
                 try {
-                    returnData = await command.RunLocally();
+                    ({ returnData, dbUpdates } = await command.RunLocally());
                 }
                 catch (ex) {
                     error = ex;
@@ -213,7 +214,7 @@ export const CreateCommandsPlugin = (opts) => {
                 finally {
                     command._userInfo_override = null; // defensive; will cause command.userInfo to error if called outside of code-block above
                     (_b = opts.postCommandRun) === null || _b === void 0 ? void 0 : _b.call(// defensive; will cause command.userInfo to error if called outside of code-block above
-                    opts, { parent, args, context, info, command, returnData, error });
+                    opts, { parent, args, context, info, command, returnData, dbUpdates, error });
                 }
                 return returnData;
             };

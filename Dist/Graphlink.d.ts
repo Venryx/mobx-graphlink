@@ -34,6 +34,7 @@ export declare class Graphlink<StoreShape, DBShape> {
     };
     readonly userInfo: UserInfo | null;
     SetUserInfo(userInfo: UserInfo, clearCaches?: boolean): Promise<void> | undefined;
+    ClearCaches(): Promise<void>;
     tree: TreeNode<DBShape>;
     treeRequestWatchers: Set<TreeRequestWatcher>;
     UnsubscribeAll(): void;

@@ -207,11 +207,12 @@ export class Command {
         }
         currentCommandRun_listeners = [];
         MaybeLog_Base(a => a.commands, l => l("Running command. @type:", this.constructor.name, " @payload(", this.payload, ")"));
+        let dbUpdates;
         try {
             //this.runStartTime = Date.now();
             await this.PreRun();
             const helper = new DBHelper(undefined);
-            const dbUpdates = this.GetDBUpdates(helper);
+            dbUpdates = this.GetDBUpdates(helper);
             if (this.options.graph.ValidateDBData) {
                 await this.Validate_LateHeavy(dbUpdates);
             }
@@ -230,7 +231,7 @@ export class Command {
             NotifyListenersThatCurrentCommandFinished();
         }
         // later on (once set up on server), this will send the data back to the client, rather than return it
-        return this.returnData;
+        return { returnData: this.returnData, dbUpdates };
     }
     /** Same as Run(), except with the server executing the command rather than the current context. */
     async RunOnServer() {

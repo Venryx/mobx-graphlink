@@ -1,6 +1,8 @@
 import { Pool } from "pg";
 import { Context as Context_base } from "postgraphile";
 import { TypeDef } from "../Extensions/GQLSchemaHelpers.js";
+import { n } from "../Utils/@Internal/Types.js";
+import { DBUpdate } from "../Utils/DB/DBUpdate.js";
 import { Command } from "./Command.js";
 declare type Context = Context_base<any> & {
     pgPool: Pool;
@@ -23,6 +25,7 @@ export declare class CreateCommandPlugin_Options {
     preCommandRun?: (info: CommandRunInfo) => any;
     postCommandRun?: (info: CommandRunInfo & {
         returnData: any;
+        dbUpdates: DBUpdate[] | n;
         error: any;
     }) => any;
 }

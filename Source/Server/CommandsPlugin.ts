@@ -8,6 +8,8 @@ import {Context as Context_base} from "postgraphile";
 import {FinalizeSchemaForConversionToGraphQL, GetGQLSchemaInfoFromJSONSchema, TypeDef} from "../Extensions/GQLSchemaHelpers.js";
 import {GetSchemaJSON, IsJSONSchemaOfTypeScalar, IsJSONSchemaScalar, schemaEntryJSONs} from "../Extensions/JSONSchemaHelpers.js";
 import {WithBrackets} from "../Tree/QueryParams.js";
+import {n} from "../Utils/@Internal/Types.js";
+import {DBUpdate} from "../Utils/DB/DBUpdate.js";
 import {Command} from "./Command.js";
 import {GetCommandClassMetadatas} from "./CommandMetadata.js";
 const {makeExtendSchemaPlugin, gql} = graphileUtils;
@@ -42,7 +44,7 @@ export class CreateCommandPlugin_Options {
 	logTypeDefs_detailed?: string[];
 
 	preCommandRun?: (info: CommandRunInfo)=>any;
-	postCommandRun?: (info: CommandRunInfo & {returnData: any, error: any})=>any;
+	postCommandRun?: (info: CommandRunInfo & {returnData: any, dbUpdates: DBUpdate[]|n, error: any})=>any;
 }
 
 export let CommandsPlugin_opts: CreateCommandPlugin_Options;
@@ -150,15 +152,16 @@ export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 
 				opts.preCommandRun?.({parent, args, context, info, command});
 				let returnData: any;
+				let dbUpdates: DBUpdate[]|n;
 				let error: any;
 				try {
-					returnData = await command.RunLocally();
+					({returnData, dbUpdates} = await command.RunLocally());
 				} catch (ex) {
 					error = ex;
 					throw ex;
 				} finally {
 					command._userInfo_override = null; // defensive; will cause command.userInfo to error if called outside of code-block above
-					opts.postCommandRun?.({parent, args, context, info, command, returnData, error});
+					opts.postCommandRun?.({parent, args, context, info, command, returnData, dbUpdates, error});
 				}
 				
 				return returnData;
