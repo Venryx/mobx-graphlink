@@ -1,4 +1,4 @@
-import { ArrayCE, Assert, CE, Clone, E } from "js-vextensions";
+import { ArrayCE, Assert, CE, Clone, ConvertPathGetterFuncToPropChain, E } from "js-vextensions";
 import { GetAsync } from "../Accessors/Helpers.js";
 import { AssertValidate } from "../Extensions/JSONSchemaHelpers.js";
 import { GenerateUUID } from "../Extensions/KeyGenerator.js";
@@ -6,7 +6,6 @@ import { defaultGraphOptions } from "../Graphlink.js";
 import { CleanDBData } from "../index.js";
 import { WithBrackets } from "../Tree/QueryParams.js";
 import { gql } from "../Utils/@NPMFixes/apollo_client.js";
-import { PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
 import { DBUpdate, DBUpdateType } from "../Utils/DB/DBUpdate.js";
 import { ApplyDBUpdates, ApplyDBUpdates_Local } from "../Utils/DB/DBUpdateApplier.js";
 import { MaybeLog_Base } from "../Utils/General/General.js";
@@ -148,7 +147,8 @@ export class Command {
             subcommand = subcommandOrCreator;
         }
         subcommand.MarkAsSubcommand(this);
-        const fieldName = CE(PathOrPathGetterToPathSegments(fieldGetter)).Last();
+        //const fieldName = CE(PathOrPathGetterToPathSegments(fieldGetter)).Last();
+        const fieldName = ConvertPathGetterFuncToPropChain(fieldGetter)[0];
         this[fieldName] = subcommand;
         if (preValidate) {
             preValidate(subcommand);

@@ -1,4 +1,4 @@
-import {ArrayCE, Assert, CE, Clone, E, ObjectCE} from "js-vextensions";
+import {ArrayCE, Assert, CE, Clone, ConvertPathGetterFuncToPropChain, E, ObjectCE} from "js-vextensions";
 import {GetAsync, GetAsync_Options} from "../Accessors/Helpers.js";
 import {AssertValidate} from "../Extensions/JSONSchemaHelpers.js";
 import {GenerateUUID} from "../Extensions/KeyGenerator.js";
@@ -104,7 +104,8 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		}
 
 		subcommand.MarkAsSubcommand(this);
-		const fieldName = CE(PathOrPathGetterToPathSegments(fieldGetter)).Last();
+		//const fieldName = CE(PathOrPathGetterToPathSegments(fieldGetter)).Last();
+		const fieldName = ConvertPathGetterFuncToPropChain(fieldGetter)[0];
 		this[fieldName] = subcommand;
 
 		if (preValidate) {
