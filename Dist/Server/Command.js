@@ -6,6 +6,7 @@ import { defaultGraphOptions } from "../Graphlink.js";
 import { CleanDBData } from "../index.js";
 import { WithBrackets } from "../Tree/QueryParams.js";
 import { gql } from "../Utils/@NPMFixes/apollo_client.js";
+import { PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
 import { DBUpdate, DBUpdateType } from "../Utils/DB/DBUpdate.js";
 import { ApplyDBUpdates, ApplyDBUpdates_Local } from "../Utils/DB/DBUpdateApplier.js";
 import { MaybeLog_Base } from "../Utils/General/General.js";
@@ -127,12 +128,33 @@ export class Command {
     Up(type) {
         return this.parentCommand ? CE(this.parentCommand).As(type) : null;
     }
-    /** Parent commands should call MarkAsSubcommand() immediately after setting a subcommand's payload. */
+    /** Parent commands should call MarkAsSubcommand() immediately after setting a subcommand's payload. [old; use IntegrateSubcommand instead] */
     MarkAsSubcommand(parentCommand) {
         this.parentCommand = parentCommand;
         this._userInfo_override = parentCommand._userInfo_override;
         //this.Validate_Early();
         return this;
+    }
+    /** Call this from within your command's Validate() method. */
+    IntegrateSubcommand(fieldGetter, 
+    /** If a command is passed, the field is set every time (to the passed command); if a function is passed, the field is only set once (to the result of the function's first invokation). */
+    subcommandOrCreator, preValidate) {
+        var _a;
+        let subcommand;
+        if (typeof subcommandOrCreator == "function") {
+            subcommand = (_a = fieldGetter()) !== null && _a !== void 0 ? _a : subcommandOrCreator();
+        }
+        else {
+            subcommand = subcommandOrCreator;
+        }
+        subcommand.MarkAsSubcommand(this);
+        const fieldName = CE(PathOrPathGetterToPathSegments(fieldGetter)).Last();
+        this[fieldName] = subcommand;
+        if (preValidate) {
+            preValidate(subcommand);
+        }
+        //subcommand.Validate();
+        subcommand.Validate_Full();
     }
     get ValidateErrorStr() {
         var _a;

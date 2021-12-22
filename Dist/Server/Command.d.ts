@@ -23,8 +23,12 @@ export declare abstract class Command<Payload, ReturnData extends {
     /** Alias for the parent command, ie. the prior command that constructed this command. */
     get up(): Command<any, any>;
     Up<T>(type: new (..._: any[]) => T): T | null;
-    /** Parent commands should call MarkAsSubcommand() immediately after setting a subcommand's payload. */
+    /** Parent commands should call MarkAsSubcommand() immediately after setting a subcommand's payload. [old; use IntegrateSubcommand instead] */
     MarkAsSubcommand(parentCommand: Command<any, any>): this;
+    /** Call this from within your command's Validate() method. */
+    IntegrateSubcommand<T extends Command<any>>(fieldGetter: () => T, 
+    /** If a command is passed, the field is set every time (to the passed command); if a function is passed, the field is only set once (to the result of the function's first invokation). */
+    subcommandOrCreator: T | (() => T), preValidate?: (subcommand: T) => any): void;
     /** Transforms the payload data (eg. combining it with existing db-data) in preparation for constructing the db-updates-map, while also validating user permissions and such along the way. */
     protected abstract Validate(): void;
     /** Last validation error, from passing "catchAndStoreError=true" to Validate_Full() or Validate_Async(). */

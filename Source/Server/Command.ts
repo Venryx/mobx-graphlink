@@ -7,7 +7,7 @@ import {CleanDBData, UserInfo} from "../index.js";
 import {WithBrackets} from "../Tree/QueryParams.js";
 import {n} from "../Utils/@Internal/Types.js";
 import {gql} from "../Utils/@NPMFixes/apollo_client.js";
-import {DBPPath} from "../Utils/DB/DBPaths.js";
+import {DBPPath, PathOrPathGetterToPathSegments} from "../Utils/DB/DBPaths.js";
 import {DBUpdate, DBUpdateType} from "../Utils/DB/DBUpdate.js";
 import {ApplyDBUpdates, ApplyDBUpdates_Local} from "../Utils/DB/DBUpdateApplier.js";
 import {DeepMap} from "../Utils/General/DeepMap.js";
@@ -82,12 +82,36 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	Up<T>(type: new(..._)=>T) {
 		return this.parentCommand ? CE(this.parentCommand).As(type) : null;
 	}
-	/** Parent commands should call MarkAsSubcommand() immediately after setting a subcommand's payload. */
+	/** Parent commands should call MarkAsSubcommand() immediately after setting a subcommand's payload. [old; use IntegrateSubcommand instead] */
 	MarkAsSubcommand(parentCommand: Command<any, any>) {
 		this.parentCommand = parentCommand;
 		this._userInfo_override = parentCommand._userInfo_override;
 		//this.Validate_Early();
 		return this;
+	}
+	/** Call this from within your command's Validate() method. */
+	IntegrateSubcommand<T extends Command<any>>(
+		fieldGetter: ()=>T,
+		/** If a command is passed, the field is set every time (to the passed command); if a function is passed, the field is only set once (to the result of the function's first invokation). */
+		subcommandOrCreator: T | (()=>T),
+		preValidate?: (subcommand: T)=>any
+	) {
+		let subcommand: T;
+		if (typeof subcommandOrCreator == "function") {
+			subcommand = fieldGetter() ?? subcommandOrCreator();
+		} else {
+			subcommand = subcommandOrCreator;
+		}
+
+		subcommand.MarkAsSubcommand(this);
+		const fieldName = CE(PathOrPathGetterToPathSegments(fieldGetter)).Last();
+		this[fieldName] = subcommand;
+
+		if (preValidate) {
+			preValidate(subcommand);
+		}
+		//subcommand.Validate();
+		subcommand.Validate_Full();
 	}
 	/*Up(type?: new(..._)=>Command<any>) {
 		return CE(this.parentCommand).As(type);
