@@ -1,15 +1,9 @@
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
 import { Assert, CE, E, ToJSON } from "js-vextensions";
-import { makeObservable, observable } from "mobx";
+import { observable } from "mobx";
 import { CleanDBData } from "../Utils/DB/DBDataHelpers.js";
 import { PathOrPathGetterToPath, PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
 import { MaybeLog_Base } from "../Utils/General/General.js";
-import { MobX_AllowStateChanges, RunInAction, RunInNextTick_BundledInOneAction } from "../Utils/General/MobX.js";
+import { makeObservable_safe, MobX_AllowStateChanges, RunInAction, RunInNextTick_BundledInOneAction } from "../Utils/General/MobX.js";
 import { QueryParams, QueryParams_Linked } from "./QueryParams.js";
 export var TreeNodeType;
 (function (TreeNodeType) {
@@ -27,25 +21,11 @@ export var DataStatus;
 })(DataStatus || (DataStatus = {}));
 export class PathSubscription {
     constructor(unsubscribe) {
-        Object.defineProperty(this, "unsubscribe", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
         this.unsubscribe = unsubscribe;
     }
 }
 //export const $varOfSameName = Symbol("$varOfSameName");
 export class String_NotWrappedInGraphQL {
-    constructor() {
-        Object.defineProperty(this, "str", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-    }
     toJSON() {
         return this.str; // don't put quotes around it
     }
@@ -53,102 +33,19 @@ export class String_NotWrappedInGraphQL {
 export class TreeNode {
     constructor(fire, pathOrSegments) {
         var _a;
-        Object.defineProperty(this, "graph", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "pathSegments", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "pathSegments_noQuery", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "path", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "path_noQuery", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "type", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "status", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: DataStatus.Initial
-        });
-        //subscription: PathSubscription|null;
-        Object.defineProperty(this, "observable", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "subscription", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
+        this.status = DataStatus.Initial; // [@O]
         // for doc (and root) nodes
-        Object.defineProperty(this, "collectionNodes", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: observable.map()
-        });
-        //collectionNodes = new Map<string, TreeNode<any>>();
-        Object.defineProperty(this, "data", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "dataJSON", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
+        this.collectionNodes = observable.map(); // [@O]
         // for collection (and collection-query) nodes
-        Object.defineProperty(this, "queryNodes", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: observable.map()
-        }); // for collection nodes
-        //queryNodes = new Map<string, TreeNode<any>>(); // for collection nodes
-        Object.defineProperty(this, "query", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        }); // for collection-query nodes
-        Object.defineProperty(this, "docNodes", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: observable.map()
+        this.queryNodes = observable.map(); // [@O] for collection nodes
+        this.docNodes = observable.map(); // [@O]
+        makeObservable_safe(this, {
+            status: observable,
+            collectionNodes: observable,
+            data: observable.ref,
+            queryNodes: observable,
+            docNodes: observable,
         });
-        makeObservable(this);
         this.graph = fire;
         this.pathSegments = PathOrPathGetterToPathSegments(pathOrSegments);
         this.path = PathOrPathGetterToPath(pathOrSegments);
@@ -362,21 +259,6 @@ export class TreeNode {
         // todo
     }
 }
-__decorate([
-    observable
-], TreeNode.prototype, "status", void 0);
-__decorate([
-    observable
-], TreeNode.prototype, "collectionNodes", void 0);
-__decorate([
-    observable.ref
-], TreeNode.prototype, "data", void 0);
-__decorate([
-    observable
-], TreeNode.prototype, "queryNodes", void 0);
-__decorate([
-    observable
-], TreeNode.prototype, "docNodes", void 0);
 export function GetTreeNodeTypeForPath(pathOrSegments) {
     let pathSegments = PathOrPathGetterToPathSegments(pathOrSegments);
     if (pathSegments == null || pathSegments.length == 0)

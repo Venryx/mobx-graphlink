@@ -7,36 +7,11 @@ export function Log(...args) {
 export class LogTypes_Base {
     constructor() {
         // from vwebapp-framework
-        Object.defineProperty(this, "dbRequests", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: false
-        });
-        Object.defineProperty(this, "dbRequests_onlyFirst", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: false
-        });
-        Object.defineProperty(this, "cacheUpdates", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: false
-        });
-        Object.defineProperty(this, "commands", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: false
-        });
-        Object.defineProperty(this, "subscriptions", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: false
-        });
+        this.dbRequests = false;
+        this.dbRequests_onlyFirst = false;
+        this.cacheUpdates = false;
+        this.commands = false;
+        this.subscriptions = false;
     }
 }
 export function ShouldLog_Base(shouldLogFunc) {

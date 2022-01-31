@@ -13,101 +13,14 @@ export function StringifyDocOrPrimitive(val, strForFailure = "?") {
 }
 export class CallPlanMeta {
     constructor(callPlan) {
-        Object.defineProperty(this, "index", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "argsStr", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "profilingInfo", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: new ProfilingInfo()
-        });
-        Object.defineProperty(this, "madeRawDBAccess", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: false
-        });
+        this.profilingInfo = new ProfilingInfo();
+        this.madeRawDBAccess = false;
         this.index = callPlan.callPlanIndex;
         this.argsStr = callPlan.callArgs.map(arg => StringifyDocOrPrimitive(arg)).join(", ");
     }
 }
 export class AccessorCallPlan {
     constructor(accessorMeta, graph, store, catchItemBails, catchItemBails_asX, callArgs, callPlanIndex, onUnobserved) {
-        // core properties (those which make up the call-context's identity)
-        // context args
-        Object.defineProperty(this, "accessorMeta", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        }); // not needed as part of cache-key though (since these call-context entries are already linked to the accessor-meta, by being stored on it)
-        Object.defineProperty(this, "graph", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "store", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "catchItemBails", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "catchItemBails_asX", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        // call args
-        Object.defineProperty(this, "callArgs", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        // internal helpers
-        Object.defineProperty(this, "callPlanIndex", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "callPlanMeta", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "onUnobserved", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        // dynamic
-        Object.defineProperty(this, "cachedResult_wrapper", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
         this.accessorMeta = accessorMeta;
         this.graph = graph;
         this.store = store;

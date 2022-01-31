@@ -21,14 +21,6 @@ export function BailHandler_loadingUI_default_Set(value) {
     BailHandler_loadingUI_default = value;
 }
 export class BailHandler_Options {
-    constructor() {
-        Object.defineProperty(this, "loadingUI", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-    }
 }
 export function BailHandler(...args) {
     let opts = new BailHandler_Options();
@@ -79,18 +71,7 @@ function EnsureImported_MobXReact() {
 }
 export class MGLObserver_Options {
     constructor() {
-        Object.defineProperty(this, "bailHandler", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: true
-        });
-        Object.defineProperty(this, "bailHandler_opts", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
+        this.bailHandler = true;
     }
 }
 export function MGLObserver(...args) {

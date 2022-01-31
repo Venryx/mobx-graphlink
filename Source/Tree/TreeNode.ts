@@ -5,7 +5,7 @@ import {FetchResult, Observable} from "../Utils/@NPMFixes/apollo_client.js";
 import {CleanDBData} from "../Utils/DB/DBDataHelpers.js";
 import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "../Utils/DB/DBPaths.js";
 import {MaybeLog_Base} from "../Utils/General/General.js";
-import {MobX_AllowStateChanges, MobX_GetGlobalState, RunInAction, RunInNextTick_BundledInOneAction} from "../Utils/General/MobX.js";
+import {makeObservable_safe, MobX_AllowStateChanges, MobX_GetGlobalState, RunInAction, RunInNextTick_BundledInOneAction} from "../Utils/General/MobX.js";
 import {QueryParams, QueryParams_Linked} from "./QueryParams.js";
 
 export enum TreeNodeType {
@@ -39,7 +39,13 @@ export class String_NotWrappedInGraphQL {
 
 export class TreeNode<DataShape> {
 	constructor(fire: Graphlink<any, any>, pathOrSegments: string | string[]) {
-		makeObservable(this);
+		makeObservable_safe(this, {
+			status: observable,
+			collectionNodes: observable,
+			data: observable.ref,
+			queryNodes: observable,
+			docNodes: observable,
+		});
 		this.graph = fire;
 		this.pathSegments = PathOrPathGetterToPathSegments(pathOrSegments);
 		this.path = PathOrPathGetterToPath(pathOrSegments)!;
@@ -167,15 +173,15 @@ export class TreeNode<DataShape> {
 		this.docNodes.forEach(a=>a.UnsubscribeAll());
 	}
 
-	@observable status = DataStatus.Initial;
+	status = DataStatus.Initial; // [@O]
 	//subscription: PathSubscription|null;
 	observable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>>|null;
 	subscription: ZenObservable.Subscription|null;
 
 	// for doc (and root) nodes
-	@observable collectionNodes = observable.map<string, TreeNode<any>>();
+	collectionNodes = observable.map<string, TreeNode<any>>(); // [@O]
 	//collectionNodes = new Map<string, TreeNode<any>>();
-	@observable.ref data: DataShape;
+	data: DataShape; // [@O.ref]
 	dataJSON: string;
 	SetData(data: DataShape, fromCache: boolean) {
 		// this.data being "undefined" is used to signify that it's still loading; so if firebase-given value is "undefined", change it to "null"
@@ -214,10 +220,10 @@ export class TreeNode<DataShape> {
 	}
 
 	// for collection (and collection-query) nodes
-	@observable queryNodes = observable.map<string, TreeNode<any>>(); // for collection nodes
+	queryNodes = observable.map<string, TreeNode<any>>(); // [@O] for collection nodes
 	//queryNodes = new Map<string, TreeNode<any>>(); // for collection nodes
 	query: QueryParams_Linked; // for collection-query nodes
-	@observable docNodes = observable.map<string, TreeNode<any>>();
+	docNodes = observable.map<string, TreeNode<any>>(); // [@O]
 	//docNodes = new Map<string, TreeNode<any>>();
 	get docDatas() {
 		// (we need to filter for nodes where data is not nully, since such entries get added by GetDoc(...) calls for non-existent paths, but shouldn't show in docDatas array)

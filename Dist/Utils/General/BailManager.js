@@ -6,12 +6,7 @@ export class BailError extends Error {
         BailError.createdCount++;
     }
 }
-Object.defineProperty(BailError, "createdCount", {
-    enumerable: true,
-    configurable: true,
-    writable: true,
-    value: 0
-}); // for estimating the performance impact of the associated error-creations/stack-trace-unwinds (see: https://stackoverflow.com/questions/11502052/throwing-strings-instead-of-errors#comment120540097_27501348)
+BailError.createdCount = 0; // for estimating the performance impact of the associated error-creations/stack-trace-unwinds (see: https://stackoverflow.com/questions/11502052/throwing-strings-instead-of-errors#comment120540097_27501348)
 // only set prototype methods if they don't already exist (ie. if this is the first copy of the mobx-graphlink lib being loaded)
 if (Function.prototype.Normal != null) {
     // if overrides already exist, it means this library must have been loaded more than once; warn
@@ -37,18 +32,8 @@ else {
 }
 export class BailContext {
     constructor() {
-        Object.defineProperty(this, "onBail_triggerError", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: true
-        });
-        Object.defineProperty(this, "onBail_triggerDebugger", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: false
-        });
+        this.onBail_triggerError = true;
+        this.onBail_triggerDebugger = false;
     }
 }
 export function CatchBail(bailResultOrGetter, func, args, thisArg) {

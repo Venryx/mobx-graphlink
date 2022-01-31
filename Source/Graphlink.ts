@@ -7,6 +7,7 @@ import type Knex from "knex";
 import {AccessorMetadata} from "./Accessors/@AccessorMetadata.js";
 import {ApolloClient, NormalizedCacheObject} from "./Utils/@NPMFixes/apollo_client.js";
 import {AccessorCallPlan} from "./Accessors/@AccessorCallPlan.js";
+import {makeObservable_safe} from "./Utils/General/MobX.js";
 
 export let defaultGraphOptions: GraphOptions;
 export function SetDefaultGraphOptions(opt: GraphOptions) {
@@ -31,7 +32,9 @@ export class Graphlink<StoreShape, DBShape> {
 	static instances = [] as Graphlink<any, any>[];
 
 	constructor(initOptions?: GraphlinkInitOptions<StoreShape>) {
-		makeObservable(this);
+		makeObservable_safe(this, {
+			userInfo: observable,
+	 	});
 		if (initOptions) {
 			this.Initialize(initOptions);
 		}
@@ -78,7 +81,7 @@ export class Graphlink<StoreShape, DBShape> {
 		pgPool?: Pool|null; // only used if on db-server
 	};
 
-	@observable readonly userInfo: UserInfo|null;
+	readonly userInfo: UserInfo|null = null; // [@O]
 	SetUserInfo(userInfo: UserInfo, clearCaches = true) {
 		(this as any).userInfo = userInfo;
 		if (clearCaches) {

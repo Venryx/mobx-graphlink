@@ -6,18 +6,7 @@ Extracted from mobx-utils, for two reasons:
 export const $finalValue = Symbol("$finalValue");
 export class DeepMap {
     constructor() {
-        Object.defineProperty(this, "rootStore", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: new Map()
-        });
-        Object.defineProperty(this, "lastEntry", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
+        this.rootStore = new Map();
     }
     entry(args) {
         if (this.lastEntry)
@@ -27,36 +16,8 @@ export class DeepMap {
 }
 export class DeepMapEntry {
     constructor(deepMap, args) {
-        Object.defineProperty(this, "deepMap", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "args", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "closestStore", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "closestStore_depth", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
-        });
-        Object.defineProperty(this, "isDisposed", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: false
-        });
+        this.closestStore_depth = 0;
+        this.isDisposed = false;
         this.deepMap = deepMap;
         this.args = args;
         let currentStore = deepMap.rootStore;

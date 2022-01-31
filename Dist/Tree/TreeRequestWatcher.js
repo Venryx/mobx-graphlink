@@ -1,18 +1,7 @@
 import { Assert } from "js-vextensions";
 export class TreeRequestWatcher {
     constructor(graph) {
-        Object.defineProperty(this, "graph", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "nodesRequested", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: new Set()
-        });
+        this.nodesRequested = new Set();
         Assert(graph, "Graphlink instance must exist before creating TreeRequestWatchers.");
         this.graph = graph;
     }

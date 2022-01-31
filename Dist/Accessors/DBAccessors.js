@@ -19,46 +19,13 @@ Why use explicit GetDocs, GetDoc, etc. calls instead of just Proxy's in mobx sto
 */
 export class GetDocs_Options {
     constructor() {
-        Object.defineProperty(this, "inLinkRoot", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: true
-        });
-        //queryOps?: QueryOp[];
-        Object.defineProperty(this, "params", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "ifLoading_bail", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: true
-        });
-        Object.defineProperty(this, "ifLoading_bail_message", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "ifLoading_returnVal", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: emptyArray_forLoading
-        });
+        this.inLinkRoot = true;
+        this.ifLoading_bail = true;
+        this.ifLoading_returnVal = emptyArray_forLoading;
         //resultForEmpty? = emptyArray;
     }
 }
-Object.defineProperty(GetDocs_Options, "default", {
-    enumerable: true,
-    configurable: true,
-    writable: true,
-    value: new GetDocs_Options()
-});
+GetDocs_Options.default = new GetDocs_Options();
 export function GetDocs(options, collectionPathOrGetterFunc) {
     var _a;
     const opt = E(defaultGraphOptions, GetDocs_Options.default, options);
@@ -111,38 +78,12 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
 }*/
 export class GetDoc_Options {
     constructor() {
-        Object.defineProperty(this, "inLinkRoot", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: true
-        });
-        Object.defineProperty(this, "ifLoading_bail", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: true
-        });
-        Object.defineProperty(this, "ifLoading_bail_message", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "ifLoading_returnVal", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: undefined
-        });
+        this.inLinkRoot = true;
+        this.ifLoading_bail = true;
+        this.ifLoading_returnVal = undefined;
     }
 }
-Object.defineProperty(GetDoc_Options, "default", {
-    enumerable: true,
-    configurable: true,
-    writable: true,
-    value: new GetDoc_Options()
-});
+GetDoc_Options.default = new GetDoc_Options();
 export function GetDoc(options, docPathOrGetterFunc) {
     const opt = E(defaultGraphOptions, GetDoc_Options.default, options);
     NotifyRawDBAccess(opt.graph);

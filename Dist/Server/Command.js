@@ -27,62 +27,10 @@ function NotifyListenersThatCurrentCommandFinished() {
 // require command return-value to always be an object; this provides more schema stability (eg. lets you change the return-data of a mutation, without breaking the contents of "legacy" keys)
 export class Command {
     constructor(...args) {
-        //userInfo: FireUserInfo;
-        Object.defineProperty(this, "_userInfo_override", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        }); // for use on server (so permissions are checked against the calling user's id rather than the server's )
-        Object.defineProperty(this, "type", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "options", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "payload_orig", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "payload", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
         //prepareStartTime: number;
         //runStartTime: number;
         //returnData = {} as any;
-        Object.defineProperty(this, "returnData", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: {}
-        });
-        // these methods are executed on the server (well, will be later)
-        // ==========
-        /** The parent command, ie. the prior command that constructed this command. */
-        Object.defineProperty(this, "parentCommand", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        /** Last validation error, from passing "catchAndStoreError=true" to Validate_Full() or Validate_Async(). */
-        Object.defineProperty(this, "validateError", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
+        this.returnData = {};
         // helper-methods to be called within user-supplied Validate() function
         /*generatedUUIDs = new DeepMap<string>();
         GenerateUUID_Once(obj: any, propName: string) {
@@ -92,12 +40,7 @@ export class Command {
             }
             return entry.get();
         }*/
-        Object.defineProperty(this, "callXResults", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: new Map()
-        });
+        this.callXResults = new Map();
         let options, payload;
         if (args.length == 1)
             [payload] = args;
@@ -315,27 +258,9 @@ export class DBHelper {
         if (from.deferConstraints !== undefined) to.deferConstraints = from.deferConstraints;
     }*/
     constructor(parent) {
-        Object.defineProperty(this, "parent", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        // flags
-        Object.defineProperty(this, "deferConstraints", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
         // db-updates
         // ==========
-        Object.defineProperty(this, "dbUpdates", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: []
-        });
+        this.dbUpdates = [];
         this.parent = parent;
         // transfer flags from parent to child
         if (parent && parent.deferConstraints !== undefined)

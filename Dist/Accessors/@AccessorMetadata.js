@@ -7,122 +7,30 @@ import { AccessorCallPlan, CallPlanMeta } from "./@AccessorCallPlan.js";
 //export class AccessorOptions<T> {
 export class AccessorOptions {
     constructor() {
-        Object.defineProperty(this, "cache", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: true
-        });
-        Object.defineProperty(this, "cache_keepAlive", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: false
-        });
-        Object.defineProperty(this, "cache_unwrapArrays", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: true
-        });
+        this.cache = true;
+        this.cache_keepAlive = false;
+        this.cache_unwrapArrays = true;
         //callArgToDependencyConvertorFunc?: CallArgToDependencyConvertorFunc;
         /** Short for bail-result. */
         //onBail: T;
         //onBail: any;
     }
 }
-Object.defineProperty(AccessorOptions, "default", {
-    enumerable: true,
-    configurable: true,
-    writable: true,
-    value: new AccessorOptions()
-});
+AccessorOptions.default = new AccessorOptions();
 export const accessorMetadata = new Map();
 export class AccessorMetadata {
     constructor(data) {
-        Object.defineProperty(this, "name", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "options", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "accessor", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        // inspection of func-code
-        Object.defineProperty(this, "_codeStr_cached", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_canCatchItemBails", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
         // temp fields
-        Object.defineProperty(this, "nextCall_catchItemBails", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: false
-        });
-        Object.defineProperty(this, "nextCall_catchItemBails_asX", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
+        this.nextCall_catchItemBails = false;
         // profiling and such
-        Object.defineProperty(this, "profilingInfo", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: new ProfilingInfo()
-        });
+        this.profilingInfo = new ProfilingInfo();
         //totalRunTime_asRoot = 0;
-        Object.defineProperty(this, "madeRawDBAccess", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: false
-        });
+        this.madeRawDBAccess = false;
         // result-caching
-        Object.defineProperty(this, "mobxCacheOpts", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: {}
-        });
-        Object.defineProperty(this, "callPlans", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: new DeepMap()
-        });
-        Object.defineProperty(this, "callPlanMetas", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: []
-        }); // stored separately, because the meta should be kept even after the call-plan itself is unobserved->destroyed
-        Object.defineProperty(this, "callPlansStored", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
-        });
+        this.mobxCacheOpts = {};
+        this.callPlans = new DeepMap();
+        this.callPlanMetas = []; // stored separately, because the meta should be kept even after the call-plan itself is unobserved->destroyed
+        this.callPlansStored = 0;
         Object.assign(this, data);
     }
     get CodeStr_Cached() {
@@ -161,78 +69,17 @@ export class AccessorMetadata {
 }
 export class ProfilingInfo {
     constructor() {
-        Object.defineProperty(this, "calls", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
-        });
-        Object.defineProperty(this, "calls_cached", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
-        });
-        Object.defineProperty(this, "calls_waited", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
-        });
-        Object.defineProperty(this, "runTime_sum", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
-        });
-        Object.defineProperty(this, "runTime_first", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
-        });
-        Object.defineProperty(this, "runTime_min", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
-        });
-        Object.defineProperty(this, "runTime_max", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
-        });
-        Object.defineProperty(this, "waitTime_sum", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
-        });
-        Object.defineProperty(this, "waitTime_first", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
-        });
-        Object.defineProperty(this, "waitTime_min", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
-        });
-        Object.defineProperty(this, "waitTime_max", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
-        });
-        Object.defineProperty(this, "currentWaitTime_startedAt", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
+        this.calls = 0;
+        this.calls_cached = 0;
+        this.calls_waited = 0;
+        this.runTime_sum = 0;
+        this.runTime_first = 0;
+        this.runTime_min = 0;
+        this.runTime_max = 0;
+        this.waitTime_sum = 0;
+        this.waitTime_first = 0;
+        this.waitTime_min = 0;
+        this.waitTime_max = 0;
     }
     NotifyOfCall(runTime, cached, error) {
         let waitTime = 0;
