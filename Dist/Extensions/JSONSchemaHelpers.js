@@ -23,8 +23,12 @@ export function GetTypePolicyFieldsMappingSingleDocQueriesToCache() {
     }
     return result;
 }
-export function NewSchema(schema) {
-    schema = E({ additionalProperties: false }, schema);
+export function NewSchema(schema, defaultTypeToObject = true) {
+    schema = E((schema.type == null || schema.type == "object") && defaultTypeToObject && {
+        // need this to avoid warning (regarding "additionalProperties" being used without "type:object")
+        type: "object",
+        additionalProperties: false,
+    }, schema);
     // temp; makes-so schemas are understandable by get-graphql-from-jsonschema
     /*if (convertEnumToOneOfConst && schema.enum) {
         schema.type = "string";
