@@ -3,7 +3,7 @@ import { JSONSchema7 } from "json-schema";
 export declare const ajv: AJV_Extended;
 export declare const collection_docSchemaName: Map<string, string>;
 export declare function GetTypePolicyFieldsMappingSingleDocQueriesToCache(): {};
-export declare function NewSchema(schema: any, defaultTypeToObject?: boolean): any;
+export declare function NewSchema(schema: any, allowInferTypeObject?: boolean): any;
 declare type JSONSchemaProperties = {
     [k: string]: JSONSchema7;
 };

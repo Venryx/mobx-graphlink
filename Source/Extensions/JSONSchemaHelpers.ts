@@ -28,9 +28,9 @@ export function GetTypePolicyFieldsMappingSingleDocQueriesToCache() {
 	return result;
 }
 
-export function NewSchema(schema, defaultTypeToObject = true) {
+export function NewSchema(schema, allowInferTypeObject = true) {
 	schema = E(
-		(schema.type == null || schema.type == "object") && defaultTypeToObject && {
+		allowInferTypeObject && (schema.type == "object" || (schema.type == null && schema.properties != null)) && {
 			// need this to avoid warning (regarding "additionalProperties" being used without "type:object")
 			type: "object",
 			additionalProperties: false,
