@@ -1,5 +1,5 @@
-import {Assert, CE, E, ToJSON} from "js-vextensions";
-import {makeObservable, observable, ObservableMap, runInAction, _getGlobalState} from "mobx";
+import {Assert, AssertWarn, CE, E, Timer, ToJSON} from "js-vextensions";
+import {computed, makeObservable, observable, ObservableMap, onBecomeObserved, onBecomeUnobserved, runInAction, _getGlobalState} from "mobx";
 import {Graphlink} from "../Graphlink.js";
 import {FetchResult, Observable} from "../Utils/@NPMFixes/apollo_client.js";
 import {CleanDBData} from "../Utils/DB/DBDataHelpers.js";
@@ -37,14 +37,20 @@ export class String_NotWrappedInGraphQL {
 	}
 }
 
+// for debugging
+export const nodesByPath = new Map<String, TreeNode<any>[]>();
+
 export class TreeNode<DataShape> {
 	constructor(fire: Graphlink<any, any>, pathOrSegments: string | string[]) {
 		makeObservable_safe(this, {
 			status: observable,
 			collectionNodes: observable,
 			data: observable.ref,
+			data_forExtRequest: computed,
 			queryNodes: observable,
 			docNodes: observable,
+			docDatas: computed,
+			docDatas_forExtRequest: computed,
 		});
 		this.graph = fire;
 		this.pathSegments = PathOrPathGetterToPathSegments(pathOrSegments);
@@ -68,7 +74,49 @@ export class TreeNode<DataShape> {
 			this.query.vars = E({id: this.pathSegments.slice(-1)[0]}, this.query.vars);
 			this.query.CalculateDerivatives();
 		}
+
+		const oldNodesOnPath = nodesByPath.get(this.path) ?? [];
+		//Assert(oldNodesOnPath.length == 0, `Found another TreeNode with the exact same path! @path:${this.path}`);
+		AssertWarn(oldNodesOnPath.filter(a=>a.subscription != null).length == 0, `Found another TreeNode with the exact same path, with a live subscription! @path:${this.path}`);
+		nodesByPath.set(this.path, oldNodesOnPath.concat(this));
+
+		if (this.path == "maps/9MTZ3TUqQ4y0ICKlcTfgwA") {
+			console.log("Test2 creating.");
+		}
+
+		this.countSecondsWithoutObserver_timer = new Timer(this.graph.unsubscribeTreeNodesAfter, ()=>{
+			// defensive; cancel unsubscribe if somehow we still have observers
+			if (this.observedDataFields.size > 0) return;
+			this.Unsubscribe();
+		}, 1);
+		const OnDataFieldObservedStateChange = (field: string, newObservedState: boolean)=>{
+			if (newObservedState) {
+				this.observedDataFields.add(field);
+			} else {
+				this.observedDataFields.delete(field);
+			}
+
+			if (this.observedDataFields.size == 0) {
+				if (this.graph.unsubscribeTreeNodesAfter != -1) {
+					this.countSecondsWithoutObserver_timer.Start();
+				}
+			} else {
+				this.countSecondsWithoutObserver_timer.Stop();
+				if (this.subscription == null) {
+					RunInAction("TreeNode.OnDataFieldObservedStateChange.Resubscribe", ()=>{
+						this.Subscribe();
+					});
+				}
+			}
+		};
+		onBecomeObserved(this, "data_forExtRequest", ()=>OnDataFieldObservedStateChange("data_forExtRequest", true));
+		onBecomeUnobserved(this, "data_forExtRequest", ()=>OnDataFieldObservedStateChange("data_forExtRequest", false));
+		onBecomeObserved(this, "docDatas_forExtRequest", ()=>OnDataFieldObservedStateChange("docDatas_forExtRequest", true));
+		onBecomeUnobserved(this, "docDatas_forExtRequest", ()=>OnDataFieldObservedStateChange("docDatas_forExtRequest", false));
 	}
+	observedDataFields = new Set<String>();
+	countSecondsWithoutObserver_timer: Timer;
+
 	graph: Graphlink<any, any>;
 	pathSegments: string[];
 	pathSegments_noQuery: string[];
@@ -82,6 +130,7 @@ export class TreeNode<DataShape> {
 			this.Subscribe();
 		}
 	}
+	/** Must be called from within a mobx action. (and not be run within a mobx computation) */
 	Subscribe() {
 		Assert(this.type != TreeNodeType.Root, "Cannot subscribe to the tree root!");
 		Assert(this.subscription == null, "Cannot subscribe more than once!");
@@ -120,6 +169,9 @@ export class TreeNode<DataShape> {
 				query: this.query.GraphQLQuery,
 				variables: this.query.vars,
 			});
+			if (this.pathSegments_noQuery.slice(-1)[0] == "globalData") {
+				console.log("Test1 subscribing.");
+			}
 			this.subscription = this.observable.subscribe({
 				//start: ()=>{},
 				next: data=>{
@@ -182,6 +234,9 @@ export class TreeNode<DataShape> {
 	collectionNodes = observable.map<string, TreeNode<any>>(); // [@O]
 	//collectionNodes = new Map<string, TreeNode<any>>();
 	data: DataShape; // [@O.ref]
+	get data_forExtRequest() { // [@computed]
+		return this.data;
+	}
 	dataJSON: string;
 	SetData(data: DataShape, fromCache: boolean) {
 		// this.data being "undefined" is used to signify that it's still loading; so if firebase-given value is "undefined", change it to "null"
@@ -225,12 +280,15 @@ export class TreeNode<DataShape> {
 	query: QueryParams_Linked; // for collection-query nodes
 	docNodes = observable.map<string, TreeNode<any>>(); // [@O]
 	//docNodes = new Map<string, TreeNode<any>>();
-	get docDatas() {
+	get docDatas() { // [@computed]
 		// (we need to filter for nodes where data is not nully, since such entries get added by GetDoc(...) calls for non-existent paths, but shouldn't show in docDatas array)
 		let docNodes = Array.from(this.docNodes.values()).filter(a=>a.status == DataStatus.Received_Full && a.data != null);
 		let docDatas = docNodes.map(docNode=>docNode.data);
 		//let docDatas = observable.array(docNodes.map(docNode=>docNode.data));
 		return docDatas;
+	}
+	get docDatas_forExtRequest() { // [@computed]
+		return this.docDatas;
 	}
 
 	get AllChildNodes(): TreeNode<any>[] {

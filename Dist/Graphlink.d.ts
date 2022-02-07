@@ -13,6 +13,11 @@ export declare class GraphlinkInitOptions<StoreShape> {
     rootStore: StoreShape;
     apollo: ApolloClient<NormalizedCacheObject>;
     onServer: boolean;
+    /**
+     * After X milliseconds of being unobserved, a TreeNode will unsubscribe its GraphQL subscription, by sending "stop" over the websocket.
+     * Special values: 5000 (default), -1 (never auto-unsubscribe)
+     * */
+    unsubscribeTreeNodesAfter?: number;
     knexModule?: typeof Knex;
     pgPool?: Pool;
 }
@@ -32,6 +37,7 @@ export declare class Graphlink<StoreShape, DBShape> {
         knexModule?: typeof Knex | null | undefined;
         pgPool?: Pool | null | undefined;
     };
+    unsubscribeTreeNodesAfter: number;
     readonly userInfo: UserInfo | null;
     SetUserInfo(userInfo: UserInfo, clearCaches?: boolean): Promise<void> | undefined;
     ClearCaches(): Promise<void>;

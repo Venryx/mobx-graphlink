@@ -78,7 +78,7 @@ export class Command {
         return this;
     }
     /** Call this from within your command's Validate() method. */
-    IntegrateSubcommand(fieldGetter, 
+    IntegrateSubcommand(fieldGetter, fieldSetter, 
     /** If a command is passed, the field is set every time (to the passed command); if a function is passed, the field is only set once (to the result of the function's first invokation). */
     subcommandOrCreator, preValidate) {
         var _a;
@@ -91,8 +91,13 @@ export class Command {
         }
         subcommand.MarkAsSubcommand(this);
         //const fieldName = CE(PathOrPathGetterToPathSegments(fieldGetter)).Last();
-        const fieldName = ConvertPathGetterFuncToPropChain(fieldGetter)[0];
-        this[fieldName] = subcommand;
+        if (fieldSetter) {
+            fieldSetter(subcommand);
+        }
+        else {
+            const fieldName = ConvertPathGetterFuncToPropChain(fieldGetter)[0];
+            this[fieldName] = subcommand;
+        }
         if (preValidate) {
             preValidate(subcommand);
         }

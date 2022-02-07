@@ -78,7 +78,7 @@ export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphOptio
 	let docDatas = docNodes.map(docNode=>docNode.data);
 	return docDatas;*/
 	//return opt.fire.tree.Get(pathSegments, queryRequest)?.docDatas ?? emptyArray;
-	let result = treeNode?.docDatas ?? [];
+	let result = treeNode?.docDatas_forExtRequest ?? [];
 	return result.length == 0 ? emptyArray : result; // to help avoid unnecessary react renders
 }
 /*export async function GetDocs_Async<DocT>(opt: FireOptions & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DBShape)=>ObservableMap<any, DocT>)): Promise<DocT[]> {
@@ -130,7 +130,7 @@ export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphOption
 		}
 		return opt.ifLoading_returnVal;
 	}
-	return treeNode?.data;
+	return treeNode?.data_forExtRequest;
 }
 /*export async function GetDoc_Async<DocT>(opt: FireOptions & GetDoc_Options, docPathOrGetterFunc: string | string[] | ((dbRoot: DBShape)=>DocT)): Promise<DocT> {
 	opt = E(defaultFireOptions, opt);

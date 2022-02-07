@@ -1,5 +1,5 @@
-import { Assert, CE, E, ToJSON } from "js-vextensions";
-import { observable } from "mobx";
+import { Assert, AssertWarn, CE, E, Timer, ToJSON } from "js-vextensions";
+import { computed, observable, onBecomeObserved, onBecomeUnobserved } from "mobx";
 import { CleanDBData } from "../Utils/DB/DBDataHelpers.js";
 import { PathOrPathGetterToPath, PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
 import { MaybeLog_Base } from "../Utils/General/General.js";
@@ -30,9 +30,12 @@ export class String_NotWrappedInGraphQL {
         return this.str; // don't put quotes around it
     }
 }
+// for debugging
+export const nodesByPath = new Map();
 export class TreeNode {
     constructor(fire, pathOrSegments) {
-        var _a;
+        var _a, _b;
+        this.observedDataFields = new Set();
         this.status = DataStatus.Initial; // [@O]
         // for doc (and root) nodes
         this.collectionNodes = observable.map(); // [@O]
@@ -43,8 +46,11 @@ export class TreeNode {
             status: observable,
             collectionNodes: observable,
             data: observable.ref,
+            data_forExtRequest: computed,
             queryNodes: observable,
             docNodes: observable,
+            docDatas: computed,
+            docDatas_forExtRequest: computed,
         });
         this.graph = fire;
         this.pathSegments = PathOrPathGetterToPathSegments(pathOrSegments);
@@ -67,14 +73,59 @@ export class TreeNode {
             this.query.vars = E({ id: this.pathSegments.slice(-1)[0] }, this.query.vars);
             this.query.CalculateDerivatives();
         }
+        const oldNodesOnPath = (_b = nodesByPath.get(this.path)) !== null && _b !== void 0 ? _b : [];
+        //Assert(oldNodesOnPath.length == 0, `Found another TreeNode with the exact same path! @path:${this.path}`);
+        AssertWarn(oldNodesOnPath.filter(a => a.subscription != null).length == 0, `Found another TreeNode with the exact same path, with a live subscription! @path:${this.path}`);
+        nodesByPath.set(this.path, oldNodesOnPath.concat(this));
+        if (this.path == "maps/9MTZ3TUqQ4y0ICKlcTfgwA") {
+            console.log("Test2 creating.");
+        }
+        this.countSecondsWithoutObserver_timer = new Timer(this.graph.unsubscribeTreeNodesAfter, () => {
+            // defensive; cancel unsubscribe if somehow we still have observers
+            if (this.observedDataFields.size > 0)
+                return;
+            this.Unsubscribe();
+        }, 1);
+        const OnDataFieldObservedStateChange = (field, newObservedState) => {
+            if (newObservedState) {
+                this.observedDataFields.add(field);
+            }
+            else {
+                this.observedDataFields.delete(field);
+            }
+            if (this.observedDataFields.size == 0) {
+                if (this.graph.unsubscribeTreeNodesAfter != -1) {
+                    this.countSecondsWithoutObserver_timer.Start();
+                }
+            }
+            else {
+                this.countSecondsWithoutObserver_timer.Stop();
+                if (this.subscription == null) {
+                    RunInAction("TreeNode.OnDataFieldObservedStateChange.Resubscribe", () => {
+                        this.Subscribe();
+                    });
+                }
+            }
+        };
+        onBecomeObserved(this, "data_forExtRequest", () => OnDataFieldObservedStateChange("data_forExtRequest", true));
+        onBecomeUnobserved(this, "data_forExtRequest", () => OnDataFieldObservedStateChange("data_forExtRequest", false));
+        onBecomeObserved(this, "docDatas_forExtRequest", () => OnDataFieldObservedStateChange("docDatas_forExtRequest", true));
+        onBecomeUnobserved(this, "docDatas_forExtRequest", () => OnDataFieldObservedStateChange("docDatas_forExtRequest", false));
     }
     Request() {
+        if (this.path == "maps/9MTZ3TUqQ4y0ICKlcTfgwA") {
+            console.log("Test2 requesting.");
+        }
         this.graph.treeRequestWatchers.forEach(a => a.nodesRequested.add(this));
         if (!this.subscription) {
             this.Subscribe();
         }
     }
+    /** Must be called from within a mobx action. (and not be run within a mobx computation) */
     Subscribe() {
+        if (this.path == "maps/9MTZ3TUqQ4y0ICKlcTfgwA") {
+            console.log("Test2 subscribing.");
+        }
         Assert(this.type != TreeNodeType.Root, "Cannot subscribe to the tree root!");
         Assert(this.subscription == null, "Cannot subscribe more than once!");
         // old: wait till call-stack completes, so we don't violate "can't change observables from within computation" rule
@@ -111,6 +162,9 @@ export class TreeNode {
                 query: this.query.GraphQLQuery,
                 variables: this.query.vars,
             });
+            if (this.pathSegments_noQuery.slice(-1)[0] == "globalData") {
+                console.log("Test1 subscribing.");
+            }
             this.subscription = this.observable.subscribe({
                 //start: ()=>{},
                 next: data => {
@@ -123,6 +177,9 @@ export class TreeNode {
                         let dataChanged = false;
                         for (const doc of docs) {
                             if (!this.docNodes.has(doc.id)) {
+                                if (this.pathSegments.slice(-1)[0] == "maps" && doc.id == "9MTZ3TUqQ4y0ICKlcTfgwA") {
+                                    console.log("Test2 setting slot to new.");
+                                }
                                 this.docNodes.set(doc.id, new TreeNode(this.graph, this.pathSegments.concat([doc.id])));
                             }
                             //dataChanged = this.docNodes.get(doc.id)!.SetData(doc.data(), fromCache) || dataChanged;
@@ -132,6 +189,9 @@ export class TreeNode {
                             const docNode = this.docNodes.get(docID);
                             dataChanged = (docNode === null || docNode === void 0 ? void 0 : docNode.SetData(null, fromCache)) || dataChanged;
                             //docNode?.Unsubscribe(); // if someone subscribed directly, I guess we let them keep the detached subscription?
+                            if (this.pathSegments.slice(-1)[0] == "maps" && docID == "9MTZ3TUqQ4y0ICKlcTfgwA") {
+                                console.log("Test2 deleting slot.");
+                            }
                             this.docNodes.delete(docID);
                         }
                         const newStatus = fromCache ? DataStatus.Received_Cache : DataStatus.Received_Full;
@@ -147,6 +207,12 @@ export class TreeNode {
         }
     }
     Unsubscribe() {
+        if (this.pathSegments_noQuery.slice(-1)[0] == "globalData") {
+            console.log("Test1 unsubscribing.");
+        }
+        if (this.path == "maps/9MTZ3TUqQ4y0ICKlcTfgwA") {
+            console.log("Test2 unsubscribing.");
+        }
         if (this.observable == null || this.subscription == null)
             return null;
         let { observable, subscription } = this;
@@ -154,6 +220,9 @@ export class TreeNode {
         MaybeLog_Base(a => a.subscriptions, l => l(`Unsubscribing from: ${this.path}`));
         this.subscription.unsubscribe();
         this.subscription = null;
+        if (this.pathSegments_noQuery.slice(-1)[0] == "globalData") {
+            console.log("Test1 unsubscribed.");
+        }
         return { observable, subscription };
     }
     UnsubscribeAll() {
@@ -161,6 +230,9 @@ export class TreeNode {
         this.collectionNodes.forEach(a => a.UnsubscribeAll());
         this.queryNodes.forEach(a => a.UnsubscribeAll());
         this.docNodes.forEach(a => a.UnsubscribeAll());
+    }
+    get data_forExtRequest() {
+        return this.data;
     }
     SetData(data, fromCache) {
         // this.data being "undefined" is used to signify that it's still loading; so if firebase-given value is "undefined", change it to "null"
@@ -201,6 +273,9 @@ export class TreeNode {
         //let docDatas = observable.array(docNodes.map(docNode=>docNode.data));
         return docDatas;
     }
+    get docDatas_forExtRequest() {
+        return this.docDatas;
+    }
     get AllChildNodes() {
         return [
             ...this.collectionNodes.values(),
@@ -228,6 +303,9 @@ export class TreeNode {
                         return proceed_inAction(); // if permitted to create, restart function in action (creation must be in action)
                     //let pathToSegment = subpathSegments.slice(0, index).join("/");
                     childNodesMap.set(segment, new TreeNode(this.graph, this.pathSegments.concat(subpathSegmentsToHere)));
+                    if (segment == "globalData") {
+                        console.log(`Test1 attached. Or is it?`, Array.from(childNodesMap.keys()));
+                    }
                 }
                 currentNode = childNodesMap.get(segment);
             }

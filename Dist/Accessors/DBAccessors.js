@@ -69,7 +69,7 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
     let docDatas = docNodes.map(docNode=>docNode.data);
     return docDatas;*/
     //return opt.fire.tree.Get(pathSegments, queryRequest)?.docDatas ?? emptyArray;
-    let result = (_a = treeNode === null || treeNode === void 0 ? void 0 : treeNode.docDatas) !== null && _a !== void 0 ? _a : [];
+    let result = (_a = treeNode === null || treeNode === void 0 ? void 0 : treeNode.docDatas_forExtRequest) !== null && _a !== void 0 ? _a : [];
     return result.length == 0 ? emptyArray : result; // to help avoid unnecessary react renders
 }
 /*export async function GetDocs_Async<DocT>(opt: FireOptions & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DBShape)=>ObservableMap<any, DocT>)): Promise<DocT[]> {
@@ -119,7 +119,7 @@ export function GetDoc(options, docPathOrGetterFunc) {
         }
         return opt.ifLoading_returnVal;
     }
-    return treeNode === null || treeNode === void 0 ? void 0 : treeNode.data;
+    return treeNode === null || treeNode === void 0 ? void 0 : treeNode.data_forExtRequest;
 }
 /*export async function GetDoc_Async<DocT>(opt: FireOptions & GetDoc_Options, docPathOrGetterFunc: string | string[] | ((dbRoot: DBShape)=>DocT)): Promise<DocT> {
     opt = E(defaultFireOptions, opt);

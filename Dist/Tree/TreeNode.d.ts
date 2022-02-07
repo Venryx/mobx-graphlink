@@ -1,4 +1,5 @@
 /// <reference types="zen-observable" />
+import { Timer } from "js-vextensions";
 import { ObservableMap } from "mobx";
 import { Graphlink } from "../Graphlink.js";
 import { FetchResult, Observable } from "../Utils/@NPMFixes/apollo_client.js";
@@ -23,8 +24,11 @@ export declare class String_NotWrappedInGraphQL {
     str: string;
     toJSON(): string;
 }
+export declare const nodesByPath: Map<String, TreeNode<any>[]>;
 export declare class TreeNode<DataShape> {
     constructor(fire: Graphlink<any, any>, pathOrSegments: string | string[]);
+    observedDataFields: Set<String>;
+    countSecondsWithoutObserver_timer: Timer;
     graph: Graphlink<any, any>;
     pathSegments: string[];
     pathSegments_noQuery: string[];
@@ -32,6 +36,7 @@ export declare class TreeNode<DataShape> {
     path_noQuery: string;
     type: TreeNodeType;
     Request(): void;
+    /** Must be called from within a mobx action. (and not be run within a mobx computation) */
     Subscribe(): void;
     Unsubscribe(): {
         observable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>>;
@@ -43,12 +48,14 @@ export declare class TreeNode<DataShape> {
     subscription: ZenObservable.Subscription | null;
     collectionNodes: ObservableMap<string, TreeNode<any>>;
     data: DataShape;
+    get data_forExtRequest(): DataShape;
     dataJSON: string;
     SetData(data: DataShape, fromCache: boolean): boolean;
     queryNodes: ObservableMap<string, TreeNode<any>>;
     query: QueryParams_Linked;
     docNodes: ObservableMap<string, TreeNode<any>>;
     get docDatas(): any[];
+    get docDatas_forExtRequest(): any[];
     get AllChildNodes(): TreeNode<any>[];
     get AllDescendantNodes(): TreeNode<any>[];
     Get(subpathOrGetterFunc: string | string[] | ((data: DataShape) => any), query?: QueryParams, createTreeNodesIfMissing?: boolean): TreeNode<any> | null;

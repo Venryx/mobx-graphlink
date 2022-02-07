@@ -1,4 +1,4 @@
-import {TreeNode} from "./Tree/TreeNode.js";
+import {nodesByPath, TreeNode} from "./Tree/TreeNode.js";
 import {TreeRequestWatcher} from "./Tree/TreeRequestWatcher.js";
 import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "./Utils/DB/DBPaths.js";
 import {makeObservable, observable, runInAction} from "mobx";
@@ -22,6 +22,11 @@ export class GraphlinkInitOptions<StoreShape> {
 	apollo: ApolloClient<NormalizedCacheObject>;
 	onServer: boolean;
 	//initSubs = true;
+	/**
+	 * After X milliseconds of being unobserved, a TreeNode will unsubscribe its GraphQL subscription, by sending "stop" over the websocket.
+	 * Special values: 5000 (default), -1 (never auto-unsubscribe)
+	 * */
+	unsubscribeTreeNodesAfter?: number;
 
 	// server-specific
 	knexModule?: typeof Knex;
@@ -52,6 +57,8 @@ export class Graphlink<StoreShape, DBShape> {
 		this.subs.apollo = apollo;
 		this.subs.knexModule = knexModule;
 		this.subs.pgPool = pgPool;
+		this.unsubscribeTreeNodesAfter = initOptions.unsubscribeTreeNodesAfter ?? 5000;
+
 		this.tree = new TreeNode(this, []);
 		
 		this.initialized = true;
@@ -80,6 +87,7 @@ export class Graphlink<StoreShape, DBShape> {
 		knexModule?: typeof Knex|null; // only used if on db-server
 		pgPool?: Pool|null; // only used if on db-server
 	};
+	unsubscribeTreeNodesAfter: number;
 
 	readonly userInfo: UserInfo|null = null; // [@O]
 	SetUserInfo(userInfo: UserInfo, clearCaches = true) {
@@ -93,7 +101,10 @@ export class Graphlink<StoreShape, DBShape> {
 		/*for (const node of this.tree.AllDescendantNodes) {
 			node.data
 		}*/
-		// delete all the collection tree-nodes; this is equivalent to clearing the mobx-graphlink cache
+		// first, unsubscribe everything; this lets the server release the old live-queries
+		this.tree.UnsubscribeAll();
+		nodesByPath.clear(); // also clear this (debugging collection to track if multiple nodes are created for same path); tree is resetting, so reset this list too
+		// then, delete/detach all the collection tree-nodes; this is equivalent to clearing the mobx-graphlink cache
 		for (const [key, collectionNode] of this.tree.collectionNodes) {
 			this.tree.collectionNodes.delete(key);
 		}

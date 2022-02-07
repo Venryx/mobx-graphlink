@@ -1,4 +1,4 @@
-import { TreeNode } from "./Tree/TreeNode.js";
+import { nodesByPath, TreeNode } from "./Tree/TreeNode.js";
 import { observable } from "mobx";
 import { makeObservable_safe } from "./Utils/General/MobX.js";
 export let defaultGraphOptions;
@@ -29,6 +29,7 @@ export class Graphlink {
         }
     }
     Initialize(initOptions) {
+        var _a;
         let { rootStore, apollo, onServer, knexModule, pgPool } = initOptions;
         Graphlink.instances.push(this);
         this.rootStore = rootStore;
@@ -38,6 +39,7 @@ export class Graphlink {
         this.subs.apollo = apollo;
         this.subs.knexModule = knexModule;
         this.subs.pgPool = pgPool;
+        this.unsubscribeTreeNodesAfter = (_a = initOptions.unsubscribeTreeNodesAfter) !== null && _a !== void 0 ? _a : 5000;
         this.tree = new TreeNode(this, []);
         this.initialized = true;
     }
@@ -55,7 +57,10 @@ export class Graphlink {
         /*for (const node of this.tree.AllDescendantNodes) {
             node.data
         }*/
-        // delete all the collection tree-nodes; this is equivalent to clearing the mobx-graphlink cache
+        // first, unsubscribe everything; this lets the server release the old live-queries
+        this.tree.UnsubscribeAll();
+        nodesByPath.clear(); // also clear this (debugging collection to track if multiple nodes are created for same path); tree is resetting, so reset this list too
+        // then, delete/detach all the collection tree-nodes; this is equivalent to clearing the mobx-graphlink cache
         for (const [key, collectionNode] of this.tree.collectionNodes) {
             this.tree.collectionNodes.delete(key);
         }
