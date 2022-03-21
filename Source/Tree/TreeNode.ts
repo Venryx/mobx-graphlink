@@ -125,6 +125,9 @@ export class TreeNode<DataShape> {
 	type: TreeNodeType;
 
 	Request() {
+		if (this.path == "maps/9MTZ3TUqQ4y0ICKlcTfgwA") {
+			console.log("Test2 requesting.");
+		}
 		this.graph.treeRequestWatchers.forEach(a=>a.nodesRequested.add(this));
 		if (!this.subscription) {
 			this.Subscribe();
@@ -132,6 +135,9 @@ export class TreeNode<DataShape> {
 	}
 	/** Must be called from within a mobx action. (and not be run within a mobx computation) */
 	Subscribe() {
+		if (this.path == "maps/9MTZ3TUqQ4y0ICKlcTfgwA") {
+			console.log("Test2 subscribing.");
+		}
 		Assert(this.type != TreeNodeType.Root, "Cannot subscribe to the tree root!");
 		Assert(this.subscription == null, "Cannot subscribe more than once!");
 
@@ -185,6 +191,9 @@ export class TreeNode<DataShape> {
 						let dataChanged = false;
 						for (const doc of docs) {
 							if (!this.docNodes.has(doc.id)) {
+								if (this.pathSegments.slice(-1)[0] == "maps" && doc.id == "9MTZ3TUqQ4y0ICKlcTfgwA") {
+									console.log("Test2 setting slot to new.");
+								}
 								this.docNodes.set(doc.id, new TreeNode(this.graph, this.pathSegments.concat([doc.id])));
 							}
 							//dataChanged = this.docNodes.get(doc.id)!.SetData(doc.data(), fromCache) || dataChanged;
@@ -194,6 +203,9 @@ export class TreeNode<DataShape> {
 							const docNode = this.docNodes.get(docID);
 							dataChanged = docNode?.SetData(null, fromCache) || dataChanged;
 							//docNode?.Unsubscribe(); // if someone subscribed directly, I guess we let them keep the detached subscription?
+							if (this.pathSegments.slice(-1)[0] == "maps" && docID == "9MTZ3TUqQ4y0ICKlcTfgwA") {
+								console.log("Test2 deleting slot.");
+							}
 							this.docNodes.delete(docID);
 						}
 	
@@ -210,12 +222,21 @@ export class TreeNode<DataShape> {
 		}
 	}
 	Unsubscribe() {
+		if (this.pathSegments_noQuery.slice(-1)[0] == "globalData") {
+			console.log("Test1 unsubscribing.");
+		}
+		if (this.path == "maps/9MTZ3TUqQ4y0ICKlcTfgwA") {
+			console.log("Test2 unsubscribing.");
+		}
 		if (this.observable == null || this.subscription == null) return null;
 		let {observable, subscription} = this;
 		this.observable = null;
 		MaybeLog_Base(a=>a.subscriptions, l=>l(`Unsubscribing from: ${this.path}`));
 		this.subscription.unsubscribe();
 		this.subscription = null;
+		if (this.pathSegments_noQuery.slice(-1)[0] == "globalData") {
+			console.log("Test1 unsubscribed.");
+		}
 		return {observable, subscription};
 	}
 	UnsubscribeAll() {
@@ -319,6 +340,9 @@ export class TreeNode<DataShape> {
 					if (!inAction) return proceed_inAction(); // if permitted to create, restart function in action (creation must be in action)
 					//let pathToSegment = subpathSegments.slice(0, index).join("/");
 					childNodesMap.set(segment, new TreeNode(this.graph, this.pathSegments.concat(subpathSegmentsToHere)));
+					if (segment == "globalData") {
+						console.log(`Test1 attached. Or is it?`, Array.from(childNodesMap.keys()));
+					}
 				}
 
 				currentNode = childNodesMap.get(segment)!;

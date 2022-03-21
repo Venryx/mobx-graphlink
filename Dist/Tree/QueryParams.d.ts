@@ -1,3 +1,4 @@
+import { JSONSchema7 } from "json-schema";
 import { DocumentNode } from "../Utils/@NPMFixes/apollo_client.js";
 import { TreeNode } from "./TreeNode.js";
 export declare class QueryParams {
@@ -38,3 +39,5 @@ export declare class QueryParams_Linked extends QueryParams {
 }
 /** Adds round-brackets around the passed string, eg. "(...)", if it's non-empty. */
 export declare function WithBrackets(str: string | null | undefined): string;
+export declare const gqlScalarTypes: string[];
+export declare function JSONSchemaToGQLFieldsStr(schema: JSONSchema7, schemaName: string): any;

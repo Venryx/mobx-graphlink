@@ -1,4 +1,5 @@
 import {Assert, CE, Clone, FromJSON, ToJSON} from "js-vextensions";
+import {JSONSchema7} from "json-schema";
 import {TableNameToDocSchemaName, TableNameToGraphQLDocRetrieverKey} from "../Extensions/Decorators.js";
 import {ConstructGQLArgsStr} from "../Extensions/GQLSchemaHelpers.js";
 import {GetSchemaJSON} from "../Extensions/JSONSchemaHelpers.js";
@@ -142,23 +143,20 @@ export class QueryParams_Linked extends QueryParams {
 		
 		
 		if (this.treeNode.type == TreeNodeType.Document) {
-			const propPairs = CE(docSchema.properties!).Pairs();
-			Assert(propPairs.length > 0, `Cannot create GraphQL type for "${this.DocSchemaName}" without at least 1 property.`);
 			return `
 				subscription DocInCollection_${this.CollectionName}${WithBrackets(this.varsDefine)} {
 					${TableNameToGraphQLDocRetrieverKey(this.CollectionName)}${WithBrackets(argsStr)} {
-						${propPairs.map(a=>a.key).join(" ")}
+						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName)}
 					}
 				}
 			`;
 		} else {
-			const propPairs = CE(docSchema.properties!).Pairs();
-			Assert(propPairs.length > 0, `Cannot create GraphQL type for "${this.CollectionName}" without at least 1 property.`);
-
 			return `
 				subscription Collection_${this.CollectionName}${WithBrackets(this.varsDefine)} {
 					${this.CollectionName}${WithBrackets(argsStr)} {
-						nodes { ${propPairs.map(a=>a.key).join(" ")} }
+						nodes {
+							${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName)}
+						}
 					}
 				}
 			`;
@@ -169,4 +167,40 @@ export class QueryParams_Linked extends QueryParams {
 export function WithBrackets(str: string|null|undefined) {
 	if (str == null || str.length == 0) return "";
 	return `(${str})`;
+}
+
+export const gqlScalarTypes = [
+	// standard
+	"Boolean", "Int", "Float", "String", "ID",
+	// for postgresql
+	"JSON",
+];
+export function JSONSchemaToGQLFieldsStr(schema: JSONSchema7, schemaName: string) {
+	const fields = CE(schema.properties!).Pairs();
+	Assert(fields.length > 0, `Cannot create GraphQL query-string for schema "${schemaName}", since it has 0 fields.`);
+
+	return fields.map(field=>{
+		// guess at whether the field is a scalar
+		let isScalar = true;
+
+		// (atm, field is assumed a scalar unless it has a $gqlType specified in its json-schema whose type-name doesn't match the hard-coded list of scalars)
+		const declaredGQLType = field.value["$gqlType"];
+		if (declaredGQLType) {
+			const declaredGQLType_simplified = declaredGQLType.replace(/[^a-zA-Z0-9_]/g, "");
+			if (!gqlScalarTypes.includes(declaredGQLType_simplified)) {
+				isScalar = false;
+			}
+		}
+
+		// if field's gql-type is not a scalar, then expand that field to its set of subfields
+		if (!isScalar) {
+			let fieldTypeName = field.value["$ref"] ?? field.value["items"]?.["$ref"];
+			const fieldTypeSchema = GetSchemaJSON(fieldTypeName);
+			return `${field.key} {
+				${JSONSchemaToGQLFieldsStr(fieldTypeSchema, fieldTypeName)}
+			}`;
+		}
+
+		return field.key;
+	}).join("\n");
 }
