@@ -181,7 +181,7 @@ export function JSONSchemaToGQLFieldsStr(schema: JSONSchema7, schemaName: string
 
 	return fields.map(field=>{
 		// guess at whether the field is a scalar
-		let isScalar = true;
+		let isScalar = field.value["$gqlTypeIsScalar"] ?? true;
 
 		// (atm, field is assumed a scalar unless it has a $gqlType specified in its json-schema whose type-name doesn't match the hard-coded list of scalars)
 		const declaredGQLType = field.value["$gqlType"];
