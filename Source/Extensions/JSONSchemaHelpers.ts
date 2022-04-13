@@ -96,6 +96,9 @@ export function AddSchema(...args: any[]) {
 		let schema = schemaOrGetter instanceof Function ? schemaOrGetter() : schemaOrGetter;
 
 		schema = NewSchema(schema);
+		// by freezing the schema, we can return the schema (in GetSchemaJSON) without worrying about the data being mutated
+		Object.freeze(schema);
+		
 		schemaEntryJSONs.set(name, schema);
 		ajv.removeSchema(name); // for hot-reloading
 		ajvResult = ajv.addSchema(schema, name);
@@ -126,7 +129,11 @@ export function AddSchema(...args: any[]) {
 export function GetSchemaJSON(name: string, errorOnMissing = true): JSONSchema7 {
 	const schemaJSON = schemaEntryJSONs.get(name);
 	Assert(schemaJSON != null || !errorOnMissing, `Could not find schema "${name}".`);
-	return Clone(schemaJSON);
+	//return Clone(schemaJSON);
+	return schemaJSON!;
+}
+export function GetSchemaJSON_Cloned(name: string, errorOnMissing = true): JSONSchema7 {
+	return Clone(GetSchemaJSON(name, errorOnMissing));
 }
 
 export type SchemaModifiers<T> = {
@@ -328,12 +335,13 @@ export function AssertValidate_Full(schemaObject: JSONSchema7, schemaName: strin
 	assertFunc(errorsText == null, failureMessage);
 }
 
-export function Schema_WithOptionalPropsAllowedNull(schema: any) {
-	const result = Clone(schema);
-	for (const {key: propName, value: propSchema} of (result.properties || {}).Pairs()) {
-		const propOptional = result.required == null || !result.required.Contains(propName);
-		if (propOptional && propSchema.type) {
-			propSchema.type = CE(IsString(propSchema.type) ? ["null", propSchema.type] : ["null"].concat(propSchema.type)).Distinct();
+export function Schema_WithOptionalPropsAllowedNull(schema: JSONSchema7) {
+	const result = Clone(schema) as JSONSchema7;
+	for (const [propName, propSchema] of Object.entries(result.properties ?? {})) {
+		const propOptional = !result.required?.includes(propName);
+		let type = propSchema["type"];
+		if (propOptional && type) {
+			propSchema["type"] = CE(IsString(type) ? ["null", type] : ["null"].concat(type)).Distinct();
 		}
 	}
 	return result;

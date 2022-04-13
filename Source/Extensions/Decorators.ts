@@ -1,7 +1,7 @@
 import {AddSchema, collection_docSchemaName, WaitTillSchemaAdded} from "./JSONSchemaHelpers.js";
 import type {Knex} from "knex";
 import {BailError} from "../Utils/General/BailManager.js";
-import {Assert, E} from "js-vextensions";
+import {Assert, CE, E} from "js-vextensions";
 import {n} from "../Utils/@Internal/Types.js";
 
 // metadata-retrieval helpers
@@ -30,6 +30,7 @@ export type BailInfo = {comp: any, bailMessage: BailError};
 export type BailHandler = (info: BailInfo)=>any;
 export class BailHandler_Options {
 	loadingUI?: BailHandler;
+	storeMetadata = true;
 }
 export function BailHandler(targetClass: Function);
 export function BailHandler(options?: Partial<BailHandler_Options>);
@@ -45,11 +46,18 @@ export function BailHandler(...args) {
 	function ApplyToClass(targetClass: Function) {
 		const render_old = targetClass.prototype.render;
 		targetClass.prototype.render = function(...args) {
+			if (opts.storeMetadata && this["mgl"] == null) this["mgl"] = new MGLCompMeta();
+			const mgl = this["mgl"] as MGLCompMeta|undefined;
 			try {
+				if (mgl) mgl.NotifyRenderStart();
 				const result = render_old.apply(this, args);
+				
+				if (mgl) mgl.NotifyRenderCompletion();
 				return result;
 			} catch (ex) {
 				if (ex instanceof BailError) {
+					if (mgl) mgl.NotifyBailError(ex);
+
 					const loadingUI = this.loadingUI ?? targetClass.prototype.loadingUI ?? opts.loadingUI ?? BailHandler_loadingUI_default;
 					return loadingUI.call(this, {comp: this, bailMessage: ex});
 				} else {
@@ -58,6 +66,54 @@ export function BailHandler(...args) {
 			}
 		};
 	}
+}
+
+export class RenderResultSpan {
+	bailMessage: string|n;
+	accessorInfo: string|n;
+	startTime: number;
+	endTime?: number;
+	duration?: number;
+}
+export class MGLCompMeta {
+	timeOfFirstRenderAttempt?: number;
+	timeOfFirstRenderSuccess?: number;
+	renderResultSpans: RenderResultSpan[] = [];
+
+	NotifyRenderStart() {
+		this.timeOfFirstRenderAttempt = this.timeOfFirstRenderAttempt ?? Date.now();
+	}
+	NotifyRenderCompletion() {
+		this.timeOfFirstRenderSuccess = this.timeOfFirstRenderSuccess ?? Date.now();
+		this.NotifyRenderResult(null);
+	}
+	NotifyBailError(ex: BailError) {
+		this.NotifyRenderResult(ex.message);
+	}
+	NotifyRenderResult(bailMessage: string|null) {
+		let lastResultSpan = CE(this.renderResultSpans).LastOrX();
+		if (bailMessage != lastResultSpan?.bailMessage) {
+			const now = Date.now();
+			if (lastResultSpan != null) {
+				lastResultSpan.endTime = now;
+				lastResultSpan.duration = now - lastResultSpan.startTime;
+			}
+			let accessorInfo: string|null = null;
+			if (bailMessage && bailMessage.includes("@accessor:")) {
+				accessorInfo = bailMessage.split("@accessor:")[1]
+					.replace(/\(0,[a-zA-Z0-9_]+?\.GetDocs\)/g, "GetDocs")
+					.replace(/\(0,[a-zA-Z0-9_]+?\.GetDoc\)/g, "GetDoc");
+			}
+			this.renderResultSpans.push({
+				bailMessage,
+				accessorInfo,
+				startTime: now
+			});
+		}
+	}
+	
+	// to be called from dev-tools console (eg: `$r.mtg.BailDurations()`)
+	//BailDurations() {}
 }
 
 let observer: typeof import("mobx-react").observer;

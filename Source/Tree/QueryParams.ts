@@ -176,15 +176,17 @@ export const gqlScalarTypes = [
 	"JSON",
 ];
 export function JSONSchemaToGQLFieldsStr(schema: JSONSchema7, schemaName: string) {
-	const fields = CE(schema.properties!).Pairs();
+	//const fields = CE(schema.properties!).Pairs();
+	const fields = Object.entries(schema.properties!);
 	Assert(fields.length > 0, `Cannot create GraphQL query-string for schema "${schemaName}", since it has 0 fields.`);
 
-	return fields.map(field=>{
+	//return fields.map(field=>{
+	return fields.map(([fieldKey, fieldValue])=>{
 		// guess at whether the field is a scalar
-		let isScalar = field.value["$gqlTypeIsScalar"] ?? true;
+		let isScalar = fieldValue["$gqlTypeIsScalar"] ?? true;
 
 		// (atm, field is assumed a scalar unless it has a $gqlType specified in its json-schema whose type-name doesn't match the hard-coded list of scalars)
-		const declaredGQLType = field.value["$gqlType"];
+		const declaredGQLType = fieldValue["$gqlType"];
 		if (declaredGQLType) {
 			const declaredGQLType_simplified = declaredGQLType.replace(/[^a-zA-Z0-9_]/g, "");
 			if (!gqlScalarTypes.includes(declaredGQLType_simplified)) {
@@ -194,13 +196,13 @@ export function JSONSchemaToGQLFieldsStr(schema: JSONSchema7, schemaName: string
 
 		// if field's gql-type is not a scalar, then expand that field to its set of subfields
 		if (!isScalar) {
-			let fieldTypeName = field.value["$ref"] ?? field.value["items"]?.["$ref"];
+			let fieldTypeName = fieldValue["$ref"] ?? fieldValue["items"]?.["$ref"];
 			const fieldTypeSchema = GetSchemaJSON(fieldTypeName);
-			return `${field.key} {
+			return `${fieldKey} {
 				${JSONSchemaToGQLFieldsStr(fieldTypeSchema, fieldTypeName)}
 			}`;
 		}
 
-		return field.key;
+		return fieldKey;
 	}).join("\n");
 }

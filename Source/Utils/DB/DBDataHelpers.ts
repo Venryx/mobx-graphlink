@@ -40,13 +40,13 @@ export function CleanDBData(data, cleanTypes: CleanType[] = CleanType_values.sli
 
 export function ConvertDataToValidDBUpdates(versionPath: string, versionData: any, dbUpdatesRelativeToVersionPath = true) {
 	const result = {};
-	for (const {key: pathFromVersion, value: data} of ObjectCE(versionData).Pairs()) {
+	for (const [pathFromVersion, data] of Object.entries(versionData) as [string, any][]) {
 		const fullPath = `${versionPath}/${pathFromVersion}`;
 		const pathForDBUpdates = dbUpdatesRelativeToVersionPath ? pathFromVersion : fullPath;
 
 		// if entry`s "path" has odd number of segments (ie. points to collection), extract the children data into separate set-doc updates
 		if (SplitStringBySlash_Cached(fullPath).length % 2 !== 0) {
-			for (const {key, value} of ObjectCE(data).Pairs()) {
+			for (const [key, value] of Object.entries(data)) {
 				result[`${pathForDBUpdates}/${key}`] = value;
 			}
 		} else {

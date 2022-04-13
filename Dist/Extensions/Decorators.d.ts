@@ -12,9 +12,26 @@ export declare type BailInfo = {
 export declare type BailHandler = (info: BailInfo) => any;
 export declare class BailHandler_Options {
     loadingUI?: BailHandler;
+    storeMetadata: boolean;
 }
 export declare function BailHandler(targetClass: Function): any;
 export declare function BailHandler(options?: Partial<BailHandler_Options>): any;
+export declare class RenderResultSpan {
+    bailMessage: string | n;
+    accessorInfo: string | n;
+    startTime: number;
+    endTime?: number;
+    duration?: number;
+}
+export declare class MGLCompMeta {
+    timeOfFirstRenderAttempt?: number;
+    timeOfFirstRenderSuccess?: number;
+    renderResultSpans: RenderResultSpan[];
+    NotifyRenderStart(): void;
+    NotifyRenderCompletion(): void;
+    NotifyBailError(ex: BailError): void;
+    NotifyRenderResult(bailMessage: string | null): void;
+}
 export declare class MGLObserver_Options {
     bailHandler: boolean;
     bailHandler_opts?: BailHandler_Options;

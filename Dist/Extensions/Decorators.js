@@ -1,6 +1,6 @@
 import { AddSchema, collection_docSchemaName } from "./JSONSchemaHelpers.js";
 import { BailError } from "../Utils/General/BailManager.js";
-import { Assert, E } from "js-vextensions";
+import { Assert, CE, E } from "js-vextensions";
 // metadata-retrieval helpers
 // ==========
 export function TableNameToDocSchemaName(tableName, errorIfMissing = true) {
@@ -21,6 +21,9 @@ export function BailHandler_loadingUI_default_Set(value) {
     BailHandler_loadingUI_default = value;
 }
 export class BailHandler_Options {
+    constructor() {
+        this.storeMetadata = true;
+    }
 }
 export function BailHandler(...args) {
     let opts = new BailHandler_Options();
@@ -35,12 +38,21 @@ export function BailHandler(...args) {
         const render_old = targetClass.prototype.render;
         targetClass.prototype.render = function (...args) {
             var _a, _b, _c;
+            if (opts.storeMetadata && this["mgl"] == null)
+                this["mgl"] = new MGLCompMeta();
+            const mgl = this["mgl"];
             try {
+                if (mgl)
+                    mgl.NotifyRenderStart();
                 const result = render_old.apply(this, args);
+                if (mgl)
+                    mgl.NotifyRenderCompletion();
                 return result;
             }
             catch (ex) {
                 if (ex instanceof BailError) {
+                    if (mgl)
+                        mgl.NotifyBailError(ex);
                     const loadingUI = (_c = (_b = (_a = this.loadingUI) !== null && _a !== void 0 ? _a : targetClass.prototype.loadingUI) !== null && _b !== void 0 ? _b : opts.loadingUI) !== null && _c !== void 0 ? _c : BailHandler_loadingUI_default;
                     return loadingUI.call(this, { comp: this, bailMessage: ex });
                 }
@@ -49,6 +61,48 @@ export function BailHandler(...args) {
                 }
             }
         };
+    }
+}
+export class RenderResultSpan {
+}
+export class MGLCompMeta {
+    constructor() {
+        this.renderResultSpans = [];
+        // to be called from dev-tools console (eg: `$r.mtg.BailDurations()`)
+        //BailDurations() {}
+    }
+    NotifyRenderStart() {
+        var _a;
+        this.timeOfFirstRenderAttempt = (_a = this.timeOfFirstRenderAttempt) !== null && _a !== void 0 ? _a : Date.now();
+    }
+    NotifyRenderCompletion() {
+        var _a;
+        this.timeOfFirstRenderSuccess = (_a = this.timeOfFirstRenderSuccess) !== null && _a !== void 0 ? _a : Date.now();
+        this.NotifyRenderResult(null);
+    }
+    NotifyBailError(ex) {
+        this.NotifyRenderResult(ex.message);
+    }
+    NotifyRenderResult(bailMessage) {
+        let lastResultSpan = CE(this.renderResultSpans).LastOrX();
+        if (bailMessage != (lastResultSpan === null || lastResultSpan === void 0 ? void 0 : lastResultSpan.bailMessage)) {
+            const now = Date.now();
+            if (lastResultSpan != null) {
+                lastResultSpan.endTime = now;
+                lastResultSpan.duration = now - lastResultSpan.startTime;
+            }
+            let accessorInfo = null;
+            if (bailMessage && bailMessage.includes("@accessor:")) {
+                accessorInfo = bailMessage.split("@accessor:")[1]
+                    .replace(/\(0,[a-zA-Z0-9_]+?\.GetDocs\)/g, "GetDocs")
+                    .replace(/\(0,[a-zA-Z0-9_]+?\.GetDoc\)/g, "GetDoc");
+            }
+            this.renderResultSpans.push({
+                bailMessage,
+                accessorInfo,
+                startTime: now
+            });
+        }
     }
 }
 let observer;

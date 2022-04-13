@@ -9,7 +9,7 @@ export class DBValueWrapper {
 export function WrapDBValue(value: any, otherFlags: Partial<Omit<DBValueWrapper, "value">>) {
 	let result = new DBValueWrapper();
 	result.value = value;
-	CE(result).VSet(otherFlags);
+	Object.assign(result, otherFlags);
 	return result;
 }
 
@@ -20,7 +20,7 @@ export enum DBUpdateType {
 
 export class DBUpdate {
 	constructor(data: Omit<DBUpdate, "PathSegments" | "PathSegments_Plain">) {
-		CE(this).VSet(data);
+		Object.assign(this, data);
 	}
 	
 	type: DBUpdateType;

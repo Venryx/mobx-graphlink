@@ -92,7 +92,7 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 	const wrapperAccessor = (...callArgs)=>{
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
 		//let graphOpt = E(defaultGraphOptions, CE(opt).IncludeKeys("graph"));
-		let graphOpt = E(defaultGraphOptions, opt.graph ? {graph: opt.graph} : {});
+		let graphOpt = opt.graph ? E(defaultGraphOptions, {graph: opt.graph}) : defaultGraphOptions; // structured for perf
 		const graph = graphOpt.graph;
 
 		const store = graph.storeOverridesStack.length == 0 ? graph.rootStore : graph.storeOverridesStack.slice(-1)[0];

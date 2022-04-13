@@ -1,4 +1,3 @@
-import { CE } from "js-vextensions";
 export class DBValueWrapper {
     constructor() {
         this.merge = false;
@@ -7,7 +6,7 @@ export class DBValueWrapper {
 export function WrapDBValue(value, otherFlags) {
     let result = new DBValueWrapper();
     result.value = value;
-    CE(result).VSet(otherFlags);
+    Object.assign(result, otherFlags);
     return result;
 }
 export var DBUpdateType;
@@ -17,7 +16,7 @@ export var DBUpdateType;
 })(DBUpdateType || (DBUpdateType = {}));
 export class DBUpdate {
     constructor(data) {
-        CE(this).VSet(data);
+        Object.assign(this, data);
     }
     get PathSegments() {
         //return SplitStringBySlash_Cached(this.path);

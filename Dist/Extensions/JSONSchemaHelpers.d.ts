@@ -17,6 +17,7 @@ Note that the "requiredness" of properties should be based on what's valid for a
 export declare function AddSchema(name: string, schemaOrGetter: JSONSchema7 | (() => JSONSchema7)): Ajv | Promise<Ajv>;
 export declare function AddSchema(name: string, schemaDeps: string[] | null | undefined, schemaGetter: () => JSONSchema7): Ajv | Promise<Ajv>;
 export declare function GetSchemaJSON(name: string, errorOnMissing?: boolean): JSONSchema7;
+export declare function GetSchemaJSON_Cloned(name: string, errorOnMissing?: boolean): JSONSchema7;
 export declare type SchemaModifiers<T> = {
     includeOnly?: Array<keyof T>;
     makeOptional?: Array<keyof T>;
@@ -57,12 +58,12 @@ export declare class AssertValidateOptions {
 }
 export declare function AssertValidate(schemaNameOrJSON: string | JSONSchema7, data: any, failureMessageOrGetter: string | ((errorsText: string) => string), opt?: Partial<AssertValidateOptions>): void;
 export declare function AssertValidate_Full(schemaObject: JSONSchema7, schemaName: string | null, data: any, failureMessageOrGetter: string | ((errorsText: string | undefined) => string), opt?: Partial<AssertValidateOptions>): void;
-export declare function Schema_WithOptionalPropsAllowedNull(schema: any): any;
+export declare function Schema_WithOptionalPropsAllowedNull(schema: JSONSchema7): JSONSchema7;
 export declare function GetInvalidPropPaths(data: Object, schemaObject: Object): {
     propPath: string;
     error: import("ajv").ErrorObject<string, Record<string, any>, unknown>;
 }[];
 export declare function IsJSONSchemaScalar(typeStr: string | undefined): boolean;
 export declare function IsJSONSchemaOfTypeScalar(jsonSchema: JSONSchema7): boolean;
-export declare function JSONSchemaScalarTypeToGraphQLScalarType(jsonSchemaScalarType: string): "String" | "Int" | "Float" | "Boolean" | undefined;
+export declare function JSONSchemaScalarTypeToGraphQLScalarType(jsonSchemaScalarType: string): "Boolean" | "Int" | "Float" | "String" | undefined;
 export {};

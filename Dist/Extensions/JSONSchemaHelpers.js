@@ -81,6 +81,8 @@ export function AddSchema(...args) {
     const proceed = () => {
         let schema = schemaOrGetter instanceof Function ? schemaOrGetter() : schemaOrGetter;
         schema = NewSchema(schema);
+        // by freezing the schema, we can return the schema (in GetSchemaJSON) without worrying about the data being mutated
+        Object.freeze(schema);
         schemaEntryJSONs.set(name, schema);
         ajv.removeSchema(name); // for hot-reloading
         ajvResult = ajv.addSchema(schema, name);
@@ -108,7 +110,11 @@ export function AddSchema(...args) {
 export function GetSchemaJSON(name, errorOnMissing = true) {
     const schemaJSON = schemaEntryJSONs.get(name);
     Assert(schemaJSON != null || !errorOnMissing, `Could not find schema "${name}".`);
-    return Clone(schemaJSON);
+    //return Clone(schemaJSON);
+    return schemaJSON;
+}
+export function GetSchemaJSON_Cloned(name, errorOnMissing = true) {
+    return Clone(GetSchemaJSON(name, errorOnMissing));
 }
 export function DeriveJSONSchema(typeClass, modifiers) {
     var _a, _b;
@@ -265,11 +271,13 @@ export function AssertValidate_Full(schemaObject, schemaName, data, failureMessa
     assertFunc(errorsText == null, failureMessage);
 }
 export function Schema_WithOptionalPropsAllowedNull(schema) {
+    var _a, _b;
     const result = Clone(schema);
-    for (const { key: propName, value: propSchema } of (result.properties || {}).Pairs()) {
-        const propOptional = result.required == null || !result.required.Contains(propName);
-        if (propOptional && propSchema.type) {
-            propSchema.type = CE(IsString(propSchema.type) ? ["null", propSchema.type] : ["null"].concat(propSchema.type)).Distinct();
+    for (const [propName, propSchema] of Object.entries((_a = result.properties) !== null && _a !== void 0 ? _a : {})) {
+        const propOptional = !((_b = result.required) === null || _b === void 0 ? void 0 : _b.includes(propName));
+        let type = propSchema["type"];
+        if (propOptional && type) {
+            propSchema["type"] = CE(IsString(type) ? ["null", type] : ["null"].concat(type)).Distinct();
         }
     }
     return result;
