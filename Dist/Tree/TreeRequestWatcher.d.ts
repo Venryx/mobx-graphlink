@@ -5,5 +5,8 @@ export declare class TreeRequestWatcher {
     graph: Graphlink<any, any>;
     Start(): void;
     Stop(): void;
-    nodesRequested: Set<TreeNode<any>>;
+    nodesRequested: Set<TreeNode<any> | TreeNodePlaceholder>;
+}
+export declare class TreeNodePlaceholder {
+    _note: string;
 }

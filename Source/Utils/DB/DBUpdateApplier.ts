@@ -129,6 +129,11 @@ export async function ApplyDBUpdates(dbUpdates: DBUpdate[], simplifyDBUpdates = 
 			const targetingRow = pathSegments_plain.length == 2;
 			const targetingCell = pathSegments_plain.length == 3;
 			const targetingJSONBPath = pathSegments_plain.length > 3;
+
+			// this type isn't exposed publicly (afaik), so extract it out manually
+			type QueryBuilderInstance = ReturnType<typeof knexTx["returning"]>;
+
+			let queryPromise: QueryBuilderInstance|undefined;
 			if (targetingRow) {
 				if (isSet) {
 					//const result = await knex(tableName).where({id: docID}).first().insert(update.value);
@@ -146,16 +151,16 @@ export async function ApplyDBUpdates(dbUpdates: DBUpdate[], simplifyDBUpdates = 
 					}
 					// if db-type is "json"/"jsonb", convert value to string before actual insertion
 					
-					const [row] = await knexTx(tableName).insert(docValue_final)
+					queryPromise = knexTx(tableName).insert(docValue_final)
 						.onConflict("id").merge() // if row already exists, set it to the newly-passed data
 						.returning("*");
 				} else if (isDelete) {
-					const [row] = await knexTx(tableName).where({id: docID}).delete().returning("*");
+					queryPromise = knexTx(tableName).where({id: docID}).delete().returning("*");
 				}
 			} else if (targetingCell) {
 				// todo: make sure this handles deletes correctly
 				const fieldName = pathSegments_plain[2];
-				const [row] = await knexTx(tableName).where({id: docID}).update({
+				queryPromise = knexTx(tableName).where({id: docID}).update({
 					[fieldName]: FinalizeFieldValue(update.value, fieldName),
 				}).returning("*");
 			} else if (targetingJSONBPath) {
@@ -192,20 +197,21 @@ export async function ApplyDBUpdates(dbUpdates: DBUpdate[], simplifyDBUpdates = 
 					}
 					const jsonbSet_str = [...jsonbSet_startLines, jsonbSet_endLine].join("\n");
 
-					const promise = knexTx(tableName).where({id: docID}).update({
+					queryPromise = knexTx(tableName).where({id: docID}).update({
 						[jsonbFieldName]: knex_raw.raw(jsonbSet_str, jsonbSet_values),
 					}).returning("*");
-					//console.log("SQL:", promise.toSQL());
-					await promise;
 				} else if (isDelete) {
 					const pathSegmentsInJSONB_quoted = pathSegmentsInJSONB.map(a=>`'${a}'`);
 
-					const promise = knexTx(tableName).where({id: docID}).update({
+					queryPromise = knexTx(tableName).where({id: docID}).update({
 						[jsonbFieldName]: knex_raw.raw(`"${jsonbFieldName}" #- array[${pathSegmentsInJSONB_quoted}]`),
 					}).returning("*");
-					//console.log("SQL:", promise.toSQL());
-					await promise;
 				}
+			}
+			
+			if (queryPromise != null) {
+				console.log("Applying query SQL. @pathSegments_plain:", pathSegments_plain, "@updateValue:", update.value, "@sql:", queryPromise.toSQL());
+				const [row] = await queryPromise;
 			}
 		}
 

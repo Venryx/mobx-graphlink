@@ -45,6 +45,15 @@ export declare class Graphlink<StoreShape, DBShape> {
     treeRequestWatchers: Set<TreeRequestWatcher>;
     UnsubscribeAll(): void;
     ValidateDBData?: (dbData: DBShape) => void;
+    allTreeNodes: Set<TreeNode<any>>;
+    NodesWhere(filterFunc: (node: TreeNode<any>) => boolean): TreeNode<any>[];
+    GetStats(): GraphlinkStats;
+}
+export declare class GraphlinkStats {
+    constructor(data?: Partial<GraphlinkStats>);
+    attachedTreeNodes: number;
+    nodesWithRequestedSubscriptions: number;
+    nodesWithFulfilledSubscriptions: number;
 }
 export declare class UserInfo {
     id: string;

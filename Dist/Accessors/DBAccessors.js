@@ -1,9 +1,10 @@
 import { CE, E, emptyArray, emptyArray_forLoading } from "js-vextensions";
 import { defaultGraphOptions } from "../Graphlink.js";
 import { DataStatus } from "../Tree/TreeNode.js";
+import { TreeNodePlaceholder } from "../Tree/TreeRequestWatcher.js";
 import { PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
 import { Bail } from "../Utils/General/BailManager.js";
-import { DoX_ComputationSafe, RunInAction } from "../Utils/General/MobX.js";
+import { RunInAction_WhenAble } from "../Utils/General/MobX.js";
 import { NotifyWaitingForDB } from "./Helpers.js";
 export function NotifyRawDBAccess(graph) {
     const deepestCallPlanRunning = graph.GetDeepestCallPlanCurrentlyRunning();
@@ -37,20 +38,22 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
         return emptyArray;
     // include a mobx-access of user-info; this way, the accessor-stack is refreshed when user-info changes (which we want, since RLS policies can cause results to change depending on user-info)
     //opt.graph.userInfo; // commented; not actually needed (the tree-nodes reset will trigger the accessor-stacks to refresh anyway)
-    const treeNode = opt.graph.tree.Get(pathSegments, opt.params);
+    let treeNode = opt.graph.tree.Get(pathSegments, opt.params);
     // if already subscribed, just mark requested (reduces action-spam of GetDocs_Request)
     if (treeNode && treeNode.subscription) {
         treeNode.Request();
     }
     else {
         // we can't change observables from within computations, so do it in a moment (out of computation call-stack)
-        DoX_ComputationSafe(() => RunInAction("GetDocs_Request", () => {
+        let ranImmediately = RunInAction_WhenAble("GetDocs_Request", () => {
             opt.graph.tree.Get(pathSegments, opt.params, true).Request();
-        }));
-        // if tree-node still not created yet (due to waiting a tick so can start mobx action), add placeholder entry, so tree-request-watchers know there's still data being loaded
-        // todo: improve this (eg. make-so watchers know they may receive mere placeholder entries)
-        if (opt.graph.tree.Get(pathSegments, opt.params) == null) {
-            const placeholder = { "_note": "This is a placeholder; data is still loading, but its tree-node hasn't been created yet, so this is its placeholder." };
+        });
+        if (ranImmediately) {
+            treeNode = opt.graph.tree.Get(pathSegments, opt.params);
+        }
+        else {
+            // if tree-node still not created yet (due to waiting a tick so can start mobx action), add placeholder entry, so tree-request-watchers know there's still data being loaded
+            const placeholder = new TreeNodePlaceholder();
             opt.graph.treeRequestWatchers.forEach(a => a.nodesRequested.add(placeholder));
         }
         // we need this function to re-run once new TreeNode is created+subscribed, so access/watch parent TreeNode's collections map
@@ -101,13 +104,15 @@ export function GetDoc(options, docPathOrGetterFunc) {
     }
     else {
         // we can't change observables from within computations, so do it in a moment (out of computation call-stack)
-        DoX_ComputationSafe(() => RunInAction("GetDoc_Request", () => {
+        let ranImmediately = RunInAction_WhenAble("GetDoc_Request", () => {
             opt.graph.tree.Get(pathSegments, undefined, true).Request();
-        }));
-        // if tree-node still not created yet (due to waiting a tick so can start mobx action), add placeholder entry, so tree-request-watchers know there's still data being loaded
-        // todo: improve this (eg. make-so watchers know they may receive mere placeholder entries)
-        if (opt.graph.tree.Get(pathSegments) == null) {
-            const placeholder = { "_note": "This is a placeholder; data is still loading, but its tree-node hasn't been created yet, so this is its placeholder." };
+        });
+        if (ranImmediately) {
+            treeNode = opt.graph.tree.Get(pathSegments);
+        }
+        else {
+            // if tree-node still not created yet (due to waiting a tick so can start mobx action), add placeholder entry, so tree-request-watchers know there's still data being loaded
+            const placeholder = new TreeNodePlaceholder();
             opt.graph.treeRequestWatchers.forEach(a => a.nodesRequested.add(placeholder));
         }
     }

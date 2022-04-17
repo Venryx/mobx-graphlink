@@ -33,7 +33,7 @@ export function GetWait<T>(dataGetterFunc: ()=>T, options?: Partial<GraphOptions
 	let nodesRequested_array = Array.from(watcher.nodesRequested);
 	//let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status == DataStatus.Waiting);
 	//let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status != DataStatus.Received);
-	let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status != DataStatus.Received_Full);
+	let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node instanceof TreeNode ? node.status != DataStatus.Received_Full : true);
 	let done = requestsBeingWaitedFor.length == 0;
 	if (!done) {
 		throw new Error(`Store-accessor "${funcName ?? "n/a"}" not yet resolved. (it still has ${requestsBeingWaitedFor.length} requests being waited for)`)	
@@ -54,7 +54,7 @@ export class GetAsync_Options {
 	/** How to handle errors that occur in accessor, when no db-requests are still in progress. (ie. on final accessor call) */
 	errorHandling_final? = "reject" as GetAsync_ErrorHandleType;
 	/** If true, db requests within dataGetterFunc that find themselves waiting for remote db-data, with throw an error immediately. (avoiding higher-level processing) */
-	throwImmediatelyOnDBWait? = false;
+	throwImmediatelyOnDBWait? = false; // todo: probably remove this, since it's redundant now I think (given the bail-error system`)
 }
 export let GetAsync_throwImmediatelyOnDBWait_activeDepth = 0;
 export function NotifyWaitingForDB(dbPath: string) {
@@ -107,14 +107,16 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<Graph
 
 			let accessor_lastError;
 			function HandleAccessorError(ex: Error, handling: GetAsync_ErrorHandleType) {
-				if (ex instanceof BailError) {
+				//console.log("Handling accessor error:", ex, "@handling:", handling);
+				/*if (ex instanceof BailError) {
 					return; // always ignore bail-messages in GetAsync (is this the ideal behavior?)
-				}
+				}*/
 
 				accessor_lastError = ex;
 
 				// if last iteration, never catch -- we want to see the error, as it's likely the cause of the seemingly-infinite iteration
 				if (handling == "reject" || handling == "rejectAndLog") {
+					//console.log("Calling reject, from error:", ex);
 					reject(ex); // call reject, so that caller of GetAsync() can receives/can-catch the error (rather than the global mobx "reaction()" catching it)
 
 					//throw ex; // also rethrow it, so reaction stops, and we see error message in server log // commented; caller of GetAsync() may want to catch it
@@ -141,11 +143,12 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<Graph
 			let nodesRequested_array = Array.from(watcher.nodesRequested);
 			//let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status == DataStatus.Waiting);
 			//let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status != DataStatus.Received);
-			let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status != DataStatus.Received_Full);
-			const dbRequestsAllResolved = requestsBeingWaitedFor.length == 0;
+			let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node instanceof TreeNode ? node.status != DataStatus.Received_Full : true);
+			const dbRequestsAllResolved = requestsBeingWaitedFor.length == 0 && accessor_lastError == null; // (if an error occurred, there are likely db-requests that just haven't been reached)
 			const maxIterationsReached = iterationIndex >= opt.maxIterations! - 1;
 			
 			let finalCall = dbRequestsAllResolved || maxIterationsReached;
+			// if this is our last iteration, and an error is still being hit in accessor, apply the "errorHandling_final" option (generally triggers error without catching, so error bubbles out of this function)
 			if (finalCall && accessor_lastError != null) {
 				//Assert(error == null, `Error occurred during final GetAsync iteration: ${error}`);
 				AssertV_triggerDebugger = true;
@@ -161,6 +164,7 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<Graph
 			}
 
 			if (maxIterationsReached && !dbRequestsAllResolved) {
+				//console.log("Calling reject, from hitting max-iterations...");
 				reject(StringCE(`
 					GetAsync reached the maxIterations (${opt.maxIterations}) without completely resolving. Call was cancelled/rejected.
 					
@@ -168,6 +172,7 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<Graph
 				`).AsMultiline(0));
 			}
 
+			//console.log("Loop contents:", {result, nodesRequested_array, fullyResolved: dbRequestsAllResolved});
 			return {result, nodesRequested_array, fullyResolved: dbRequestsAllResolved};
 		}, data=> {
 			 // if data is null, it means an error occured in the computation-func above
@@ -178,6 +183,7 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<Graph
 
 			//Assert(result != null, "GetAsync should not usually return null.");
 			WaitXThenRun(0, ()=>dispose()); // wait a bit, so dispose-func is ready (for when fired immediately)
+			//console.log("Resolve called:", {result, nodesRequested_array, fullyResolved, data});
 			resolve(result);
 		}, {fireImmediately: true});
 	});

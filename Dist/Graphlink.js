@@ -1,4 +1,4 @@
-import { nodesByPath, TreeNode } from "./Tree/TreeNode.js";
+import { DataStatus, nodesByPath, TreeNode } from "./Tree/TreeNode.js";
 import { observable } from "mobx";
 import { makeObservable_safe } from "./Utils/General/MobX.js";
 export let defaultGraphOptions;
@@ -21,6 +21,7 @@ export class Graphlink {
         this.subs = {};
         this.userInfo = null; // [@O]
         this.treeRequestWatchers = new Set();
+        this.allTreeNodes = new Set();
         makeObservable_safe(this, {
             userInfo: observable,
         });
@@ -71,7 +72,23 @@ export class Graphlink {
     UnsubscribeAll() {
         this.tree.UnsubscribeAll();
     }
+    NodesWhere(filterFunc) {
+        return [...this.allTreeNodes].filter(filterFunc);
+    }
+    // these are just stats that the consumer may be interested in
+    GetStats() {
+        return new GraphlinkStats({
+            attachedTreeNodes: this.allTreeNodes.size,
+            nodesWithRequestedSubscriptions: this.NodesWhere(a => a.status != DataStatus.Initial).length,
+            nodesWithFulfilledSubscriptions: this.NodesWhere(a => a.status == DataStatus.Received_Cache || a.status == DataStatus.Received_Full).length,
+        });
+    }
 }
 Graphlink.instances = [];
+export class GraphlinkStats {
+    constructor(data) {
+        Object.assign(this, data);
+    }
+}
 export class UserInfo {
 }

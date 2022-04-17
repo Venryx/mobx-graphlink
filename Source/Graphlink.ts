@@ -1,4 +1,4 @@
-import {nodesByPath, TreeNode} from "./Tree/TreeNode.js";
+import {DataStatus, nodesByPath, TreeNode} from "./Tree/TreeNode.js";
 import {TreeRequestWatcher} from "./Tree/TreeRequestWatcher.js";
 import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "./Utils/DB/DBPaths.js";
 import {makeObservable, observable, runInAction} from "mobx";
@@ -133,6 +133,28 @@ export class Graphlink<StoreShape, DBShape> {
 	}
 
 	ValidateDBData?: (dbData: DBShape)=>void;
+
+	allTreeNodes = new Set<TreeNode<any>>();
+	NodesWhere(filterFunc: (node: TreeNode<any>)=>boolean): TreeNode<any>[] {
+		return [...this.allTreeNodes].filter(filterFunc);
+	}
+	// these are just stats that the consumer may be interested in
+	GetStats(): GraphlinkStats {
+		return new GraphlinkStats({
+			attachedTreeNodes: this.allTreeNodes.size,
+			nodesWithRequestedSubscriptions: this.NodesWhere(a=>a.status != DataStatus.Initial).length,
+			nodesWithFulfilledSubscriptions: this.NodesWhere(a=>a.status == DataStatus.Received_Cache || a.status == DataStatus.Received_Full).length,
+		});
+	}
+}
+
+export class GraphlinkStats {
+	constructor(data?: Partial<GraphlinkStats>) {
+		Object.assign(this, data);
+	}
+	attachedTreeNodes: number;
+	nodesWithRequestedSubscriptions: number;
+	nodesWithFulfilledSubscriptions: number;
 }
 
 export class UserInfo {
