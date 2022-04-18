@@ -147,9 +147,12 @@ export class TreeNode {
     get ParentNode() {
         return this.graph.tree.Get(this.pathSegments.slice(0, -1));
     }
-    Request() {
+    MarkRequested() {
         this.graph.treeRequestWatchers.forEach(a => a.nodesRequested.add(this));
-        if (!this.self_subscription) {
+    }
+    Request(subscribeIfNotAlready = true) {
+        this.MarkRequested();
+        if (subscribeIfNotAlready && !this.self_subscription) {
             this.Subscribe();
         }
     }

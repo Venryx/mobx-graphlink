@@ -65,7 +65,7 @@ export function GetWait(dataGetterFunc, options, funcName) {
     });
     let done = requestsBeingWaitedFor.length == 0;
     if (!done) {
-        throw new Error(`Store-accessor "${funcName !== null && funcName !== void 0 ? funcName : "n/a"}" not yet resolved. (it still has ${requestsBeingWaitedFor.length} requests being waited for)`);
+        throw new BailError(`Store-accessor "${funcName !== null && funcName !== void 0 ? funcName : "n/a"}" not yet resolved. (it still has ${requestsBeingWaitedFor.length} requests being waited for)`);
     }
     return result;
 }
@@ -78,16 +78,16 @@ export class GetAsync_Options {
         /** How to handle errors that occur in accessor, when no db-requests are still in progress. (ie. on final accessor call) */
         this.errorHandling_final = "reject";
         /** If true, db requests within dataGetterFunc that find themselves waiting for remote db-data, with throw an error immediately. (avoiding higher-level processing) */
-        this.throwImmediatelyOnDBWait = false; // todo: probably remove this, since it's redundant now I think (given the bail-error system`)
+        //throwImmediatelyOnDBWait? = false; // todo: probably remove this, since it's redundant now I think (given the bail-error system`)
     }
 }
 GetAsync_Options.default = new GetAsync_Options();
-export let GetAsync_throwImmediatelyOnDBWait_activeDepth = 0;
-export function NotifyWaitingForDB(dbPath) {
+/*export let GetAsync_throwImmediatelyOnDBWait_activeDepth = 0;
+export function NotifyWaitingForDB(dbPath: string) {
     if (GetAsync_throwImmediatelyOnDBWait_activeDepth > 0) {
-        throw new Error(`DB tree-node for "${dbPath}" is waiting for database data that isn't ready yet. Throwing error now (to avoid higher-level processing) until data is ready.`);
+        throw new BailError(`DB tree-node for "${dbPath}" is waiting for database data that isn't ready yet. Throwing error now (to avoid higher-level processing) until data is ready.`);
     }
-}
+}*/
 // async helper
 // (one of the rare cases where opt is not the first argument; that's because GetAsync may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
 export async function GetAsync(dataGetterFunc, options) {
@@ -122,8 +122,7 @@ export async function GetAsync(dataGetterFunc, options) {
             iterationIndex++;
             // prep for getter-func
             watcher.Start();
-            if (options === null || options === void 0 ? void 0 : options.throwImmediatelyOnDBWait)
-                GetAsync_throwImmediatelyOnDBWait_activeDepth++;
+            //if (options?.throwImmediatelyOnDBWait) GetAsync_throwImmediatelyOnDBWait_activeDepth++;
             // flip some flag here to say, "don't use cached data -- re-request!"
             opt.graph.storeAccessorCachingTempDisabled = true;
             let result;
@@ -158,8 +157,7 @@ export async function GetAsync(dataGetterFunc, options) {
             }
             // cleanup for getter-func
             opt.graph.storeAccessorCachingTempDisabled = false;
-            if (options === null || options === void 0 ? void 0 : options.throwImmediatelyOnDBWait)
-                GetAsync_throwImmediatelyOnDBWait_activeDepth--;
+            //if (options?.throwImmediatelyOnDBWait) GetAsync_throwImmediatelyOnDBWait_activeDepth--;
             watcher.Stop();
             let nodesRequested_array = Array.from(watcher.nodesRequested);
             let requestsBeingWaitedFor = nodesRequested_array.filter(node => {
@@ -168,7 +166,7 @@ export async function GetAsync(dataGetterFunc, options) {
                 // arguably, this may be able to use node.PreferredData; but to be safe, we use node.data_fromSelf
                 return node.data_fromSelf.status != DataStatus.Received_Live; // only accept Received_Live as valid, in GetAsync
             });
-            const dbRequestsAllResolved = requestsBeingWaitedFor.length == 0 && accessor_lastError == null; // (if an error occurred, there are likely db-requests that just haven't been reached)
+            const dbRequestsAllResolved = requestsBeingWaitedFor.length == 0 && !(accessor_lastError instanceof BailError);
             const maxIterationsReached = iterationIndex >= opt.maxIterations - 1;
             let finalCall = dbRequestsAllResolved || maxIterationsReached;
             // if this is our last iteration, and an error is still being hit in accessor, apply the "errorHandling_final" option (generally triggers error without catching, so error bubbles out of this function)

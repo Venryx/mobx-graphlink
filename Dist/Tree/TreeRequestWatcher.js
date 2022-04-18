@@ -14,8 +14,9 @@ export class TreeRequestWatcher {
     }
 }
 export class TreeNodePlaceholder {
-    constructor() {
-        this._note = "This is a placeholder; data is still loading, but its tree-node hasn't been created yet, so this is its placeholder.";
+    constructor(path) {
+        this.path = path;
+        this._note = `This is a placeholder, for tree-node with path "${path}". (data is still loading, but its tree-node hasn't been created yet)`;
     }
 }
 /*export function CreateTreeAccessWatcher(opt: FireOptions) {

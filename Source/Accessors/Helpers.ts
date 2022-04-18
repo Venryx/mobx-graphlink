@@ -69,7 +69,7 @@ export function GetWait<T>(dataGetterFunc: ()=>T, options?: Partial<GraphOptions
 	});
 	let done = requestsBeingWaitedFor.length == 0;
 	if (!done) {
-		throw new Error(`Store-accessor "${funcName ?? "n/a"}" not yet resolved. (it still has ${requestsBeingWaitedFor.length} requests being waited for)`)	
+		throw new BailError(`Store-accessor "${funcName ?? "n/a"}" not yet resolved. (it still has ${requestsBeingWaitedFor.length} requests being waited for)`)	
 	}
 
 	return result;
@@ -87,14 +87,14 @@ export class GetAsync_Options {
 	/** How to handle errors that occur in accessor, when no db-requests are still in progress. (ie. on final accessor call) */
 	errorHandling_final? = "reject" as GetAsync_ErrorHandleType;
 	/** If true, db requests within dataGetterFunc that find themselves waiting for remote db-data, with throw an error immediately. (avoiding higher-level processing) */
-	throwImmediatelyOnDBWait? = false; // todo: probably remove this, since it's redundant now I think (given the bail-error system`)
+	//throwImmediatelyOnDBWait? = false; // todo: probably remove this, since it's redundant now I think (given the bail-error system`)
 }
-export let GetAsync_throwImmediatelyOnDBWait_activeDepth = 0;
+/*export let GetAsync_throwImmediatelyOnDBWait_activeDepth = 0;
 export function NotifyWaitingForDB(dbPath: string) {
 	if (GetAsync_throwImmediatelyOnDBWait_activeDepth > 0) {
-		throw new Error(`DB tree-node for "${dbPath}" is waiting for database data that isn't ready yet. Throwing error now (to avoid higher-level processing) until data is ready.`);
+		throw new BailError(`DB tree-node for "${dbPath}" is waiting for database data that isn't ready yet. Throwing error now (to avoid higher-level processing) until data is ready.`);
 	}
-}
+}*/
 
 // async helper
 // (one of the rare cases where opt is not the first argument; that's because GetAsync may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
@@ -133,7 +133,7 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<Graph
 			
 			// prep for getter-func
 			watcher.Start();
-			if (options?.throwImmediatelyOnDBWait) GetAsync_throwImmediatelyOnDBWait_activeDepth++;
+			//if (options?.throwImmediatelyOnDBWait) GetAsync_throwImmediatelyOnDBWait_activeDepth++;
 			// flip some flag here to say, "don't use cached data -- re-request!"
 			opt.graph.storeAccessorCachingTempDisabled = true;
 			let result;
@@ -170,7 +170,7 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<Graph
 			
 			// cleanup for getter-func
 			opt.graph.storeAccessorCachingTempDisabled = false;
-			if (options?.throwImmediatelyOnDBWait) GetAsync_throwImmediatelyOnDBWait_activeDepth--;
+			//if (options?.throwImmediatelyOnDBWait) GetAsync_throwImmediatelyOnDBWait_activeDepth--;
 			watcher.Stop();
 			
 			let nodesRequested_array = Array.from(watcher.nodesRequested);
@@ -179,7 +179,7 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<Graph
 				// arguably, this may be able to use node.PreferredData; but to be safe, we use node.data_fromSelf
 				return node.data_fromSelf.status != DataStatus.Received_Live; // only accept Received_Live as valid, in GetAsync
 			});
-			const dbRequestsAllResolved = requestsBeingWaitedFor.length == 0 && accessor_lastError == null; // (if an error occurred, there are likely db-requests that just haven't been reached)
+			const dbRequestsAllResolved = requestsBeingWaitedFor.length == 0 && !(accessor_lastError instanceof BailError);
 			const maxIterationsReached = iterationIndex >= opt.maxIterations! - 1;
 			
 			let finalCall = dbRequestsAllResolved || maxIterationsReached;

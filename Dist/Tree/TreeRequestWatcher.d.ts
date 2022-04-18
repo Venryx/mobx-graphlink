@@ -8,5 +8,7 @@ export declare class TreeRequestWatcher {
     nodesRequested: Set<TreeNode<any> | TreeNodePlaceholder>;
 }
 export declare class TreeNodePlaceholder {
+    constructor(path: string);
+    path: string;
     _note: string;
 }

@@ -38,7 +38,8 @@ export declare class TreeNode<DataShape> {
     path_noQuery: string;
     type: TreeNodeType;
     get ParentNode(): TreeNode<any> | null;
-    Request(): void;
+    MarkRequested(): void;
+    Request(subscribeIfNotAlready?: boolean): void;
     /** Must be called from within a mobx action. (and not be run within a mobx computation) */
     Subscribe(): void;
     Unsubscribe(): {

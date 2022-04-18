@@ -19,11 +19,7 @@ export declare class GetAsync_Options {
     errorHandling_during?: GetAsync_ErrorHandleType | undefined;
     /** How to handle errors that occur in accessor, when no db-requests are still in progress. (ie. on final accessor call) */
     errorHandling_final?: GetAsync_ErrorHandleType | undefined;
-    /** If true, db requests within dataGetterFunc that find themselves waiting for remote db-data, with throw an error immediately. (avoiding higher-level processing) */
-    throwImmediatelyOnDBWait?: boolean | undefined;
 }
-export declare let GetAsync_throwImmediatelyOnDBWait_activeDepth: number;
-export declare function NotifyWaitingForDB(dbPath: string): void;
 export declare function GetAsync<T>(dataGetterFunc: () => T, options?: Partial<GraphOptions> & GetAsync_Options): Promise<T>;
 export declare type EffectFunc = () => any;
 export declare type AddEffect = (effectFunc: EffectFunc) => void;
