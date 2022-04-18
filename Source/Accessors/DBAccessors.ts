@@ -3,7 +3,6 @@ import {ObservableMap, runInAction} from "mobx";
 import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
 import {Graphlink} from "../index.js";
 import {QueryParams} from "../Tree/QueryParams.js";
-import {DataStatus, TreeNode} from "../Tree/TreeNode.js";
 import {TreeNodePlaceholder} from "../Tree/TreeRequestWatcher.js";
 import {UT_DBShape} from "../UserTypes.js";
 import {PathOrPathGetterToPathSegments} from "../Utils/DB/DBPaths.js";
@@ -49,7 +48,7 @@ export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphOptio
 
 	let treeNode = opt.graph.tree.Get(pathSegments, opt.params);
 	// if already subscribed, just mark requested (reduces action-spam of GetDocs_Request)
-	if (treeNode && treeNode.subscription) {
+	if (treeNode && treeNode.self_subscription) {
 		treeNode.Request();
 	} else {
 		// we can't change observables from within computations, so do it in a moment (out of computation call-stack)
@@ -69,20 +68,21 @@ export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphOptio
 		//opt.graph.tree.Get(pathSegments.slice(0, -1))?.collectionNodes.entries();
 		//opt.graph.tree.collectionNodes.entries();
 	}
+
+	// always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
+	let data = treeNode?.DocDatas_ForDirectSubscriber;
 	
-	if (treeNode?.status_forDirectSubscription != DataStatus.Received_Live) {
+	if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
 		NotifyWaitingForDB(pathSegments.join("/"));
 		if (opt.ifLoading_bail) {
 			Bail(opt.ifLoading_bail_message);
 		}
 		return opt.ifLoading_returnVal as DocT[];
 	}
-	/*let docNodes = Array.from(treeNode.docNodes.values());
-	let docDatas = docNodes.map(docNode=>docNode.data);
-	return docDatas;*/
-	//return opt.fire.tree.Get(pathSegments, queryRequest)?.docDatas ?? emptyArray;
-	let result = treeNode?.docDatas_forDirectSubscriber ?? [];
-	return result.length == 0 ? emptyArray : result; // to help avoid unnecessary react renders
+
+	let result = data ?? [];
+	if (result.length == 0) result = emptyArray; // to help avoid unnecessary react renders
+	return result;
 }
 /*export async function GetDocs_Async<DocT>(opt: FireOptions & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DBShape)=>ObservableMap<any, DocT>)): Promise<DocT[]> {
 	opt = E(defaultFireOptions, opt);
@@ -110,7 +110,7 @@ export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphOption
 
 	let treeNode = opt.graph.tree.Get(pathSegments);
 	// if already subscribed, just mark requested (reduces action-spam of GetDoc_Request)
-	if (treeNode && treeNode.subscription) {
+	if (treeNode && treeNode.self_subscription) {
 		treeNode.Request();
 	} else {
 		// we can't change observables from within computations, so do it in a moment (out of computation call-stack)
@@ -126,16 +126,18 @@ export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphOption
 		}
 	}
 
-	//if (opt.undefinedForLoading && treeNode?.status != DataStatus.Received_Full) return undefined;
-	//if (treeNode?.status_forDirectSubscription != DataStatus.Received_Full) {
-	if (treeNode?.Status != DataStatus.Received_Live) {
+	// always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
+	let data = treeNode?.Data_ForDirectSubscriber;
+
+	if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
 		NotifyWaitingForDB(pathSegments.join("/"));
 		if (opt.ifLoading_bail) {
 			Bail(opt.ifLoading_bail_message);
 		}
 		return opt.ifLoading_returnVal;
 	}
-	return treeNode?.data_forDirectSubscriber;
+
+	return data;
 }
 /*export async function GetDoc_Async<DocT>(opt: FireOptions & GetDoc_Options, docPathOrGetterFunc: string | string[] | ((dbRoot: DBShape)=>DocT)): Promise<DocT> {
 	opt = E(defaultFireOptions, opt);

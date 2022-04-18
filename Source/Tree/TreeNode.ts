@@ -7,6 +7,7 @@ import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "../Utils/D
 import {MaybeLog_Base} from "../Utils/General/General.js";
 import {RunInAction_WhenAble, makeObservable_safe, MobX_AllowStateChanges, MobX_GetGlobalState, RunInAction, RunInNextTick_BundledInOneAction} from "../Utils/General/MobX.js";
 import {QueryParams, QueryParams_Linked} from "./QueryParams.js";
+import {DataStatus, GetPreferenceLevelOfDataStatus, TreeNodeData} from "./TreeNodeData.js";
 
 export enum TreeNodeType {
 	Root = "Root",
@@ -15,22 +16,10 @@ export enum TreeNodeType {
 	Document = "Document",
 }
 
-export enum DataStatus {
+export enum SubscriptionStatus {
 	Initial = "Initial",
 	Waiting = "Waiting",
-	Received_Cache = "Received_Cache", // not sure if this actually gets utilized (it relates to apollo's caching-layer)
-	Received_Live = "Received_Full",
-	//Received_ButUnsubscribed = "Received_ButUnsubscribed",
-}
-export function GetPreferenceLevelOfDataStatus(status: DataStatus) {
-	switch(status) {
-		case DataStatus.Initial: return 1;
-		case DataStatus.Waiting: return 2;
-		case DataStatus.Received_Cache: return 3;
-		case DataStatus.Received_Live: return 4;
-		//case DataStatus.Received_ButUnsubscribed: return 2.5;
-	}
-	return 0;
+	ReadyAndLive = "ReadyAndLive",
 }
 
 export class PathSubscription {
@@ -55,15 +44,21 @@ export class TreeNode<DataShape> {
 	constructor(fire: Graphlink<any, any>, pathOrSegments: string | string[]) {
 		fire.allTreeNodes.add(this);
 		makeObservable_safe(this, {
-			status_forDirectSubscription: observable,
-			Status: computed,
+			// special proxy-fields
+			Data_ForDirectSubscriber: computed,
+			DocDatas_ForDirectSubscriber: computed,
+			// data
+			self_subscriptionStatus: observable,
+			/*data_fromParent: observable.ref,
+			data_fromSelf: observable.ref,*/
+			PreferredDataContainer: computed,
+			//PreferredDataStatus: computed,
+			PreferredData: computed,
+			DocDatas: computed,
+			// hierarchy
 			collectionNodes: observable,
-			data: observable.ref,
-			data_forDirectSubscriber: computed,
 			queryNodes: observable,
 			docNodes: observable,
-			docDatas: computed,
-			docDatas_forDirectSubscriber: computed,
 		});
 		this.graph = fire;
 		this.pathSegments = PathOrPathGetterToPathSegments(pathOrSegments);
@@ -90,7 +85,7 @@ export class TreeNode<DataShape> {
 
 		const oldNodesOnPath = nodesByPath.get(this.path) ?? [];
 		//Assert(oldNodesOnPath.length == 0, `Found another TreeNode with the exact same path! @path:${this.path}`);
-		AssertWarn(oldNodesOnPath.filter(a=>a.subscription != null).length == 0, `Found another TreeNode with the exact same path, with a live subscription! @path:${this.path}`);
+		AssertWarn(oldNodesOnPath.filter(a=>a.self_subscription != null).length == 0, `Found another TreeNode with the exact same path, with a live subscription! @path:${this.path}`);
 		nodesByPath.set(this.path, oldNodesOnPath.concat(this));
 
 		this.countSecondsWithoutObserver_timer = new Timer(this.graph.unsubscribeTreeNodesAfter, ()=>{
@@ -114,7 +109,7 @@ export class TreeNode<DataShape> {
 			} else {
 				this.observedDataFields.delete(field);
 			}
-			console.log("@path:", this.path, "@observedDataFields.size:", this.observedDataFields.size);
+			//console.log("@path:", this.path, "@observedDataFields.size:", this.observedDataFields.size);
 
 			if (this.observedDataFields.size == 0) {
 				if (this.graph.unsubscribeTreeNodesAfter != -1) {
@@ -122,17 +117,17 @@ export class TreeNode<DataShape> {
 				}
 			} else {
 				this.countSecondsWithoutObserver_timer.Stop();
-				if (this.subscription == null) {
+				if (this.self_subscription == null) {
 					RunInAction("TreeNode.OnDataFieldObservedStateChange.Resubscribe", ()=>{
 						this.Subscribe();
 					});
 				}
 			}
 		};
-		onBecomeObserved(this, "data_forDirectSubscriber", ()=>OnDataFieldObservedStateChange("data_forDirectSubscriber", true));
-		onBecomeUnobserved(this, "data_forDirectSubscriber", ()=>OnDataFieldObservedStateChange("data_forDirectSubscriber", false));
-		onBecomeObserved(this, "docDatas_forDirectSubscriber", ()=>OnDataFieldObservedStateChange("docDatas_forDirectSubscriber", true));
-		onBecomeUnobserved(this, "docDatas_forDirectSubscriber", ()=>OnDataFieldObservedStateChange("docDatas_forDirectSubscriber", false));
+		onBecomeObserved(this, "Data_ForDirectSubscriber", ()=>OnDataFieldObservedStateChange("Data_ForDirectSubscriber", true));
+		onBecomeUnobserved(this, "Data_ForDirectSubscriber", ()=>OnDataFieldObservedStateChange("Data_ForDirectSubscriber", false));
+		onBecomeObserved(this, "DocDatas_ForDirectSubscriber", ()=>OnDataFieldObservedStateChange("DocDatas_ForDirectSubscriber", true));
+		onBecomeUnobserved(this, "DocDatas_ForDirectSubscriber", ()=>OnDataFieldObservedStateChange("DocDatas_ForDirectSubscriber", false));
 		// just because a TreeNode was created, does not mean anyone is actually mobx-observing it; so start the unsubscribe timer as soon as it's created
 		if (this.graph.unsubscribeTreeNodesAfter != -1) {
 			this.countSecondsWithoutObserver_timer.Start();
@@ -140,6 +135,13 @@ export class TreeNode<DataShape> {
 	}
 	observedDataFields = new Set<String>();
 	countSecondsWithoutObserver_timer: Timer;
+	// these are special proxies, that we use merely to keep track of if there are GetDoc/GetDocs calls still observing the given source-fields
+	get Data_ForDirectSubscriber() { // [@computed]
+		return this.PreferredData;
+	}
+	get DocDatas_ForDirectSubscriber() { // [@computed]
+		return this.DocDatas;
+	}
 
 	graph: Graphlink<any, any>;
 	pathSegments: string[];
@@ -154,14 +156,14 @@ export class TreeNode<DataShape> {
 
 	Request() {
 		this.graph.treeRequestWatchers.forEach(a=>a.nodesRequested.add(this));
-		if (!this.subscription) {
+		if (!this.self_subscription) {
 			this.Subscribe();
 		}
 	}
 	/** Must be called from within a mobx action. (and not be run within a mobx computation) */
 	Subscribe() {
 		Assert(this.type != TreeNodeType.Root, "Cannot subscribe to the tree root!");
-		Assert(this.subscription == null, "Cannot subscribe more than once!");
+		Assert(this.self_subscription == null, "Cannot subscribe more than once!");
 
 		// old: wait till call-stack completes, so we don't violate "can't change observables from within computation" rule
 		// we can't change observables from within computed values/funcs/store-accessors, so do it in a moment (out of computation call-stack)
@@ -170,15 +172,15 @@ export class TreeNode<DataShape> {
 		});*/
 		//Assert(MobX_GetGlobalState().computationDepth == 0, "Cannot call TreeNode.Subscribe from within a computation.");
 		Assert(MobX_AllowStateChanges(), "TreeNode.Subscribe must be called from within a mobx action. (and not be run within a mobx computation)");
-		RunInAction("TreeNode.Subscribe_prep", ()=>this.status_forDirectSubscription = DataStatus.Waiting);
+		RunInAction("TreeNode.Subscribe_prep", ()=>this.self_subscriptionStatus = SubscriptionStatus.Waiting);
 
 		MaybeLog_Base(a=>a.subscriptions, l=>l(`Subscribing to: ${this.path}`));
 		if (this.type == TreeNodeType.Document) {
-			this.apolloObservable = this.graph.subs.apollo.subscribe({
+			this.self_apolloObservable = this.graph.subs.apollo.subscribe({
 				query: this.query.GraphQLQuery,
 				variables: this.query.vars,
 			});
-			this.subscription = this.apolloObservable.subscribe({
+			this.self_subscription = this.self_apolloObservable.subscribe({
 				//start: ()=>{},
 				next: data=>{
 					const returnedData = data.data; // if requested from top-level-query "map", data.data will have shape: {map: {...}}
@@ -187,17 +189,18 @@ export class TreeNode<DataShape> {
 					const returnedDocument = Object.values(returnedData)[0] as any; // so unwrap it here
 					MaybeLog_Base(a=>a.subscriptions, l=>l(`Got doc snapshot. @path(${this.path}) @snapshot:`, returnedDocument));
 					RunInAction_WhenAble("TreeNode.Subscribe.onSnapshot_doc", ()=> {
-						this.SetData(returnedDocument, false);
+						this.data_fromSelf.SetData(returnedDocument, false);
+						this.self_subscriptionStatus = SubscriptionStatus.ReadyAndLive;
 					});
 				},
 				error: err=>console.error("SubscriptionError:", err),
 			});
 		} else {
-			this.apolloObservable = this.graph.subs.apollo.subscribe({
+			this.self_apolloObservable = this.graph.subs.apollo.subscribe({
 				query: this.query.GraphQLQuery,
 				variables: this.query.vars,
 			});
-			this.subscription = this.apolloObservable.subscribe({
+			this.self_subscription = this.self_apolloObservable.subscribe({
 				//start: ()=>{},
 				next: data=>{
 					const docs = data.data[CE(this.pathSegments_noQuery).Last()].nodes;
@@ -213,21 +216,17 @@ export class TreeNode<DataShape> {
 								this.docNodes.set(doc.id, new TreeNode(this.graph, this.pathSegments.concat([doc.id])));
 							}
 							//dataChanged = this.docNodes.get(doc.id)!.SetData(doc.data(), fromCache) || dataChanged;
-							dataChanged = this.docNodes.get(doc.id)!.SetData(doc, fromCache) || dataChanged;
+							dataChanged = this.docNodes.get(doc.id)!.data_fromParent.SetData(doc, fromCache) || dataChanged;
 						}
 						for (const docID of deletedDocIDs) {
 							const docNode = this.docNodes.get(docID);
-							dataChanged = docNode?.SetData(null, fromCache) || dataChanged;
+							dataChanged = docNode?.data_fromParent.SetData(null, fromCache) || dataChanged;
 							//docNode?.Unsubscribe(); // if someone subscribed directly, I guess we let them keep the detached subscription?
 							this.docNodes.delete(docID);
 						}
 	
-						const newStatus = fromCache ? DataStatus.Received_Cache : DataStatus.Received_Live;
-						// see comment in SetData for why we ignore this case
-						const isIgnorableStatusChange = !dataChanged && newStatus == DataStatus.Received_Cache && this.status_forDirectSubscription == DataStatus.Received_Live;
-						if (newStatus != this.status_forDirectSubscription && !isIgnorableStatusChange) {
-							this.status_forDirectSubscription = newStatus;
-						}
+						this.data_fromSelf.UpdateStatusAfterDataChange(dataChanged, fromCache);
+						this.self_subscriptionStatus = SubscriptionStatus.ReadyAndLive;
 					});
 				},
 				error: err=>console.error("SubscriptionError:", err),
@@ -235,13 +234,14 @@ export class TreeNode<DataShape> {
 		}
 	}
 	Unsubscribe() {
-		if (this.apolloObservable == null || this.subscription == null) return null;
-		let {apolloObservable: observable, subscription} = this;
-		this.apolloObservable = null;
+		if (this.self_apolloObservable == null || this.self_subscription == null) return null;
+		let {self_apolloObservable: observable, self_subscription: subscription} = this;
+		this.self_apolloObservable = null;
 		MaybeLog_Base(a=>a.subscriptions, l=>l(`Unsubscribing from: ${this.path}`));
-		this.subscription.unsubscribe();
-		this.subscription = null;
-		RunInAction("TreeNode.Unsubscribe", ()=>this.status_forDirectSubscription = DataStatus.Initial);
+		this.self_subscription.unsubscribe();
+		this.self_subscription = null;
+		RunInAction("TreeNode.Unsubscribe", ()=>this.self_subscriptionStatus = SubscriptionStatus.Initial);
+		this.data_fromSelf.NotifySubscriptionDropped();
 		return {observable, subscription};
 	}
 	UnsubscribeAll() {
@@ -250,85 +250,63 @@ export class TreeNode<DataShape> {
 		this.queryNodes.forEach(a=>a.UnsubscribeAll());
 		this.docNodes.forEach(a=>a.UnsubscribeAll());
 	}
+	
+	// data
+	// ==========
 
-	status_forDirectSubscription = DataStatus.Initial; // [@O]
-	get Status() { // [@computed]
-		// if there is a subscription on the collection overall, and it is more-resolved than our "direct subscription"...
-		// ...then reflect the status of that parent collection node as our own (since we can receive data from the collection subscription as well)
-		if (this.type == TreeNodeType.Document && this.ParentNode != null && this.ParentNode.subscription != null) {
-			const parentNode_status_preferenceLevel = GetPreferenceLevelOfDataStatus(this.ParentNode?.status_forDirectSubscription);
-			const self_status_preferenceLevel = GetPreferenceLevelOfDataStatus(this.status_forDirectSubscription);
-			if (parentNode_status_preferenceLevel > self_status_preferenceLevel) {
-				return this.ParentNode.status_forDirectSubscription;
+	// these fields are only related to data_fromSelf (not data_fromParent)
+	self_subscriptionStatus = SubscriptionStatus.Initial; // [@O]
+	self_apolloObservable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>>|null;
+	self_subscription: ZenObservable.Subscription|null;
+
+	data_fromParent = new TreeNodeData<DataShape>();
+	data_fromSelf = new TreeNodeData<DataShape>();
+	get PreferredDataContainer() { // [@computed]
+		if (this.type == TreeNodeType.Document) {
+			const prefLevel_fromParent = GetPreferenceLevelOfDataStatus(this.data_fromParent.status);
+			const prefLevel_fromSelf = GetPreferenceLevelOfDataStatus(this.data_fromSelf.status);
+			if (prefLevel_fromParent > prefLevel_fromSelf) {
+				return this.data_fromParent;
 			}
+			return this.data_fromSelf;
 		}
-		return this.status_forDirectSubscription;
+		return this.data_fromSelf;
 	}
-	//subscription: PathSubscription|null;
-	apolloObservable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>>|null;
-	subscription: ZenObservable.Subscription|null;
+	/*get PreferredDataStatus() { // [@computed]
+		const preferredContainer = this.PreferredDataContainer;
+		return GetPreferenceLevelOfDataStatus(preferredContainer.status);
+	}*/
+	get PreferredData() { // [@computed]
+		return this.PreferredDataContainer.data;
+	}
+	/*SetData(data: DataShape, fromCache: boolean, containerField: "data_fromParent" | "data_fromSelf") {
+		let container = containerField == "data_fromParent" ? this.data_fromParent : this.data_fromSelf;
+		return container.SetData(data, fromCache);
+	}*/
+
+	get DocDatas() { // [@computed]
+		//let docNodes = Array.from(this.docNodes.values()).filter(a=>a.status_forDirectSubscription == DataStatus.Received_Full && a.data != null);
+		//let docNodes = Array.from(this.docNodes.values()).filter(a=>a.IsDataAcceptableToConsume(true));
+		// for collections, we need to filter out nodes that were found (or at least requested) at some point, but whose data is now null (collections should never have null items)
+		let docNodes = Array.from(this.docNodes.values()).filter(a=>a.data_fromParent.data != null);
+		let docDatas = docNodes.map(docNode=>docNode.data_fromParent.data);
+		//let docDatas = observable.array(docNodes.map(docNode=>docNode.data));
+		return docDatas;
+	}
+
+	// hierarchy
+	// ==========
 
 	// for doc (and root) nodes
 	collectionNodes = observable.map<string, TreeNode<any>>(); // [@O]
 	//collectionNodes = new Map<string, TreeNode<any>>();
-	data: DataShape; // [@O.ref]
-	get data_forDirectSubscriber() { // [@computed]
-		return this.data;
-	}
-	dataJSON: string;
-	SetData(data: DataShape, fromCache: boolean) {
-		// this.data being "undefined" is used to signify that it's still loading; so if firebase-given value is "undefined", change it to "null"
-		if (data === undefined) {
-			data = null as any;
-		}
-
-		// Note: with `includeMetadataChanges` enabled, firestore refreshes all subscriptions every half-hour or so. (first with fromCache:true, then with fromCache:false)
-		// The checks below are how we keep those refreshes from causing unnecesary subscription-listener triggers. (since that causes unnecessary cache-breaking and UI updating)
-		// (if needed, we could just *delay* the update: after X time passes, check if there was a subsequent from-server update that supersedes it -- only propogating the update if there wasn't one)
-
-		const dataJSON = ToJSON(data);
-		const dataChanged = dataJSON != this.dataJSON;
-		if (dataChanged) {
-			//console.log("Data changed from:", this.data, " to:", data, " @node:", this);
-			//data = data ? observable(data_raw) as any : null;
-			// for graphql system, not currently needed
-			CleanDBData(data); //, this.pathSegments);
-			this.data = data;
-			this.dataJSON = dataJSON;
-		}
-
-		const newStatus = fromCache ? DataStatus.Received_Cache : DataStatus.Received_Live;
-		const isIgnorableStatusChange = !dataChanged && newStatus == DataStatus.Received_Cache && this.status_forDirectSubscription == DataStatus.Received_Live;
-		if (newStatus != this.status_forDirectSubscription && !isIgnorableStatusChange) {
-			//if (data != null) {
-			//ProcessDBData(this.data, true, true, CE(this.pathSegments).Last()); // also add to proxy (since the mobx proxy doesn't expose non-enumerable props) // maybe rework
-			this.status_forDirectSubscription = newStatus;
-			/*} else {
-				// entry was deleted; reset status to "initial"
-				this.status = DataStatus.Initial;
-			}*/
-		}
-
-		return dataChanged;
-	}
-
+	
 	// for collection (and collection-query) nodes
 	queryNodes = observable.map<string, TreeNode<any>>(); // [@O] for collection nodes
 	//queryNodes = new Map<string, TreeNode<any>>(); // for collection nodes
 	query: QueryParams_Linked; // for collection-query nodes
 	docNodes = observable.map<string, TreeNode<any>>(); // [@O]
 	//docNodes = new Map<string, TreeNode<any>>();
-	get docDatas() { // [@computed]
-		// (we need to filter for nodes where data is not nully, since such entries get added by GetDoc(...) calls for non-existent paths, but shouldn't show in docDatas array)
-		//let docNodes = Array.from(this.docNodes.values()).filter(a=>a.status_forDirectSubscription == DataStatus.Received_Full && a.data != null);
-		let docNodes = Array.from(this.docNodes.values()).filter(a=>a.Status == DataStatus.Received_Live && a.data != null);
-		let docDatas = docNodes.map(docNode=>docNode.data);
-		//let docDatas = observable.array(docNodes.map(docNode=>docNode.data));
-		return docDatas;
-	}
-	get docDatas_forDirectSubscriber() { // [@computed]
-		return this.docDatas;
-	}
 
 	get AllChildNodes(): TreeNode<any>[] {
 		return [
@@ -423,7 +401,7 @@ export function TreeNodeToRawData<DataShape>(treeNode: TreeNode<DataShape>, addT
 	/*if (treeNode.data) {
 		CE(result).Extend(treeNode.data);
 	}*/
-	result["data"] = treeNode.data;
+	result["data"] = treeNode.PreferredData;
 
 	for (let [key, collection] of treeNode.collectionNodes) {
 		result[key] = TreeNodeToRawData(collection);

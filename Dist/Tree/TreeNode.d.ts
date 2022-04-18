@@ -4,19 +4,18 @@ import { ObservableMap } from "mobx";
 import { Graphlink } from "../Graphlink.js";
 import { FetchResult, Observable } from "../Utils/@NPMFixes/apollo_client.js";
 import { QueryParams, QueryParams_Linked } from "./QueryParams.js";
+import { TreeNodeData } from "./TreeNodeData.js";
 export declare enum TreeNodeType {
     Root = "Root",
     Collection = "Collection",
     CollectionQuery = "CollectionQuery",
     Document = "Document"
 }
-export declare enum DataStatus {
+export declare enum SubscriptionStatus {
     Initial = "Initial",
     Waiting = "Waiting",
-    Received_Cache = "Received_Cache",
-    Received_Live = "Received_Full"
+    ReadyAndLive = "ReadyAndLive"
 }
-export declare function GetPreferenceLevelOfDataStatus(status: DataStatus): 1 | 2 | 3 | 4 | 0;
 export declare class PathSubscription {
     constructor(unsubscribe: () => void);
     unsubscribe: () => void;
@@ -30,6 +29,8 @@ export declare class TreeNode<DataShape> {
     constructor(fire: Graphlink<any, any>, pathOrSegments: string | string[]);
     observedDataFields: Set<String>;
     countSecondsWithoutObserver_timer: Timer;
+    get Data_ForDirectSubscriber(): DataShape;
+    get DocDatas_ForDirectSubscriber(): any[];
     graph: Graphlink<any, any>;
     pathSegments: string[];
     pathSegments_noQuery: string[];
@@ -45,20 +46,18 @@ export declare class TreeNode<DataShape> {
         subscription: ZenObservable.Subscription;
     } | null;
     UnsubscribeAll(): void;
-    status_forDirectSubscription: DataStatus;
-    get Status(): DataStatus;
-    apolloObservable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>> | null;
-    subscription: ZenObservable.Subscription | null;
+    self_subscriptionStatus: SubscriptionStatus;
+    self_apolloObservable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>> | null;
+    self_subscription: ZenObservable.Subscription | null;
+    data_fromParent: TreeNodeData<DataShape>;
+    data_fromSelf: TreeNodeData<DataShape>;
+    get PreferredDataContainer(): TreeNodeData<DataShape>;
+    get PreferredData(): DataShape;
+    get DocDatas(): any[];
     collectionNodes: ObservableMap<string, TreeNode<any>>;
-    data: DataShape;
-    get data_forDirectSubscriber(): DataShape;
-    dataJSON: string;
-    SetData(data: DataShape, fromCache: boolean): boolean;
     queryNodes: ObservableMap<string, TreeNode<any>>;
     query: QueryParams_Linked;
     docNodes: ObservableMap<string, TreeNode<any>>;
-    get docDatas(): any[];
-    get docDatas_forDirectSubscriber(): any[];
     get AllChildNodes(): TreeNode<any>[];
     get AllDescendantNodes(): TreeNode<any>[];
     Get(subpathOrGetterFunc: string | string[] | ((data: DataShape) => any), query?: QueryParams, createTreeNodesIfMissing?: boolean): TreeNode<any> | null;

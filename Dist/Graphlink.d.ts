@@ -28,6 +28,7 @@ export declare class Graphlink<StoreShape, DBShape> {
     Initialize(initOptions: GraphlinkInitOptions<StoreShape>): void;
     rootStore: StoreShape;
     storeOverridesStack: StoreShape[];
+    /** Set this to false if you need to make sure all relevant database-requests within an accessor tree are being activated. */
     storeAccessorCachingTempDisabled: boolean;
     callPlan_callStack: AccessorCallPlan[];
     GetDeepestCallPlanCurrentlyRunning(): AccessorCallPlan;

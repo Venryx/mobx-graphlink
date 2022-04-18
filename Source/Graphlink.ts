@@ -1,4 +1,4 @@
-import {DataStatus, nodesByPath, TreeNode} from "./Tree/TreeNode.js";
+import {nodesByPath, SubscriptionStatus, TreeNode} from "./Tree/TreeNode.js";
 import {TreeRequestWatcher} from "./Tree/TreeRequestWatcher.js";
 import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "./Utils/DB/DBPaths.js";
 import {makeObservable, observable, runInAction} from "mobx";
@@ -8,6 +8,8 @@ import {AccessorMetadata} from "./Accessors/@AccessorMetadata.js";
 import {ApolloClient, NormalizedCacheObject} from "./Utils/@NPMFixes/apollo_client.js";
 import {AccessorCallPlan} from "./Accessors/@AccessorCallPlan.js";
 import {makeObservable_safe} from "./Utils/General/MobX.js";
+import {CE, ObjectCE} from "js-vextensions";
+import {DataStatus} from "./Tree/TreeNodeData.js";
 
 export let defaultGraphOptions: GraphOptions;
 export function SetDefaultGraphOptions(opt: GraphOptions) {
@@ -66,6 +68,7 @@ export class Graphlink<StoreShape, DBShape> {
 
 	rootStore: StoreShape;
 	storeOverridesStack = [] as StoreShape[];
+	/** Set this to false if you need to make sure all relevant database-requests within an accessor tree are being activated. */
 	storeAccessorCachingTempDisabled = false;
 	//accessorContext: AccessorContext<RootStoreShape> = new AccessorContext<RootStoreShape>(this);
 	// call-stack stuff
@@ -142,8 +145,9 @@ export class Graphlink<StoreShape, DBShape> {
 	GetStats(): GraphlinkStats {
 		return new GraphlinkStats({
 			attachedTreeNodes: this.allTreeNodes.size,
-			nodesWithRequestedSubscriptions: this.NodesWhere(a=>a.status_forDirectSubscription != DataStatus.Initial).length,
-			nodesWithFulfilledSubscriptions: this.NodesWhere(a=>a.status_forDirectSubscription == DataStatus.Received_Cache || a.status_forDirectSubscription == DataStatus.Received_Live).length,
+			nodesWithRequestedSubscriptions: this.NodesWhere(a=>a.self_subscriptionStatus != SubscriptionStatus.Initial).length,
+			//nodesWithFulfilledSubscriptions: this.NodesWhere(a=>ObjectCE(a.PreferredDataContainer.status).IsOneOf(DataStatus.Received_Live, DataStatus.Received_CachedByMGL)).length,
+			nodesWithFulfilledSubscriptions: this.NodesWhere(a=>a.self_subscriptionStatus == SubscriptionStatus.ReadyAndLive).length,
 		});
 	}
 }

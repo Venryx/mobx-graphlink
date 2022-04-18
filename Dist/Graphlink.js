@@ -1,4 +1,4 @@
-import { DataStatus, nodesByPath, TreeNode } from "./Tree/TreeNode.js";
+import { nodesByPath, SubscriptionStatus, TreeNode } from "./Tree/TreeNode.js";
 import { observable } from "mobx";
 import { makeObservable_safe } from "./Utils/General/MobX.js";
 export let defaultGraphOptions;
@@ -11,6 +11,7 @@ export class Graphlink {
     constructor(initOptions) {
         this.initialized = false;
         this.storeOverridesStack = [];
+        /** Set this to false if you need to make sure all relevant database-requests within an accessor tree are being activated. */
         this.storeAccessorCachingTempDisabled = false;
         //accessorContext: AccessorContext<RootStoreShape> = new AccessorContext<RootStoreShape>(this);
         // call-stack stuff
@@ -79,8 +80,9 @@ export class Graphlink {
     GetStats() {
         return new GraphlinkStats({
             attachedTreeNodes: this.allTreeNodes.size,
-            nodesWithRequestedSubscriptions: this.NodesWhere(a => a.status_forDirectSubscription != DataStatus.Initial).length,
-            nodesWithFulfilledSubscriptions: this.NodesWhere(a => a.status_forDirectSubscription == DataStatus.Received_Cache || a.status_forDirectSubscription == DataStatus.Received_Live).length,
+            nodesWithRequestedSubscriptions: this.NodesWhere(a => a.self_subscriptionStatus != SubscriptionStatus.Initial).length,
+            //nodesWithFulfilledSubscriptions: this.NodesWhere(a=>ObjectCE(a.PreferredDataContainer.status).IsOneOf(DataStatus.Received_Live, DataStatus.Received_CachedByMGL)).length,
+            nodesWithFulfilledSubscriptions: this.NodesWhere(a => a.self_subscriptionStatus == SubscriptionStatus.ReadyAndLive).length,
         });
     }
 }

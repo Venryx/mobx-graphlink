@@ -1,6 +1,5 @@
 import { CE, E, emptyArray, emptyArray_forLoading } from "js-vextensions";
 import { defaultGraphOptions } from "../Graphlink.js";
-import { DataStatus } from "../Tree/TreeNode.js";
 import { TreeNodePlaceholder } from "../Tree/TreeRequestWatcher.js";
 import { PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
 import { Bail } from "../Utils/General/BailManager.js";
@@ -28,7 +27,6 @@ export class GetDocs_Options {
 }
 GetDocs_Options.default = new GetDocs_Options();
 export function GetDocs(options, collectionPathOrGetterFunc) {
-    var _a;
     const opt = E(defaultGraphOptions, GetDocs_Options.default, options);
     NotifyRawDBAccess(opt.graph);
     let subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
@@ -40,7 +38,7 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
     //opt.graph.userInfo; // commented; not actually needed (the tree-nodes reset will trigger the accessor-stacks to refresh anyway)
     let treeNode = opt.graph.tree.Get(pathSegments, opt.params);
     // if already subscribed, just mark requested (reduces action-spam of GetDocs_Request)
-    if (treeNode && treeNode.subscription) {
+    if (treeNode && treeNode.self_subscription) {
         treeNode.Request();
     }
     else {
@@ -61,19 +59,19 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
         //opt.graph.tree.Get(pathSegments.slice(0, -1))?.collectionNodes.entries();
         //opt.graph.tree.collectionNodes.entries();
     }
-    if ((treeNode === null || treeNode === void 0 ? void 0 : treeNode.status_forDirectSubscription) != DataStatus.Received_Live) {
+    // always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
+    let data = treeNode === null || treeNode === void 0 ? void 0 : treeNode.DocDatas_ForDirectSubscriber;
+    if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
         NotifyWaitingForDB(pathSegments.join("/"));
         if (opt.ifLoading_bail) {
             Bail(opt.ifLoading_bail_message);
         }
         return opt.ifLoading_returnVal;
     }
-    /*let docNodes = Array.from(treeNode.docNodes.values());
-    let docDatas = docNodes.map(docNode=>docNode.data);
-    return docDatas;*/
-    //return opt.fire.tree.Get(pathSegments, queryRequest)?.docDatas ?? emptyArray;
-    let result = (_a = treeNode === null || treeNode === void 0 ? void 0 : treeNode.docDatas_forDirectSubscriber) !== null && _a !== void 0 ? _a : [];
-    return result.length == 0 ? emptyArray : result; // to help avoid unnecessary react renders
+    let result = data !== null && data !== void 0 ? data : [];
+    if (result.length == 0)
+        result = emptyArray; // to help avoid unnecessary react renders
+    return result;
 }
 /*export async function GetDocs_Async<DocT>(opt: FireOptions & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DBShape)=>ObservableMap<any, DocT>)): Promise<DocT[]> {
     opt = E(defaultFireOptions, opt);
@@ -99,7 +97,7 @@ export function GetDoc(options, docPathOrGetterFunc) {
     //opt.graph.userInfo; // commented; not actually needed (the tree-nodes reset will trigger the accessor-stacks to refresh anyway)
     let treeNode = opt.graph.tree.Get(pathSegments);
     // if already subscribed, just mark requested (reduces action-spam of GetDoc_Request)
-    if (treeNode && treeNode.subscription) {
+    if (treeNode && treeNode.self_subscription) {
         treeNode.Request();
     }
     else {
@@ -116,16 +114,16 @@ export function GetDoc(options, docPathOrGetterFunc) {
             opt.graph.treeRequestWatchers.forEach(a => a.nodesRequested.add(placeholder));
         }
     }
-    //if (opt.undefinedForLoading && treeNode?.status != DataStatus.Received_Full) return undefined;
-    //if (treeNode?.status_forDirectSubscription != DataStatus.Received_Full) {
-    if ((treeNode === null || treeNode === void 0 ? void 0 : treeNode.Status) != DataStatus.Received_Live) {
+    // always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
+    let data = treeNode === null || treeNode === void 0 ? void 0 : treeNode.Data_ForDirectSubscriber;
+    if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
         NotifyWaitingForDB(pathSegments.join("/"));
         if (opt.ifLoading_bail) {
             Bail(opt.ifLoading_bail_message);
         }
         return opt.ifLoading_returnVal;
     }
-    return treeNode === null || treeNode === void 0 ? void 0 : treeNode.data_forDirectSubscriber;
+    return data;
 }
 /*export async function GetDoc_Async<DocT>(opt: FireOptions & GetDoc_Options, docPathOrGetterFunc: string | string[] | ((dbRoot: DBShape)=>DocT)): Promise<DocT> {
     opt = E(defaultFireOptions, opt);
