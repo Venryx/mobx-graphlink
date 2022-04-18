@@ -142,8 +142,8 @@ export class Graphlink<StoreShape, DBShape> {
 	GetStats(): GraphlinkStats {
 		return new GraphlinkStats({
 			attachedTreeNodes: this.allTreeNodes.size,
-			nodesWithRequestedSubscriptions: this.NodesWhere(a=>a.status != DataStatus.Initial).length,
-			nodesWithFulfilledSubscriptions: this.NodesWhere(a=>a.status == DataStatus.Received_Cache || a.status == DataStatus.Received_Full).length,
+			nodesWithRequestedSubscriptions: this.NodesWhere(a=>a.status_forDirectSubscription != DataStatus.Initial).length,
+			nodesWithFulfilledSubscriptions: this.NodesWhere(a=>a.status_forDirectSubscription == DataStatus.Received_Cache || a.status_forDirectSubscription == DataStatus.Received_Live).length,
 		});
 	}
 }

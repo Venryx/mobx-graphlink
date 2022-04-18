@@ -70,7 +70,7 @@ export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphOptio
 		//opt.graph.tree.collectionNodes.entries();
 	}
 	
-	if (treeNode?.status != DataStatus.Received_Full) {
+	if (treeNode?.status_forDirectSubscription != DataStatus.Received_Live) {
 		NotifyWaitingForDB(pathSegments.join("/"));
 		if (opt.ifLoading_bail) {
 			Bail(opt.ifLoading_bail_message);
@@ -81,7 +81,7 @@ export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphOptio
 	let docDatas = docNodes.map(docNode=>docNode.data);
 	return docDatas;*/
 	//return opt.fire.tree.Get(pathSegments, queryRequest)?.docDatas ?? emptyArray;
-	let result = treeNode?.docDatas_forExtRequest ?? [];
+	let result = treeNode?.docDatas_forDirectSubscriber ?? [];
 	return result.length == 0 ? emptyArray : result; // to help avoid unnecessary react renders
 }
 /*export async function GetDocs_Async<DocT>(opt: FireOptions & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DBShape)=>ObservableMap<any, DocT>)): Promise<DocT[]> {
@@ -127,14 +127,15 @@ export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphOption
 	}
 
 	//if (opt.undefinedForLoading && treeNode?.status != DataStatus.Received_Full) return undefined;
-	if (treeNode?.status != DataStatus.Received_Full) {
+	//if (treeNode?.status_forDirectSubscription != DataStatus.Received_Full) {
+	if (treeNode?.Status != DataStatus.Received_Live) {
 		NotifyWaitingForDB(pathSegments.join("/"));
 		if (opt.ifLoading_bail) {
 			Bail(opt.ifLoading_bail_message);
 		}
 		return opt.ifLoading_returnVal;
 	}
-	return treeNode?.data_forExtRequest;
+	return treeNode?.data_forDirectSubscriber;
 }
 /*export async function GetDoc_Async<DocT>(opt: FireOptions & GetDoc_Options, docPathOrGetterFunc: string | string[] | ((dbRoot: DBShape)=>DocT)): Promise<DocT> {
 	opt = E(defaultFireOptions, opt);

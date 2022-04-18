@@ -61,7 +61,7 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
         //opt.graph.tree.Get(pathSegments.slice(0, -1))?.collectionNodes.entries();
         //opt.graph.tree.collectionNodes.entries();
     }
-    if ((treeNode === null || treeNode === void 0 ? void 0 : treeNode.status) != DataStatus.Received_Full) {
+    if ((treeNode === null || treeNode === void 0 ? void 0 : treeNode.status_forDirectSubscription) != DataStatus.Received_Live) {
         NotifyWaitingForDB(pathSegments.join("/"));
         if (opt.ifLoading_bail) {
             Bail(opt.ifLoading_bail_message);
@@ -72,7 +72,7 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
     let docDatas = docNodes.map(docNode=>docNode.data);
     return docDatas;*/
     //return opt.fire.tree.Get(pathSegments, queryRequest)?.docDatas ?? emptyArray;
-    let result = (_a = treeNode === null || treeNode === void 0 ? void 0 : treeNode.docDatas_forExtRequest) !== null && _a !== void 0 ? _a : [];
+    let result = (_a = treeNode === null || treeNode === void 0 ? void 0 : treeNode.docDatas_forDirectSubscriber) !== null && _a !== void 0 ? _a : [];
     return result.length == 0 ? emptyArray : result; // to help avoid unnecessary react renders
 }
 /*export async function GetDocs_Async<DocT>(opt: FireOptions & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DBShape)=>ObservableMap<any, DocT>)): Promise<DocT[]> {
@@ -117,14 +117,15 @@ export function GetDoc(options, docPathOrGetterFunc) {
         }
     }
     //if (opt.undefinedForLoading && treeNode?.status != DataStatus.Received_Full) return undefined;
-    if ((treeNode === null || treeNode === void 0 ? void 0 : treeNode.status) != DataStatus.Received_Full) {
+    //if (treeNode?.status_forDirectSubscription != DataStatus.Received_Full) {
+    if ((treeNode === null || treeNode === void 0 ? void 0 : treeNode.Status) != DataStatus.Received_Live) {
         NotifyWaitingForDB(pathSegments.join("/"));
         if (opt.ifLoading_bail) {
             Bail(opt.ifLoading_bail_message);
         }
         return opt.ifLoading_returnVal;
     }
-    return treeNode === null || treeNode === void 0 ? void 0 : treeNode.data_forExtRequest;
+    return treeNode === null || treeNode === void 0 ? void 0 : treeNode.data_forDirectSubscriber;
 }
 /*export async function GetDoc_Async<DocT>(opt: FireOptions & GetDoc_Options, docPathOrGetterFunc: string | string[] | ((dbRoot: DBShape)=>DocT)): Promise<DocT> {
     opt = E(defaultFireOptions, opt);

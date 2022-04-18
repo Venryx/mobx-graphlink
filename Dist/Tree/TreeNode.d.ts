@@ -14,8 +14,9 @@ export declare enum DataStatus {
     Initial = "Initial",
     Waiting = "Waiting",
     Received_Cache = "Received_Cache",
-    Received_Full = "Received_Full"
+    Received_Live = "Received_Full"
 }
+export declare function GetPreferenceLevelOfDataStatus(status: DataStatus): 1 | 2 | 3 | 4 | 0;
 export declare class PathSubscription {
     constructor(unsubscribe: () => void);
     unsubscribe: () => void;
@@ -35,6 +36,7 @@ export declare class TreeNode<DataShape> {
     path: string;
     path_noQuery: string;
     type: TreeNodeType;
+    get ParentNode(): TreeNode<any> | null;
     Request(): void;
     /** Must be called from within a mobx action. (and not be run within a mobx computation) */
     Subscribe(): void;
@@ -43,19 +45,20 @@ export declare class TreeNode<DataShape> {
         subscription: ZenObservable.Subscription;
     } | null;
     UnsubscribeAll(): void;
-    status: DataStatus;
-    observable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>> | null;
+    status_forDirectSubscription: DataStatus;
+    get Status(): DataStatus;
+    apolloObservable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>> | null;
     subscription: ZenObservable.Subscription | null;
     collectionNodes: ObservableMap<string, TreeNode<any>>;
     data: DataShape;
-    get data_forExtRequest(): DataShape;
+    get data_forDirectSubscriber(): DataShape;
     dataJSON: string;
     SetData(data: DataShape, fromCache: boolean): boolean;
     queryNodes: ObservableMap<string, TreeNode<any>>;
     query: QueryParams_Linked;
     docNodes: ObservableMap<string, TreeNode<any>>;
     get docDatas(): any[];
-    get docDatas_forExtRequest(): any[];
+    get docDatas_forDirectSubscriber(): any[];
     get AllChildNodes(): TreeNode<any>[];
     get AllDescendantNodes(): TreeNode<any>[];
     Get(subpathOrGetterFunc: string | string[] | ((data: DataShape) => any), query?: QueryParams, createTreeNodesIfMissing?: boolean): TreeNode<any> | null;

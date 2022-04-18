@@ -2,7 +2,7 @@ import { Assert, E, StringCE, WaitXThenRun } from "js-vextensions";
 import { reaction, when } from "mobx";
 import { defaultGraphOptions } from "../Graphlink.js";
 import { DataStatus, TreeNode } from "../Tree/TreeNode.js";
-import { TreeRequestWatcher } from "../Tree/TreeRequestWatcher.js";
+import { TreeNodePlaceholder, TreeRequestWatcher } from "../Tree/TreeRequestWatcher.js";
 import { BailError } from "../Utils/General/BailManager.js";
 import { RunInAction } from "../Utils/General/MobX.js";
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
@@ -25,7 +25,7 @@ export function GetWait(dataGetterFunc, options, funcName) {
     let nodesRequested_array = Array.from(watcher.nodesRequested);
     //let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status == DataStatus.Waiting);
     //let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status != DataStatus.Received);
-    let requestsBeingWaitedFor = nodesRequested_array.filter(node => node instanceof TreeNode ? node.status != DataStatus.Received_Full : true);
+    let requestsBeingWaitedFor = nodesRequested_array.filter(node => node instanceof TreeNode ? node.status_forDirectSubscription != DataStatus.Received_Live : true);
     let done = requestsBeingWaitedFor.length == 0;
     if (!done) {
         throw new Error(`Store-accessor "${funcName !== null && funcName !== void 0 ? funcName : "n/a"}" not yet resolved. (it still has ${requestsBeingWaitedFor.length} requests being waited for)`);
@@ -125,9 +125,14 @@ export async function GetAsync(dataGetterFunc, options) {
                 GetAsync_throwImmediatelyOnDBWait_activeDepth--;
             watcher.Stop();
             let nodesRequested_array = Array.from(watcher.nodesRequested);
-            //let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status == DataStatus.Waiting);
-            //let requestsBeingWaitedFor = nodesRequested_array.filter(node=>node.status != DataStatus.Received);
-            let requestsBeingWaitedFor = nodesRequested_array.filter(node => node instanceof TreeNode ? node.status != DataStatus.Received_Full : true);
+            let requestsBeingWaitedFor = nodesRequested_array.filter(node => {
+                if (node instanceof TreeNodePlaceholder)
+                    return true;
+                //return node.status == DataStatus.Waiting;
+                //return node.status != DataStatus.Received;
+                // arguably, this may be able to use node.Status; but to be safe, we use node.status_forDirectSubscription
+                return node.status_forDirectSubscription != DataStatus.Received_Live;
+            });
             const dbRequestsAllResolved = requestsBeingWaitedFor.length == 0 && accessor_lastError == null; // (if an error occurred, there are likely db-requests that just haven't been reached)
             const maxIterationsReached = iterationIndex >= opt.maxIterations - 1;
             let finalCall = dbRequestsAllResolved || maxIterationsReached;
