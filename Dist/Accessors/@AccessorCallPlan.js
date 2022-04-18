@@ -1,6 +1,5 @@
 import { IsPrimitive } from "js-vextensions";
 import { computed, onBecomeUnobserved, _isComputingDerivation } from "mobx";
-import { CatchBail } from "../index.js";
 import { ProfilingInfo } from "./@AccessorMetadata.js";
 export function StringifyDocOrPrimitive(val, strForFailure = "?") {
     if (IsPrimitive(val))
@@ -50,8 +49,8 @@ export class AccessorCallPlan {
         const contextArgs = [
             this.graph,
             this.store,
-            this.catchItemBails,
-            this.catchItemBails_asX,
+            /*this.catchItemBails,
+            this.catchItemBails_asX,*/
         ];
         let callArgs_unwrapped = this.CallArgs_Unwrapped;
         return [...contextArgs, ...callArgs_unwrapped];
@@ -59,18 +58,11 @@ export class AccessorCallPlan {
     toString() {
         return JSON.stringify({
             contextArgs: {
-                catchItemBails: this.catchItemBails,
-                catchItemBails_asX: this.catchItemBails_asX,
+            /*catchItemBails: this.catchItemBails,
+            catchItemBails_asX: this.catchItemBails_asX,*/
             },
             callArgs_unwrapped: this.CallArgs_Unwrapped.map(a => StringifyDocOrPrimitive(a)),
         });
-    }
-    // helpers for user/in-accessor code
-    MaybeCatchItemBail(itemGetter) {
-        if (this.catchItemBails) {
-            return CatchBail(this.catchItemBails_asX, itemGetter);
-        }
-        return itemGetter();
     }
     //uselessCachingWarned = false;
     //_lastCall_startTime?: number; // for debugging/profiling purposes only

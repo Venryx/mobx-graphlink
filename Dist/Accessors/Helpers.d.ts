@@ -1,5 +1,12 @@
 import { GraphOptions } from "../Graphlink.js";
 import { n } from "../Utils/@Internal/Types.js";
+import { BailError } from "../Utils/General/BailManager.js";
+export declare enum BailHandling {
+    ThrowImmediately = 0,
+    ThrowAtEnd_1st = 1,
+    CallCustomHandler = 2
+}
+export declare function MapWithBailHandling<T, T2>(array: T[], mapFunc: (item: T, index: number) => T2, bailHandling?: BailHandling, customBailHandler?: (bailError: BailError, index: number) => any): T2[];
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 export declare function GetWait<T>(dataGetterFunc: () => T, options?: Partial<GraphOptions>, funcName?: string): T;
 /** reject: caller of "await GetAsync()" receives the error, log: catch error and log it, ignore: catch error */

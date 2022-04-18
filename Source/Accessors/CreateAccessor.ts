@@ -20,6 +20,7 @@ export function WithStore<T>(options: Partial<GraphOptions>, store: any, accesso
 /*type Func_WithoutThis<Func> = Func extends ((this: any, ..._: infer Args)=>infer ReturnTypeX)
 	? (..._: Args)=>ReturnTypeX
 	: never;*/
+// these extensions are only present on functions returned by CreateAccessor (see bottom of file)
 type FuncExtensions<Func> = {
 	Async: Func extends ((..._: infer Args)=>infer ReturnTypeX)
 		? (..._: Args)=>Promise<ReturnTypeX>
@@ -29,9 +30,9 @@ type FuncExtensions<Func> = {
 	CatchBail: Func extends ((..._: infer Args)=>infer ReturnTypeX)
 		? <T>(bailResultOrGetter: T, ..._: Args)=>NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T)
 		: never,
-	CatchItemBails: Func extends ((..._: infer Args)=>infer ReturnTypeX)
+	/*CatchItemBails: Func extends ((..._: infer Args)=>infer ReturnTypeX)
 		? <T>(itemBailResult: T, ..._: Args)=>NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T)
-		: never,
+		: never,*/
 };
 
 // I want to use these to extract out the typing, but then it makes the metadata harder to understand for library users
@@ -157,11 +158,11 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 	wrapperAccessor.CatchBail = (bailResultOrGetter, ...callArgs)=>{
 		return CatchBail(bailResultOrGetter, wrapperAccessor, callArgs);
 	};
-	wrapperAccessor.CatchItemBails = (bailResult, ...callArgs)=>{
+	/*wrapperAccessor.CatchItemBails = (bailResult, ...callArgs)=>{
 		meta.nextCall_catchItemBails = true;
 		meta.nextCall_catchItemBails_asX = bailResult;
 		return CatchBail(bailResult, wrapperAccessor, callArgs);
-	};
+	};*/
 
 	if (name) CE(wrapperAccessor).SetName(name);
 	return wrapperAccessor as any;

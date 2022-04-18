@@ -119,11 +119,11 @@ export const CreateAccessor = (...args) => {
     wrapperAccessor.CatchBail = (bailResultOrGetter, ...callArgs) => {
         return CatchBail(bailResultOrGetter, wrapperAccessor, callArgs);
     };
-    wrapperAccessor.CatchItemBails = (bailResult, ...callArgs) => {
+    /*wrapperAccessor.CatchItemBails = (bailResult, ...callArgs)=>{
         meta.nextCall_catchItemBails = true;
         meta.nextCall_catchItemBails_asX = bailResult;
         return CatchBail(bailResult, wrapperAccessor, callArgs);
-    };
+    };*/
     if (name)
         CE(wrapperAccessor).SetName(name);
     return wrapperAccessor;

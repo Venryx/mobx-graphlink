@@ -24,7 +24,6 @@ export declare class AccessorCallPlan {
     onUnobserved: () => any;
     GetCacheKey(): any[];
     toString(): string;
-    MaybeCatchItemBail<T>(itemGetter: () => T): T;
     cachedResult_wrapper: IComputedValue<any>;
     Call_OrReturnCache(): any;
 }

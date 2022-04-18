@@ -5,6 +5,40 @@ import { DataStatus } from "../Tree/TreeNodeData.js";
 import { TreeNodePlaceholder, TreeRequestWatcher } from "../Tree/TreeRequestWatcher.js";
 import { BailError } from "../Utils/General/BailManager.js";
 import { RunInAction } from "../Utils/General/MobX.js";
+export var BailHandling;
+(function (BailHandling) {
+    BailHandling[BailHandling["ThrowImmediately"] = 0] = "ThrowImmediately";
+    BailHandling[BailHandling["ThrowAtEnd_1st"] = 1] = "ThrowAtEnd_1st";
+    BailHandling[BailHandling["CallCustomHandler"] = 2] = "CallCustomHandler";
+})(BailHandling || (BailHandling = {}));
+export function MapWithBailHandling(array, mapFunc, bailHandling = BailHandling.ThrowAtEnd_1st, customBailHandler = () => { }) {
+    let bailErrors = [];
+    let results = array.map((item, index) => {
+        try {
+            let result = mapFunc(item, index);
+            return result;
+        }
+        catch (ex) {
+            if (ex instanceof BailError) {
+                bailErrors.push(ex);
+                if (bailHandling == BailHandling.ThrowImmediately) {
+                    throw ex;
+                }
+                else if (bailHandling == BailHandling.ThrowAtEnd_1st) {
+                    return null; // doesn't matter what we return here; "throw" at end will interrupt the whole function
+                }
+                else if (bailHandling == BailHandling.CallCustomHandler) {
+                    return customBailHandler(ex, index);
+                }
+            }
+            throw ex;
+        }
+    });
+    if (bailHandling == BailHandling.ThrowAtEnd_1st && bailErrors.length) {
+        throw bailErrors[0];
+    }
+    return results;
+}
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 // (one of the rare cases where opt is not the first argument; that's because GetWait may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
 // Note: This function doesn't really have a purpose atm, as Command.Validate functions already use a GetAsync wrapper that quick-throws as soon as any db-request has to wait.

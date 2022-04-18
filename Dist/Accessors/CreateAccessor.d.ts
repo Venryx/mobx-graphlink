@@ -7,7 +7,6 @@ declare type FuncExtensions<Func> = {
     Async: Func extends ((..._: infer Args) => infer ReturnTypeX) ? (..._: Args) => Promise<ReturnTypeX> : never;
     Wait: Func;
     CatchBail: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(bailResultOrGetter: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : never;
-    CatchItemBails: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(itemBailResult: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : never;
 };
 interface CreateAccessor_Shape<StoreShape_PreSet = UT_StoreShape> {
     <Func extends (this: AccessorCallPlan | void, ...args: any[]) => any, StoreShape = StoreShape_PreSet>(accessor: Func): Func & FuncExtensions<Func>;
