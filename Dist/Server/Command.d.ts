@@ -1,9 +1,12 @@
 import { GetAsync_Options } from "../Accessors/Helpers.js";
 import { GraphOptions } from "../Graphlink.js";
 import { UserInfo } from "../index.js";
+import { n } from "../Utils/@Internal/Types.js";
 import { DBPPath } from "../Utils/DB/DBPaths.js";
 import { DBUpdate } from "../Utils/DB/DBUpdate.js";
 export declare const commandsWaitingToComplete_new: Command<any, any>[];
+export declare type PayloadOf<T> = T extends Command<infer Payload> ? Payload : never;
+export declare type ReturnDataOf<T> = T extends Command<infer Payload, infer ReturnData> ? ReturnData : never;
 export declare abstract class Command<Payload, ReturnData extends {
     [key: string]: any;
 } = {}> {
@@ -26,7 +29,7 @@ export declare abstract class Command<Payload, ReturnData extends {
     /** Parent commands should call MarkAsSubcommand() immediately after setting a subcommand's payload. [old; use IntegrateSubcommand instead] */
     MarkAsSubcommand(parentCommand: Command<any, any>): this;
     /** Call this from within your command's Validate() method. */
-    IntegrateSubcommand<T extends Command<any>>(fieldGetter: () => T, fieldSetter: ((subcommand: T) => any) | null, 
+    IntegrateSubcommand<T extends Command<any>>(fieldGetter: () => (T | n), fieldSetter: ((subcommand: T) => any) | null, 
     /** If a command is passed, the field is set every time (to the passed command); if a function is passed, the field is only set once (to the result of the function's first invokation). */
     subcommandOrCreator: T | (() => T), preValidate?: (subcommand: T) => any): void;
     /** Transforms the payload data (eg. combining it with existing db-data) in preparation for constructing the db-updates-map, while also validating user permissions and such along the way. */

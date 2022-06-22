@@ -30,6 +30,10 @@ function NotifyListenersThatCurrentCommandFinished() {
 	}
 }
 
+// type helpers
+export type PayloadOf<T> = T extends Command<infer Payload> ? Payload : never;
+export type ReturnDataOf<T> = T extends Command<infer Payload, infer ReturnData> ? ReturnData : never;
+
 // require command return-value to always be an object; this provides more schema stability (eg. lets you change the return-data of a mutation, without breaking the contents of "legacy" keys)
 export abstract class Command<Payload, ReturnData extends {[key: string]: any} = {}> {
 	static augmentValidate?: (command: Command<any>)=>any;
@@ -91,7 +95,7 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	}
 	/** Call this from within your command's Validate() method. */
 	IntegrateSubcommand<T extends Command<any>>(
-		fieldGetter: ()=>T,
+		fieldGetter: ()=>(T|n),
 		fieldSetter: ((subcommand: T)=>any) | null,
 		/** If a command is passed, the field is set every time (to the passed command); if a function is passed, the field is only set once (to the result of the function's first invokation). */
 		subcommandOrCreator: T | (()=>T),

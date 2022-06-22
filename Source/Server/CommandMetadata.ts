@@ -28,9 +28,11 @@ export function CommandMeta(opts: {
 		// wait a moment before calculating derivatives (we need to make sure all schema-deps are added first)
 		WaitXThenRun(0, ()=>metadata.CalculateDerivatives());
 		/*(async()=>{
-			// wait a few ticks (so all schemas finish getting added, even those depending-on/waiting-for others)
+			// wait a few ticks, so all schemas finish getting added, even those depending-on/waiting-for others
+			// (the promise mechanism in AddSchema can itself take a couple ticks, due to its having multiple async-funcs/await-calls)
 			for (let i = 0; i < 3; i++) {
 				await SleepAsync(100);
+				//await SleepAsync(0);
 			}
 			//await SleepAsync(0);
 			//console.log("Test1:", schemaEntryJSONs.get("MapNode_Partial"));
@@ -102,28 +104,15 @@ export class CommandClassMetadata {
 	// eslint-disable-next-line no-loop-func
 	FindGQLTypeName(opts: {group: "payload" | "return", typeName?: string, propName?: string, propSchema?: JSONSchema7}) {
 		if (opts.propName) {
-			if (opts.propSchema?.$ref != null) {
-				const schemaName = opts.propSchema.$ref;
-				const schema = GetSchemaJSON(schemaName);
-				if (IsJSONSchemaOfTypeScalar(schema)) {
-					// graphql types can't represent scalars (eg. with constraints) as separate types; so replace a ref to such a type with its scalar type
-					return JSONSchemaScalarTypeToGraphQLScalarType(schema.type as string)!;
-				}
-				return `${schemaName}T0`; // to match with "get-graphql-from-jsonschema" output
+			if (opts.propSchema) {
+				let result = this.FindGQLTypeNameForFieldSchema(opts.group, opts.propSchema);
+				if (result != null) return result;
 			}
-
 			const groupInfo = opts.group == "payload" ? this.payloadSchema : this.returnSchema;
-			const fieldJSONSchema = groupInfo.properties?.[opts.propName] as JSONSchema7;
-			if (fieldJSONSchema.type) {
-				let type_normalized: string|undefined;
-				if (typeof fieldJSONSchema.type == "string") type_normalized = fieldJSONSchema.type;
-				else if (fieldJSONSchema.type instanceof Array) {
-					const nonNullTypes = fieldJSONSchema.type.filter(a=>a != "null");
-					if (nonNullTypes.length == 1) type_normalized = nonNullTypes[0];
-				}
-				if (type_normalized && IsJSONSchemaScalar(type_normalized)) {
-					return JSONSchemaScalarTypeToGraphQLScalarType(type_normalized)!;
-				}
+			const fieldSchema = groupInfo.properties?.[opts.propName] as JSONSchema7;
+			if (fieldSchema) {
+				let result = this.FindGQLTypeNameForFieldSchema(opts.group, fieldSchema);
+				if (result != null) return result;
 			}
 		}
 
@@ -140,11 +129,40 @@ export class CommandClassMetadata {
 		});
 
 		const result = schemaInfo.typeDefs[typeDefNames_normalized.findIndex(a=>a == typeName_normalized)];
-		Assert(result, `Could not find type-def for type/prop name "${opts.typeName ?? opts.propName}".${""
-			}\n@typeName_normalized:${typeName_normalized
-			}\n@typeDefNames_normalized:${typeDefNames_normalized.join(",")
-			}\n@typeDefStrings:${schemaInfo.typeDefs.map(a=>a.str)}`);
+		Assert(result, `Could not find type-def for type/prop name "${opts.typeName ?? opts.propName}". Did you forget to add a schema dependency?${""
+			}\n\t@typeName_normalized:${typeName_normalized
+			}\n\t@typeDefNames_normalized:${typeDefNames_normalized.join(",")
+			}\n\t@typeDefStrings:${schemaInfo.typeDefs.map(a=>a.str)
+			}\n\t@group:${opts.group}`);
 		return result.name;
+	}
+	FindGQLTypeNameForFieldSchema(group: "payload" | "return", fieldSchema: JSONSchema7) {
+		if (fieldSchema.$ref != null) {
+			const schemaName = fieldSchema.$ref;
+			const schema = GetSchemaJSON(schemaName);
+			if (IsJSONSchemaOfTypeScalar(schema)) {
+				// graphql types can't represent scalars (eg. with constraints) as separate types; so replace a ref to such a type with its scalar type
+				return JSONSchemaScalarTypeToGraphQLScalarType(schema.type as string)!;
+			}
+			return `${schemaName}T0`; // to match with "get-graphql-from-jsonschema" output
+		}
+		if (fieldSchema.type) {
+			let type_normalized: string|undefined;
+			if (typeof fieldSchema.type == "string") type_normalized = fieldSchema.type;
+			else if (fieldSchema.type instanceof Array) {
+				const nonNullTypes = fieldSchema.type.filter(a=>a != "null");
+				if (nonNullTypes.length == 1) type_normalized = nonNullTypes[0];
+			}
+			if (type_normalized && IsJSONSchemaScalar(type_normalized)) {
+				return JSONSchemaScalarTypeToGraphQLScalarType(type_normalized)!;
+			}
+		}
+
+		// if we're dealing with an array, recall this function with the schema for the items
+		if (fieldSchema.items != null && typeof fieldSchema.items == "object") {
+			let result = this.FindGQLTypeNameForFieldSchema(group, fieldSchema.items as JSONSchema7);
+			if (result) return `[${result}]`;
+		}
 	}
 
 	GetArgTypes() {

@@ -29,7 +29,8 @@ export declare class CommandClassMetadata {
         typeName?: string;
         propName?: string;
         propSchema?: JSONSchema7;
-    }): string;
+    }): any;
+    FindGQLTypeNameForFieldSchema(group: "payload" | "return", fieldSchema: JSONSchema7): any;
     GetArgTypes(): {
         name: string;
         type: string;
