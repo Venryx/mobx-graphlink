@@ -41,10 +41,24 @@ export function MaybeLog_Base<LogTypes extends LogTypes_Base>(shouldLogFunc: (lo
 		 .join(",");
 	return `{${props}}`;
 }*/
+
+let browserSupportsLookbehind = (()=>{
+	try {
+		// regex: for current "1" that's preceded by a "1", replace current "1" with "2"
+		const regex = new RegExp("(?<=1)1", "g");
+		return "11".replace(regex, "2") == "12";
+	} catch (ex) {
+		return false;
+	}
+})();
+
 // this one does (from: https://stackoverflow.com/a/65443215)
 export function JSONStringify_NoQuotesForKeys(obj: Object) {
 	var cleaned = JSON.stringify(obj, null, 2);
-	return cleaned.replace(/^[\t ]*"[^:\n\r]+(?<!\\)":/gm, match=>{
+	let regex = browserSupportsLookbehind
+		? new RegExp(`^[\t ]*"[^:\n\r]+(?<!\\)":`, "gm")
+		: new RegExp(`^[\t ]*"[^:\n\r]+":`, "gm");
+	return cleaned.replace(regex, match=>{
 		return match.replace(/"/g, "");
 	});
 }
