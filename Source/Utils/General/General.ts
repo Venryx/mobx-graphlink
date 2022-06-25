@@ -56,7 +56,7 @@ let browserSupportsLookbehind = (()=>{
 export function JSONStringify_NoQuotesForKeys(obj: Object) {
 	var cleaned = JSON.stringify(obj, null, 2);
 	let regex = browserSupportsLookbehind
-		? new RegExp(`^[\t ]*"[^:\n\r]+(?<!\\)":`, "gm")
+		? new RegExp(`^[\t ]*"[^:\n\r]+(?<!\\\\)":`, "gm")
 		: new RegExp(`^[\t ]*"[^:\n\r]+":`, "gm");
 	return cleaned.replace(regex, match=>{
 		return match.replace(/"/g, "");
