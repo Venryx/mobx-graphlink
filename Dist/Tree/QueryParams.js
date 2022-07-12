@@ -135,8 +135,13 @@ export function JSONSchemaToGQLFieldsStr(schema, schemaName) {
     const fields = Object.entries(schema.properties);
     Assert(fields.length > 0, `Cannot create GraphQL query-string for schema "${schemaName}", since it has 0 fields.`);
     //return fields.map(field=>{
-    return fields.map(([fieldKey, fieldValue]) => {
+    return fields.map(([fieldKey, fieldValue_raw]) => {
         var _a, _b, _c;
+        let fieldValue = fieldValue_raw;
+        // for fields with {opt: true}, mobx-graphlink (on client) sometimes has to use the `{anyOf: [{...}, {type: "null"}]` pattern to represent the nullability, so handle that case
+        if (Object.keys(fieldValue_raw).length == 1 && fieldValue_raw["anyOf"] != null) {
+            fieldValue = fieldValue_raw["anyOf"].find(a => a.type != "null");
+        }
         // guess at whether the field is a scalar
         let isScalar = (_a = fieldValue["$gqlTypeIsScalar"]) !== null && _a !== void 0 ? _a : true;
         // (atm, field is assumed a scalar unless it has a $gqlType specified in its json-schema whose type-name doesn't match the hard-coded list of scalars)
