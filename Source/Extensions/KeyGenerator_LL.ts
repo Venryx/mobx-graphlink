@@ -1,5 +1,8 @@
-import {v4, parse, stringify} from "uuid";
+import uuid from "uuid";
 import {Buffer} from "buffer";
+
+// must use this approach for some esm modules that end up importing this library/file
+const {v4, parse, stringify} = uuid;
 
 // Wrapper around "uuid" library, for "compacting" UUIDs into 22-character strings, of the char-set "[a-zA-Z0-9_-]".
 // Based on: https://github.com/taskcluster/slugid
