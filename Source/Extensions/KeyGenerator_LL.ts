@@ -1,8 +1,12 @@
-import * as uuid from "uuid";
 import {Buffer} from "buffer";
 
+import {v4, parse, stringify} from "uuid";
 // must use this approach for some esm modules that end up importing this library/file (and must use "* as uuid" for use from, eg. dm's app-server-js)
-const {v4, parse, stringify} = uuid.default ?? uuid; // annoying workaround for inconsistent handling seen between dm's "db.buildSeedDBScript" script, and the app-server-js program/pod
+/*import * as uuid from "uuid";
+const {v4, parse, stringify} = uuid.default ?? uuid; // annoying workaround for inconsistent handling seen between dm's "db.buildSeedDBScript" script, and the app-server-js program/pod*/
+/*import {createRequire} from "module";
+const require = createRequire(import.meta.url);
+const {v4, parse, stringify} = require("uuid");*/
 
 // Wrapper around "uuid" library, for "compacting" UUIDs into 22-character strings, of the char-set "[a-zA-Z0-9_-]".
 // Based on: https://github.com/taskcluster/slugid
