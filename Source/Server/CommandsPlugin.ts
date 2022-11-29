@@ -1,6 +1,7 @@
 //import {makeExtendSchemaPlugin, gql} from "graphile-utils";
 import graphileUtils from "graphile-utils";
 import {DocumentNode} from "graphql";
+import {IncomingMessage} from "http";
 import {Assert, CE, Clone} from "js-vextensions";
 import {JSONSchema7, JSONSchema7Definition, JSONSchema7Type} from "json-schema";
 import {Pool} from "pg";
@@ -15,6 +16,8 @@ import {GetCommandClassMetadatas} from "./CommandMetadata.js";
 const {makeExtendSchemaPlugin, gql} = graphileUtils;
 
 type Context = Context_base<any> & {
+	// where is this "req" field first assigned?
+	req: IncomingMessage & {user?: any};
 	pgPool: Pool;
 };
 
@@ -43,8 +46,8 @@ export class CreateCommandPlugin_Options {
 	logTypeDefs?: boolean;
 	logTypeDefs_detailed?: string[];
 
-	preCommandRun?: (info: CommandRunInfo)=>any;
-	postCommandRun?: (info: CommandRunInfo & {returnData: any, dbUpdates: DBUpdate[]|n, error: any})=>any;
+	preCommandRun?: (info: CommandRunInfo)=>Promise<any>;
+	postCommandRun?: (info: CommandRunInfo & {returnData: any, dbUpdates: DBUpdate[]|n, error: any})=>Promise<any>;
 }
 
 export let CommandsPlugin_opts: CreateCommandPlugin_Options;
@@ -135,7 +138,7 @@ export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 		}
 
 		const mutationResolvers = CE(commandClassMetas_graphQL).ToMapObj(meta=>meta.commandClass.name, classInfo=>{
-			return async(parent, args, context: Context, info)=>{
+			return async(parent, args, context: Context, info: CommandRunInfo)=>{
 				/*const { rows } = await context.pgClient.query(
 					sqlText, // e.g. "select * from users where id = $1"
 					optionalVariables // e.g. [27]
@@ -145,12 +148,13 @@ export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 
 				const CommandClass = classInfo.commandClass as any;
 				const command: Command<any> = new CommandClass(args);
-				Assert(context.req.user != null, "Cannot run command on server unless logged in.");
-				command._userInfo_override = context.req.user;
+				
+				//Assert(context.req.user != null, "Cannot run command on server unless logged in.");
+				command._userInfo_override = context.req.user; // whether signed-in or not, set user-info override (if sign-in required, preCommandRun should generally reject the request)
 				//command._userInfo_override_set = true;
 				//console.log(`@Command:${CommandClass.name} UserInfo:`, context.req.user);
 
-				opts.preCommandRun?.({parent, args, context, info, command});
+				await opts.preCommandRun?.({parent, args, context, info, command});
 				let returnData: any;
 				let dbUpdates: DBUpdate[]|n;
 				let error: any;
@@ -161,7 +165,7 @@ export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 					throw ex;
 				} finally {
 					command._userInfo_override = null; // defensive; will cause command.userInfo to error if called outside of code-block above
-					opts.postCommandRun?.({parent, args, context, info, command, returnData, dbUpdates, error});
+					await opts.postCommandRun?.({parent, args, context, info, command, returnData, dbUpdates, error});
 				}
 				
 				return returnData;

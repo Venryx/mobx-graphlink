@@ -1,3 +1,4 @@
+import { IncomingMessage } from "http";
 import { Pool } from "pg";
 import { Context as Context_base } from "postgraphile";
 import { TypeDef } from "../Extensions/GQLSchemaHelpers.js";
@@ -5,6 +6,9 @@ import { n } from "../Utils/@Internal/Types.js";
 import { DBUpdate } from "../Utils/DB/DBUpdate.js";
 import { Command } from "./Command.js";
 declare type Context = Context_base<any> & {
+    req: IncomingMessage & {
+        user?: any;
+    };
     pgPool: Pool;
 };
 export declare class CommandRunInfo {
@@ -22,12 +26,12 @@ export declare class CreateCommandPlugin_Options {
     typeDefStrFinalizer?: (str: string) => string;
     logTypeDefs?: boolean;
     logTypeDefs_detailed?: string[];
-    preCommandRun?: (info: CommandRunInfo) => any;
+    preCommandRun?: (info: CommandRunInfo) => Promise<any>;
     postCommandRun?: (info: CommandRunInfo & {
         returnData: any;
         dbUpdates: DBUpdate[] | n;
         error: any;
-    }) => any;
+    }) => Promise<any>;
 }
 export declare let CommandsPlugin_opts: CreateCommandPlugin_Options;
 export declare const CreateCommandsPlugin: (opts: CreateCommandPlugin_Options) => import("postgraphile").Plugin;
