@@ -1,12 +1,9 @@
-//import {makeExtendSchemaPlugin, gql} from "graphile-utils";
-import graphileUtils from "graphile-utils";
 import { Assert, CE, Clone } from "js-vextensions";
 import { FinalizeSchemaForConversionToGraphQL, GetGQLSchemaInfoFromJSONSchema } from "../Extensions/GQLSchemaHelpers.js";
 import { GetSchemaJSON, IsJSONSchemaOfTypeScalar, schemaEntryJSONs } from "../Extensions/JSONSchemaHelpers.js";
 import { WithBrackets } from "../Tree/QueryParams.js";
 import { GetCommandClassMetadatas } from "./CommandMetadata.js";
-const { makeExtendSchemaPlugin, gql } = graphileUtils;
-function GQL_BetterErrorHandling(str) {
+function GQL_BetterErrorHandling(str, gql) {
     try {
         return gql `${str}`;
     }
@@ -21,7 +18,8 @@ export class CommandRunInfo {
 export class CreateCommandPlugin_Options {
 }
 export let CommandsPlugin_opts;
-export const CreateCommandsPlugin = (opts) => {
+export const CreateCommandsPlugin = (apis, opts) => {
+    const { makeExtendSchemaPlugin, gql } = apis;
     CommandsPlugin_opts = opts;
     return makeExtendSchemaPlugin((build, schemaOptions) => {
         var _a;
@@ -156,7 +154,7 @@ export const CreateCommandsPlugin = (opts) => {
                 groupStr = opts.typeDefStrFinalizer(groupStr);
             typeDefGroupStrings.push(groupStr);
         }
-        const typeDefGroups_gql = typeDefGroupStrings.map(str => GQL_BetterErrorHandling(str));
+        const typeDefGroups_gql = typeDefGroupStrings.map(str => GQL_BetterErrorHandling(str, gql));
         if (opts.logTypeDefs) {
             console.log("CommandsPlugin init done.", 
             //"@typeDefGroups:\n==========\n", typeDefGroupStrings.join("\n\n"),

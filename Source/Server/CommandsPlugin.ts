@@ -1,11 +1,7 @@
-//import {makeExtendSchemaPlugin, gql} from "graphile-utils";
-import graphileUtils from "graphile-utils";
 import {DocumentNode} from "graphql";
 import {IncomingMessage} from "http";
 import {Assert, CE, Clone} from "js-vextensions";
 import {JSONSchema7, JSONSchema7Definition, JSONSchema7Type} from "json-schema";
-import {Pool} from "pg";
-import {Context as Context_base} from "postgraphile";
 import {FinalizeSchemaForConversionToGraphQL, GetGQLSchemaInfoFromJSONSchema, TypeDef} from "../Extensions/GQLSchemaHelpers.js";
 import {GetSchemaJSON, IsJSONSchemaOfTypeScalar, IsJSONSchemaScalar, schemaEntryJSONs} from "../Extensions/JSONSchemaHelpers.js";
 import {WithBrackets} from "../Tree/QueryParams.js";
@@ -13,15 +9,19 @@ import {n} from "../Utils/@Internal/Types.js";
 import {DBUpdate} from "../Utils/DB/DBUpdate.js";
 import {Command} from "./Command.js";
 import {GetCommandClassMetadatas} from "./CommandMetadata.js";
-const {makeExtendSchemaPlugin, gql} = graphileUtils;
 
-type Context = Context_base<any> & {
+/*//import {makeExtendSchemaPlugin, gql} from "graphile-utils";
+import graphileUtils from "graphile-utils";
+const {makeExtendSchemaPlugin, gql} = graphileUtils;
+import {Context as Context_base} from "postgraphile";
+import {Pool} from "pg";*/
+type Context = /*Context_base<any> &*/ {
 	// where is this "req" field first assigned?
 	req: IncomingMessage & {user?: any};
-	pgPool: Pool;
+	pgPool: any; //Pool;
 };
 
-function GQL_BetterErrorHandling(str: string) {
+function GQL_BetterErrorHandling(str: string, gql: Function) {
 	try {
 		return gql`${str}`;
 	} catch (ex) {
@@ -51,7 +51,8 @@ export class CreateCommandPlugin_Options {
 }
 
 export let CommandsPlugin_opts: CreateCommandPlugin_Options;
-export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
+export const CreateCommandsPlugin = (apis: {makeExtendSchemaPlugin: Function, gql: Function}, opts: CreateCommandPlugin_Options)=>{
+	const {makeExtendSchemaPlugin, gql} = apis;
 	CommandsPlugin_opts = opts;
 	return makeExtendSchemaPlugin((build, schemaOptions)=>{
 		const commandClassMetas_all = GetCommandClassMetadatas();
@@ -200,7 +201,7 @@ export const CreateCommandsPlugin = (opts: CreateCommandPlugin_Options)=>{
 			if (opts.typeDefStrFinalizer) groupStr = opts.typeDefStrFinalizer(groupStr);
 			typeDefGroupStrings.push(groupStr);
 		}
-		const typeDefGroups_gql = typeDefGroupStrings.map(str=>GQL_BetterErrorHandling(str));
+		const typeDefGroups_gql = typeDefGroupStrings.map(str=>GQL_BetterErrorHandling(str, gql));
 
 		if (opts.logTypeDefs) {
 			console.log("CommandsPlugin init done.",

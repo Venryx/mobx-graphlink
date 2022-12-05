@@ -1,15 +1,10 @@
 import {nodesByPath, SubscriptionStatus, TreeNode} from "./Tree/TreeNode.js";
 import {TreeRequestWatcher} from "./Tree/TreeRequestWatcher.js";
-import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "./Utils/DB/DBPaths.js";
 import {makeObservable, observable, runInAction} from "mobx";
-import type {Pool} from "pg";
 import type Knex from "knex";
-import {AccessorMetadata} from "./Accessors/@AccessorMetadata.js";
 import {ApolloClient, NormalizedCacheObject} from "./Utils/@NPMFixes/apollo_client.js";
 import {AccessorCallPlan} from "./Accessors/@AccessorCallPlan.js";
 import {makeObservable_safe} from "./Utils/General/MobX.js";
-import {CE, ObjectCE} from "js-vextensions";
-import {DataStatus} from "./Tree/TreeNodeData.js";
 
 export let defaultGraphOptions: GraphOptions;
 export function SetDefaultGraphOptions(opt: GraphOptions) {
@@ -32,7 +27,7 @@ export class GraphlinkInitOptions<StoreShape> {
 
 	// server-specific
 	knexModule?: typeof Knex;
-	pgPool?: Pool;
+	pgPool?: any; //Pool;
 }
 
 export class Graphlink<StoreShape, DBShape> {
@@ -88,7 +83,8 @@ export class Graphlink<StoreShape, DBShape> {
 	subs = {} as {
 		apollo: ApolloClient<NormalizedCacheObject>;
 		knexModule?: typeof Knex|null; // only used if on db-server
-		pgPool?: Pool|null; // only used if on db-server
+		//pgPool?: Pool|null; // only used if on db-server
+		pgPool?: any|null; // only used if on db-server
 	};
 	unsubscribeTreeNodesAfter: number;
 

@@ -58,8 +58,6 @@ export function InitGraphlink() {
 	graph.Initialize({rootStore: store});
 }
 ```
-5) If using mobx-graphlink symlinked, make sure to add "pg", "postgraphile", and "graphile-utils" to the "paths" of tsconfig.json, so it always resolves to the app's version.
-6) If importing mobx-graphlink from frontend code, make sure to exclude "pg", "postgraphile", and "graphile-utils", as they are unneeded, and rely on node-js packages that webpack 5+ doesn't auto-polyfill.
 
 ### Usage
 

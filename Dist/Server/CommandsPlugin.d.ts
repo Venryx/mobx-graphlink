@@ -1,15 +1,14 @@
+/// <reference types="node" />
 import { IncomingMessage } from "http";
-import { Pool } from "pg";
-import { Context as Context_base } from "postgraphile";
 import { TypeDef } from "../Extensions/GQLSchemaHelpers.js";
 import { n } from "../Utils/@Internal/Types.js";
 import { DBUpdate } from "../Utils/DB/DBUpdate.js";
 import { Command } from "./Command.js";
-declare type Context = Context_base<any> & {
+declare type Context = {
     req: IncomingMessage & {
         user?: any;
     };
-    pgPool: Pool;
+    pgPool: any;
 };
 export declare class CommandRunInfo {
     parent: any;
@@ -34,5 +33,8 @@ export declare class CreateCommandPlugin_Options {
     }) => Promise<any>;
 }
 export declare let CommandsPlugin_opts: CreateCommandPlugin_Options;
-export declare const CreateCommandsPlugin: (opts: CreateCommandPlugin_Options) => import("postgraphile").Plugin;
+export declare const CreateCommandsPlugin: (apis: {
+    makeExtendSchemaPlugin: Function;
+    gql: Function;
+}, opts: CreateCommandPlugin_Options) => any;
 export {};
