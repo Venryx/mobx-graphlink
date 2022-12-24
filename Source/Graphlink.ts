@@ -89,9 +89,10 @@ export class Graphlink<StoreShape, DBShape> {
 	unsubscribeTreeNodesAfter: number;
 
 	readonly userInfo: UserInfo|null = null; // [@O]
-	SetUserInfo(userInfo: UserInfo, clearCaches = true) {
+	/** Can be called prior to Graphlink.Initialize(). */
+	SetUserInfo(userInfo: UserInfo|null, clearCaches = true) {
 		(this as any).userInfo = userInfo;
-		if (clearCaches) {
+		if (clearCaches && this.initialized) {
 			console.log("Clearing mobx-graphlink and apollo cache, due to user-info change.");
 			return this.ClearCaches();
 		}

@@ -48,9 +48,10 @@ export class Graphlink {
     GetDeepestCallPlanCurrentlyRunning() {
         return this.callPlan_callStack[this.callPlan_callStack.length - 1];
     }
+    /** Can be called prior to Graphlink.Initialize(). */
     SetUserInfo(userInfo, clearCaches = true) {
         this.userInfo = userInfo;
-        if (clearCaches) {
+        if (clearCaches && this.initialized) {
             console.log("Clearing mobx-graphlink and apollo cache, due to user-info change.");
             return this.ClearCaches();
         }

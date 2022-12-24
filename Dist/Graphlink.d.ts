@@ -39,7 +39,8 @@ export declare class Graphlink<StoreShape, DBShape> {
     };
     unsubscribeTreeNodesAfter: number;
     readonly userInfo: UserInfo | null;
-    SetUserInfo(userInfo: UserInfo, clearCaches?: boolean): Promise<void> | undefined;
+    /** Can be called prior to Graphlink.Initialize(). */
+    SetUserInfo(userInfo: UserInfo | null, clearCaches?: boolean): Promise<void> | undefined;
     ClearCaches(): Promise<void>;
     tree: TreeNode<DBShape>;
     treeRequestWatchers: Set<TreeRequestWatcher>;
