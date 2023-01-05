@@ -26,7 +26,7 @@ export declare class String_NotWrappedInGraphQL {
 }
 export declare const nodesByPath: Map<String, TreeNode<any>[]>;
 export declare class TreeNode<DataShape> {
-    constructor(fire: Graphlink<any, any>, pathOrSegments: string | string[]);
+    constructor(graph: Graphlink<any, any>, pathOrSegments: string | string[]);
     observedDataFields: Set<String>;
     countSecondsWithoutObserver_timer: Timer;
     get Data_ForDirectSubscriber(): DataShape;
@@ -42,11 +42,11 @@ export declare class TreeNode<DataShape> {
     Request(subscribeIfNotAlready?: boolean): void;
     /** Must be called from within a mobx action. (and not be run within a mobx computation) */
     Subscribe(): void;
-    Unsubscribe(): {
+    Unsubscribe(allowKeepDataCached?: boolean): {
         observable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>>;
         subscription: ZenObservable.Subscription;
     } | null;
-    UnsubscribeAll(): void;
+    UnsubscribeAll(allowKeepDataCached?: boolean, nodesThatHadActiveSubscription?: Set<TreeNode<any>>): Set<TreeNode<any>>;
     self_subscriptionStatus: SubscriptionStatus;
     self_apolloObservable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>> | null;
     self_subscription: ZenObservable.Subscription | null;

@@ -13,7 +13,7 @@ export declare class TreeNodeData<DataShape> {
     data: DataShape;
     /** Whenever `data` is set, this field is updated to be a stringified version of the data. */
     dataJSON: string;
-    NotifySubscriptionDropped(): void;
+    NotifySubscriptionDropped(allowKeepDataCached?: boolean): void;
     IsDataAcceptableToConsume(): boolean;
     SetData(data: DataShape, fromCache: boolean): boolean;
     UpdateStatusAfterDataChange(dataChanged: boolean, fromCache: boolean): void;

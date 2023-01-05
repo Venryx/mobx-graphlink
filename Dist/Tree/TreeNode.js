@@ -32,7 +32,7 @@ export class String_NotWrappedInGraphQL {
 // for debugging
 export const nodesByPath = new Map();
 export class TreeNode {
-    constructor(fire, pathOrSegments) {
+    constructor(graph, pathOrSegments) {
         var _a, _b;
         this.observedDataFields = new Set();
         // data
@@ -49,7 +49,7 @@ export class TreeNode {
         // for collection (and collection-query) nodes
         this.queryNodes = observable.map(); // [@O] for collection nodes
         this.docNodes = observable.map(); // [@O]
-        fire.allTreeNodes.add(this);
+        graph.allTreeNodes.add(this);
         makeObservable_safe(this, {
             // special proxy-fields
             Data_ForDirectSubscriber: computed,
@@ -67,7 +67,7 @@ export class TreeNode {
             queryNodes: observable,
             docNodes: observable,
         });
-        this.graph = fire;
+        this.graph = graph;
         this.pathSegments = PathOrPathGetterToPathSegments(pathOrSegments);
         this.path = PathOrPathGetterToPath(pathOrSegments);
         const queryStr = ((_a = this.pathSegments.slice(-1)[0]) === null || _a === void 0 ? void 0 : _a.startsWith("@query:")) ? this.pathSegments.slice(-1)[0].substr("@query:".length) : null;
@@ -175,7 +175,6 @@ export class TreeNode {
                 variables: this.query.vars,
             });
             this.self_subscription = this.self_apolloObservable.subscribe({
-                //start: ()=>{},
                 next: data => {
                     const returnedData = data.data; // if requested from top-level-query "map", data.data will have shape: {map: {...}}
                     //const returnedDocument = returnedData[Object.keys(this.query.vars!)[0]]; // so unwrap it here
@@ -187,7 +186,8 @@ export class TreeNode {
                         this.self_subscriptionStatus = SubscriptionStatus.ReadyAndLive;
                     });
                 },
-                error: err => console.error("SubscriptionError:", err),
+                error: err => console.error("SubscriptionError:", err), // Does an error here mean the subscription is no longer valid? If so, we should probably unsubscribe->resubscribe.
+                //complete: ()=>console.error("SubscriptionComplete."), // handling presumably useful, but oddly, neither "error" nor "complete" doesn't seem to trigger when server goes down
             });
         }
         else {
@@ -196,7 +196,6 @@ export class TreeNode {
                 variables: this.query.vars,
             });
             this.self_subscription = this.self_apolloObservable.subscribe({
-                //start: ()=>{},
                 next: data => {
                     const docs = data.data[CE(this.pathSegments_noQuery).Last()].nodes;
                     Assert(docs != null && docs instanceof Array);
@@ -222,11 +221,12 @@ export class TreeNode {
                         this.self_subscriptionStatus = SubscriptionStatus.ReadyAndLive;
                     });
                 },
-                error: err => console.error("SubscriptionError:", err),
+                error: err => console.error("SubscriptionError:", err), // Does an error here mean the subscription is no longer valid? If so, we should probably unsubscribe->resubscribe.
+                //complete: ()=>console.error("SubscriptionComplete."), // handling presumably useful, but oddly, neither "error" nor "complete" doesn't seem to trigger when server goes down
             });
         }
     }
-    Unsubscribe() {
+    Unsubscribe(allowKeepDataCached = true) {
         if (this.self_apolloObservable == null || this.self_subscription == null)
             return null;
         let { self_apolloObservable: observable, self_subscription: subscription } = this;
@@ -235,14 +235,18 @@ export class TreeNode {
         this.self_subscription.unsubscribe();
         this.self_subscription = null;
         RunInAction("TreeNode.Unsubscribe", () => this.self_subscriptionStatus = SubscriptionStatus.Initial);
-        this.data_fromSelf.NotifySubscriptionDropped();
+        this.data_fromSelf.NotifySubscriptionDropped(allowKeepDataCached);
         return { observable, subscription };
     }
-    UnsubscribeAll() {
-        this.Unsubscribe();
-        this.collectionNodes.forEach(a => a.UnsubscribeAll());
-        this.queryNodes.forEach(a => a.UnsubscribeAll());
-        this.docNodes.forEach(a => a.UnsubscribeAll());
+    UnsubscribeAll(allowKeepDataCached = true, nodesThatHadActiveSubscription = new Set()) {
+        if (this.self_subscription != null) {
+            nodesThatHadActiveSubscription.add(this);
+        }
+        this.Unsubscribe(allowKeepDataCached);
+        this.collectionNodes.forEach(a => a.UnsubscribeAll(allowKeepDataCached, nodesThatHadActiveSubscription));
+        this.queryNodes.forEach(a => a.UnsubscribeAll(allowKeepDataCached, nodesThatHadActiveSubscription));
+        this.docNodes.forEach(a => a.UnsubscribeAll(allowKeepDataCached, nodesThatHadActiveSubscription));
+        return nodesThatHadActiveSubscription;
     }
     get PreferredDataContainer() {
         if (this.type == TreeNodeType.Document) {

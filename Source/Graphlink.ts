@@ -4,7 +4,7 @@ import {makeObservable, observable, runInAction} from "mobx";
 import type Knex from "knex";
 import {ApolloClient, NormalizedCacheObject} from "./Utils/@NPMFixes/apollo_client.js";
 import {AccessorCallPlan} from "./Accessors/@AccessorCallPlan.js";
-import {makeObservable_safe} from "./Utils/General/MobX.js";
+import {makeObservable_safe, RunInAction} from "./Utils/General/MobX.js";
 
 export let defaultGraphOptions: GraphOptions;
 export function SetDefaultGraphOptions(opt: GraphOptions) {
@@ -90,11 +90,19 @@ export class Graphlink<StoreShape, DBShape> {
 
 	readonly userInfo: UserInfo|null = null; // [@O]
 	/** Can be called prior to Graphlink.Initialize(). */
-	SetUserInfo(userInfo: UserInfo|null, clearCaches = true) {
+	async SetUserInfo(userInfo: UserInfo|null, clearCaches = true, resubscribeAfter = true) {
 		(this as any).userInfo = userInfo;
 		if (clearCaches && this.initialized) {
 			console.log("Clearing mobx-graphlink and apollo cache, due to user-info change.");
-			return this.ClearCaches();
+			let nodesThatHadActiveSubscription = await this.ClearCaches();
+			if (resubscribeAfter) {
+				RunInAction("SetUserInfo.resubscribeAfter", ()=>{
+					for (const node of nodesThatHadActiveSubscription) {
+						node.Subscribe();
+					}
+				});
+			}
+			return nodesThatHadActiveSubscription;
 		}
 	}
 	async ClearCaches() {
@@ -102,15 +110,21 @@ export class Graphlink<StoreShape, DBShape> {
 			node.data
 		}*/
 		// first, unsubscribe everything; this lets the server release the old live-queries
-		this.tree.UnsubscribeAll();
+		let nodesThatHadActiveSubscription = this.tree.UnsubscribeAll(false);
 		nodesByPath.clear(); // also clear this (debugging collection to track if multiple nodes are created for same path); tree is resetting, so reset this list too
-		// then, delete/detach all the collection tree-nodes; this is equivalent to clearing the mobx-graphlink cache
-		for (const [key, collectionNode] of this.tree.collectionNodes) {
+		
+		// then, delete/detach all the collection tree-nodes; this is equivalent to clearing the mobx-graphlink cache (well, cache should be cleared by `UnsubscribeAll(false)` above, but this makes certain)
+		// commented; this causes issues in mobx-graphlink, where the old subtrees are still being observed (by the accessors), yet are disconnected from the new set created by new requests
+		// todo: add asserts to avoid mistakes like this in the future (eg. by confirming that whenever processing is done for a TreeNode, it is still connected to the graphlink root)
+		/*for (const [key, collectionNode] of this.tree.collectionNodes) {
 			this.tree.collectionNodes.delete(key);
-		}
+		}*/
 
+		// clear the apollo-cache as well (since mobx-graphlink uses subscriptions exclusively, this probably isn't necessary, but we'll clear it anyway to be sure)
 		await this.subs.apollo.cache.reset();
 		await this.subs.apollo.clearStore();
+
+		return nodesThatHadActiveSubscription;
 	}
 	// todo (probably)
 	/*async LogIn() {

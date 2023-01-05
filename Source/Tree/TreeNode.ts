@@ -41,8 +41,8 @@ export class String_NotWrappedInGraphQL {
 export const nodesByPath = new Map<String, TreeNode<any>[]>();
 
 export class TreeNode<DataShape> {
-	constructor(fire: Graphlink<any, any>, pathOrSegments: string | string[]) {
-		fire.allTreeNodes.add(this);
+	constructor(graph: Graphlink<any, any>, pathOrSegments: string | string[]) {
+		graph.allTreeNodes.add(this);
 		makeObservable_safe(this, {
 			// special proxy-fields
 			Data_ForDirectSubscriber: computed,
@@ -60,7 +60,7 @@ export class TreeNode<DataShape> {
 			queryNodes: observable,
 			docNodes: observable,
 		});
-		this.graph = fire;
+		this.graph = graph;
 		this.pathSegments = PathOrPathGetterToPathSegments(pathOrSegments);
 		this.path = PathOrPathGetterToPath(pathOrSegments)!;
 		const queryStr = this.pathSegments.slice(-1)[0]?.startsWith("@query:") ? this.pathSegments.slice(-1)[0].substr("@query:".length) : null;
@@ -184,7 +184,6 @@ export class TreeNode<DataShape> {
 				variables: this.query.vars,
 			});
 			this.self_subscription = this.self_apolloObservable.subscribe({
-				//start: ()=>{},
 				next: data=>{
 					const returnedData = data.data; // if requested from top-level-query "map", data.data will have shape: {map: {...}}
 					//const returnedDocument = returnedData[Object.keys(this.query.vars!)[0]]; // so unwrap it here
@@ -196,7 +195,8 @@ export class TreeNode<DataShape> {
 						this.self_subscriptionStatus = SubscriptionStatus.ReadyAndLive;
 					});
 				},
-				error: err=>console.error("SubscriptionError:", err),
+				error: err=>console.error("SubscriptionError:", err), // Does an error here mean the subscription is no longer valid? If so, we should probably unsubscribe->resubscribe.
+				//complete: ()=>console.error("SubscriptionComplete."), // handling presumably useful, but oddly, neither "error" nor "complete" doesn't seem to trigger when server goes down
 			});
 		} else {
 			this.self_apolloObservable = this.graph.subs.apollo.subscribe({
@@ -204,7 +204,6 @@ export class TreeNode<DataShape> {
 				variables: this.query.vars,
 			});
 			this.self_subscription = this.self_apolloObservable.subscribe({
-				//start: ()=>{},
 				next: data=>{
 					const docs = data.data[CE(this.pathSegments_noQuery).Last()].nodes;
 					Assert(docs != null && docs instanceof Array);
@@ -232,11 +231,12 @@ export class TreeNode<DataShape> {
 						this.self_subscriptionStatus = SubscriptionStatus.ReadyAndLive;
 					});
 				},
-				error: err=>console.error("SubscriptionError:", err),
+				error: err=>console.error("SubscriptionError:", err), // Does an error here mean the subscription is no longer valid? If so, we should probably unsubscribe->resubscribe.
+				//complete: ()=>console.error("SubscriptionComplete."), // handling presumably useful, but oddly, neither "error" nor "complete" doesn't seem to trigger when server goes down
 			});
 		}
 	}
-	Unsubscribe() {
+	Unsubscribe(allowKeepDataCached = true) {
 		if (this.self_apolloObservable == null || this.self_subscription == null) return null;
 		let {self_apolloObservable: observable, self_subscription: subscription} = this;
 		this.self_apolloObservable = null;
@@ -244,14 +244,18 @@ export class TreeNode<DataShape> {
 		this.self_subscription.unsubscribe();
 		this.self_subscription = null;
 		RunInAction("TreeNode.Unsubscribe", ()=>this.self_subscriptionStatus = SubscriptionStatus.Initial);
-		this.data_fromSelf.NotifySubscriptionDropped();
+		this.data_fromSelf.NotifySubscriptionDropped(allowKeepDataCached);
 		return {observable, subscription};
 	}
-	UnsubscribeAll() {
-		this.Unsubscribe();
-		this.collectionNodes.forEach(a=>a.UnsubscribeAll());
-		this.queryNodes.forEach(a=>a.UnsubscribeAll());
-		this.docNodes.forEach(a=>a.UnsubscribeAll());
+	UnsubscribeAll(allowKeepDataCached = true, nodesThatHadActiveSubscription: Set<TreeNode<any>> = new Set()) {
+		if (this.self_subscription != null) {
+			nodesThatHadActiveSubscription.add(this);
+		}
+		this.Unsubscribe(allowKeepDataCached);
+		this.collectionNodes.forEach(a=>a.UnsubscribeAll(allowKeepDataCached, nodesThatHadActiveSubscription));
+		this.queryNodes.forEach(a=>a.UnsubscribeAll(allowKeepDataCached, nodesThatHadActiveSubscription));
+		this.docNodes.forEach(a=>a.UnsubscribeAll(allowKeepDataCached, nodesThatHadActiveSubscription));
+		return nodesThatHadActiveSubscription;
 	}
 	
 	// data

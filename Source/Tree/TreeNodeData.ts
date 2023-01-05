@@ -34,10 +34,10 @@ export class TreeNodeData<DataShape> {
 	/** Whenever `data` is set, this field is updated to be a stringified version of the data. */
 	dataJSON: string;
 
-	NotifySubscriptionDropped() {
+	NotifySubscriptionDropped(allowKeepDataCached = true) {
 		RunInAction("TreeNodeData.NotifySubscriptionDropped", ()=>{
 			// if we have a valid result, but are now unsubscribing, mark the data specially (so that it can be instantly returned when resubscribing)
-			if (this.status == DataStatus.Received_Live) {
+			if (this.status == DataStatus.Received_Live && allowKeepDataCached) {
 				this.status = DataStatus.Received_CachedByMGL;
 			} else {
 				this.status = DataStatus.Initial;
