@@ -57,7 +57,9 @@ export class Graphlink {
             if (resubscribeAfter) {
                 RunInAction("SetUserInfo.resubscribeAfter", () => {
                     for (const node of nodesThatHadActiveSubscription) {
-                        node.Subscribe();
+                        if (node.self_subscription == null) { // check, in case node was already resubscribed by an external caller
+                            node.Subscribe();
+                        }
                     }
                 });
             }
