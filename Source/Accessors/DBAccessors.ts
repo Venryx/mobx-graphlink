@@ -1,7 +1,7 @@
 import {CE, E, emptyArray, emptyArray_forLoading} from "js-vextensions";
 import {ObservableMap, runInAction} from "mobx";
 import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
-import {Graphlink, TreeNode} from "../index.js";
+import {Graphlink, PathSegmentsAreValid, TreeNode} from "../index.js";
 import {QueryParams} from "../Tree/QueryParams.js";
 import {TreeNodePlaceholder} from "../Tree/TreeRequestWatcher.js";
 import {UT_DBShape} from "../UserTypes.js";
@@ -40,7 +40,7 @@ export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphOptio
 	let subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
 	//let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
 	let pathSegments = subpathSegments;
-	if (CE(pathSegments).Any(a=>a == null)) return emptyArray;
+	if (!PathSegmentsAreValid(pathSegments)) return emptyArray;
 
 	// include a mobx-access of user-info; this way, the accessor-stack is refreshed when user-info changes (which we want, since RLS policies can cause results to change depending on user-info)
 	//opt.graph.userInfo; // commented; not actually needed (the tree-nodes reset will trigger the accessor-stacks to refresh anyway)
@@ -99,7 +99,7 @@ export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphOption
 	let subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
 	//let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
 	let pathSegments = subpathSegments;
-	if (CE(pathSegments).Any(a=>a == null)) return null;
+	if (!PathSegmentsAreValid(pathSegments)) return null;
 
 	// include a mobx-access of user-info; this way, the accessor-stack is refreshed when user-info changes (which we want, since RLS policies can cause results to change depending on user-info)
 	//opt.graph.userInfo; // commented; not actually needed (the tree-nodes reset will trigger the accessor-stacks to refresh anyway)

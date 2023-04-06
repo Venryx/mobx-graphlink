@@ -31,6 +31,9 @@ export class String_NotWrappedInGraphQL {
 }
 // for debugging
 export const nodesByPath = new Map();
+export function PathSegmentsAreValid(pathSegments) {
+    return pathSegments.every(a => a != null && a.trim().length > 0);
+}
 export class TreeNode {
     constructor(graph, pathOrSegments) {
         var _a, _b;
@@ -73,7 +76,7 @@ export class TreeNode {
         const queryStr = ((_a = this.pathSegments.slice(-1)[0]) === null || _a === void 0 ? void 0 : _a.startsWith("@query:")) ? this.pathSegments.slice(-1)[0].substr("@query:".length) : null;
         this.pathSegments_noQuery = this.pathSegments.filter(a => !a.startsWith("@query:"));
         this.path_noQuery = this.pathSegments_noQuery.join("/");
-        Assert(this.pathSegments.find(a => a == null || a.trim().length == 0) == null, `Path segments cannot be null/empty. @pathSegments(${this.pathSegments})`);
+        Assert(PathSegmentsAreValid(this.pathSegments), `Path segments cannot be null/empty. @pathSegments(${this.pathSegments})`);
         this.type = GetTreeNodeTypeForPath(this.pathSegments);
         const query_raw = queryStr ? QueryParams.ParseString(queryStr) : new QueryParams();
         this.query = new QueryParams_Linked({ ...query_raw, treeNode: this });

@@ -25,6 +25,7 @@ export declare class String_NotWrappedInGraphQL {
     toJSON(): string;
 }
 export declare const nodesByPath: Map<String, TreeNode<any>[]>;
+export declare function PathSegmentsAreValid(pathSegments: string[]): boolean;
 export declare class TreeNode<DataShape> {
     constructor(graph: Graphlink<any, any>, pathOrSegments: string | string[]);
     observedDataFields: Set<String>;

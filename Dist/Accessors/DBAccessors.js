@@ -1,5 +1,6 @@
-import { CE, E, emptyArray, emptyArray_forLoading } from "js-vextensions";
+import { E, emptyArray, emptyArray_forLoading } from "js-vextensions";
 import { defaultGraphOptions } from "../Graphlink.js";
+import { PathSegmentsAreValid } from "../index.js";
 import { TreeNodePlaceholder } from "../Tree/TreeRequestWatcher.js";
 import { PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
 import { Bail } from "../Utils/General/BailManager.js";
@@ -31,7 +32,7 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
     let subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
     //let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
     let pathSegments = subpathSegments;
-    if (CE(pathSegments).Any(a => a == null))
+    if (!PathSegmentsAreValid(pathSegments))
         return emptyArray;
     // include a mobx-access of user-info; this way, the accessor-stack is refreshed when user-info changes (which we want, since RLS policies can cause results to change depending on user-info)
     //opt.graph.userInfo; // commented; not actually needed (the tree-nodes reset will trigger the accessor-stacks to refresh anyway)
@@ -87,7 +88,7 @@ export function GetDoc(options, docPathOrGetterFunc) {
     let subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
     //let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
     let pathSegments = subpathSegments;
-    if (CE(pathSegments).Any(a => a == null))
+    if (!PathSegmentsAreValid(pathSegments))
         return null;
     // include a mobx-access of user-info; this way, the accessor-stack is refreshed when user-info changes (which we want, since RLS policies can cause results to change depending on user-info)
     //opt.graph.userInfo; // commented; not actually needed (the tree-nodes reset will trigger the accessor-stacks to refresh anyway)
