@@ -102,7 +102,7 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 		meta.ResetNextCallFields();
 
 		let result, error;
-		const startTime = performance.now();
+		const startTime = globalThis.DEV_DYN ? performance.now() : -1;
 		graph.callPlan_callStack.push(callPlan);
 		//const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
 		const resultIsCached = callPlan.cachedResult_wrapper != null;
@@ -126,13 +126,14 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 		} finally {
 			graph.callPlan_callStack.pop();
 
-			const runTime = performance.now() - startTime;
-			meta.profilingInfo.NotifyOfCall(runTime, resultIsCached, error);
-			callPlan.callPlanMeta.profilingInfo.NotifyOfCall(runTime, resultIsCached, error);
-			/*if (isRootAccessor) {
-				meta.totalRunTime_asRoot += runTime;
-			}*/
-
+			if (globalThis.DEV_DYN) {
+				const runTime = performance.now() - startTime;
+				meta.profilingInfo.NotifyOfCall(runTime, resultIsCached, error);
+				callPlan.callPlanMeta.profilingInfo.NotifyOfCall(runTime, resultIsCached, error);
+				/*if (isRootAccessor) {
+					meta.totalRunTime_asRoot += runTime;
+				}*/
+			}
 		}
 
 		return result;

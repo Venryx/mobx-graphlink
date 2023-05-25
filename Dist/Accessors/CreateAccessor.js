@@ -68,7 +68,7 @@ export const CreateAccessor = (...args) => {
         const callPlan = meta.GetCallPlan(graph, store, meta.nextCall_catchItemBails, meta.nextCall_catchItemBails_asX, callArgs, allowCacheGetOrSet);
         meta.ResetNextCallFields();
         let result, error;
-        const startTime = performance.now();
+        const startTime = globalThis.DEV_DYN ? performance.now() : -1;
         graph.callPlan_callStack.push(callPlan);
         //const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
         const resultIsCached = callPlan.cachedResult_wrapper != null;
@@ -92,12 +92,14 @@ export const CreateAccessor = (...args) => {
         }
         finally {
             graph.callPlan_callStack.pop();
-            const runTime = performance.now() - startTime;
-            meta.profilingInfo.NotifyOfCall(runTime, resultIsCached, error);
-            callPlan.callPlanMeta.profilingInfo.NotifyOfCall(runTime, resultIsCached, error);
-            /*if (isRootAccessor) {
-                meta.totalRunTime_asRoot += runTime;
-            }*/
+            if (globalThis.DEV_DYN) {
+                const runTime = performance.now() - startTime;
+                meta.profilingInfo.NotifyOfCall(runTime, resultIsCached, error);
+                callPlan.callPlanMeta.profilingInfo.NotifyOfCall(runTime, resultIsCached, error);
+                /*if (isRootAccessor) {
+                    meta.totalRunTime_asRoot += runTime;
+                }*/
+            }
         }
         return result;
     };
