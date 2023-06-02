@@ -32,7 +32,9 @@ export class GraphlinkOptions {
 	/** After each data-update, how long to wait for another data-update; if another occurs during this period, the timer is reset, and another wait occurs. (until max-wait is reached) */
 	dataUpdateBuffering_minWait = 10;
 	dataUpdateBuffering_maxWait = 100;
-	dataUpdateBuffering_breakApartCommitSetsLongerThan = 1000;
+	dataUpdateBuffering_commitSetMaxFuncCount = Number.MAX_SAFE_INTEGER;
+	dataUpdateBuffering_commitSetMaxTime = 1000;
+	dataUpdateBuffering_breakDuration = 100;
 }
 
 export class Graphlink<StoreShape, DBShape> {
