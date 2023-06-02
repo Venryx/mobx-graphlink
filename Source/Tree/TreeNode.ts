@@ -1,7 +1,7 @@
 import {Assert, AssertWarn, CE, E, Timer, ToJSON} from "js-vextensions";
 import {computed, makeObservable, observable, ObservableMap, onBecomeObserved, onBecomeUnobserved, runInAction, _getGlobalState} from "mobx";
 import {Graphlink} from "../Graphlink.js";
-import {FetchResult, Observable} from "../Utils/@NPMFixes/apollo_client.js";
+import {FetchResult, Observable, ObservableSubscription} from "@apollo/client";
 import {CleanDBData} from "../Utils/DB/DBDataHelpers.js";
 import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "../Utils/DB/DBPaths.js";
 import {MaybeLog_Base} from "../Utils/General/General.js";
@@ -268,7 +268,7 @@ export class TreeNode<DataShape> {
 	// these fields are only related to data_fromSelf (not data_fromParent)
 	self_subscriptionStatus = SubscriptionStatus.Initial; // [@O]
 	self_apolloObservable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>>|null;
-	self_subscription: ZenObservable.Subscription|null;
+	self_subscription: ObservableSubscription|null;
 
 	data_fromParent = new TreeNodeData<DataShape>();
 	data_fromSelf = new TreeNodeData<DataShape>();

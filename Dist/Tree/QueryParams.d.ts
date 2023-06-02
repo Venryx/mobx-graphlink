@@ -1,5 +1,5 @@
+import { DocumentNode } from "@apollo/client";
 import { JSONSchema7 } from "json-schema";
-import { DocumentNode } from "../Utils/@NPMFixes/apollo_client.js";
 import { TreeNode } from "./TreeNode.js";
 export declare class QueryParams {
     static ParseString(dataStr: string): QueryParams;

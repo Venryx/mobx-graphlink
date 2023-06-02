@@ -2,7 +2,7 @@ import {nodesByPath, SubscriptionStatus, TreeNode} from "./Tree/TreeNode.js";
 import {TreeRequestWatcher} from "./Tree/TreeRequestWatcher.js";
 import {makeObservable, observable, runInAction} from "mobx";
 import type Knex from "knex";
-import {ApolloClient, NormalizedCacheObject} from "./Utils/@NPMFixes/apollo_client.js";
+import {ApolloClient, NormalizedCacheObject} from "@apollo/client";
 import {AccessorCallPlan} from "./Accessors/@AccessorCallPlan.js";
 import {makeObservable_safe, RunInAction} from "./Utils/General/MobX.js";
 

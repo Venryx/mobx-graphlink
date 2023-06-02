@@ -1,8 +1,7 @@
-/// <reference types="zen-observable" />
 import { Timer } from "js-vextensions";
 import { ObservableMap } from "mobx";
 import { Graphlink } from "../Graphlink.js";
-import { FetchResult, Observable } from "../Utils/@NPMFixes/apollo_client.js";
+import { FetchResult, Observable, ObservableSubscription } from "@apollo/client";
 import { QueryParams, QueryParams_Linked } from "./QueryParams.js";
 import { TreeNodeData } from "./TreeNodeData.js";
 export declare enum TreeNodeType {
@@ -45,12 +44,12 @@ export declare class TreeNode<DataShape> {
     Subscribe(): void;
     Unsubscribe(allowKeepDataCached?: boolean): {
         observable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>>;
-        subscription: ZenObservable.Subscription;
+        subscription: ObservableSubscription;
     } | null;
     UnsubscribeAll(allowKeepDataCached?: boolean, nodesThatHadActiveSubscription?: Set<TreeNode<any>>): Set<TreeNode<any>>;
     self_subscriptionStatus: SubscriptionStatus;
     self_apolloObservable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>> | null;
-    self_subscription: ZenObservable.Subscription | null;
+    self_subscription: ObservableSubscription | null;
     data_fromParent: TreeNodeData<DataShape>;
     data_fromSelf: TreeNodeData<DataShape>;
     get PreferredDataContainer(): TreeNodeData<DataShape>;

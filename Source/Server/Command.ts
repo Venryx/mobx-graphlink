@@ -1,3 +1,4 @@
+import {gql} from "@apollo/client";
 import {ArrayCE, Assert, CE, Clone, ConvertPathGetterFuncToPropChain, E, ObjectCE} from "js-vextensions";
 import {GetAsync, GetAsync_Options} from "../Accessors/Helpers.js";
 import {AssertValidate} from "../Extensions/JSONSchemaHelpers.js";
@@ -6,7 +7,6 @@ import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
 import {CleanDBData, UserInfo} from "../index.js";
 import {WithBrackets} from "../Tree/QueryParams.js";
 import {n} from "../Utils/@Internal/Types.js";
-import {gql} from "../Utils/@NPMFixes/apollo_client.js";
 import {DBPPath, PathOrPathGetterToPathSegments} from "../Utils/DB/DBPaths.js";
 import {DBUpdate, DBUpdateType} from "../Utils/DB/DBUpdate.js";
 import {ApplyDBUpdates, ApplyDBUpdates_Local} from "../Utils/DB/DBUpdateApplier.js";

@@ -1,7 +1,7 @@
 import { TreeNode } from "./Tree/TreeNode.js";
 import { TreeRequestWatcher } from "./Tree/TreeRequestWatcher.js";
 import type Knex from "knex";
-import { ApolloClient, NormalizedCacheObject } from "./Utils/@NPMFixes/apollo_client.js";
+import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
 import { AccessorCallPlan } from "./Accessors/@AccessorCallPlan.js";
 export declare let defaultGraphOptions: GraphOptions;
 export declare function SetDefaultGraphOptions(opt: GraphOptions): void;
