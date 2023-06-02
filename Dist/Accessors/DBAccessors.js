@@ -1,5 +1,5 @@
 import { E, emptyArray, emptyArray_forLoading } from "js-vextensions";
-import { defaultGraphOptions } from "../Graphlink.js";
+import { defaultGraphRefs } from "../Graphlink.js";
 import { PathSegmentsAreValid } from "../index.js";
 import { TreeNodePlaceholder } from "../Tree/TreeRequestWatcher.js";
 import { PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
@@ -27,7 +27,7 @@ export class GetDocs_Options {
 }
 GetDocs_Options.default = new GetDocs_Options();
 export function GetDocs(options, collectionPathOrGetterFunc) {
-    const opt = E(defaultGraphOptions, GetDocs_Options.default, options);
+    const opt = E(defaultGraphRefs, GetDocs_Options.default, options);
     NotifyRawDBAccess(opt.graph);
     let subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
     //let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
@@ -83,7 +83,7 @@ export class GetDoc_Options {
 }
 GetDoc_Options.default = new GetDoc_Options();
 export function GetDoc(options, docPathOrGetterFunc) {
-    const opt = E(defaultGraphOptions, GetDoc_Options.default, options);
+    const opt = E(defaultGraphRefs, GetDoc_Options.default, options);
     NotifyRawDBAccess(opt.graph);
     let subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
     //let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;

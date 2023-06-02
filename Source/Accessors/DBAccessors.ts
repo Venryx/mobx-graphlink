@@ -1,6 +1,6 @@
 import {CE, E, emptyArray, emptyArray_forLoading} from "js-vextensions";
 import {ObservableMap, runInAction} from "mobx";
-import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
+import {defaultGraphRefs, GraphRefs} from "../Graphlink.js";
 import {Graphlink, PathSegmentsAreValid, TreeNode} from "../index.js";
 import {QueryParams} from "../Tree/QueryParams.js";
 import {TreeNodePlaceholder} from "../Tree/TreeRequestWatcher.js";
@@ -34,8 +34,8 @@ export class GetDocs_Options {
 	ifLoading_returnVal? = emptyArray_forLoading;
 	//resultForEmpty? = emptyArray;
 }
-export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphOptions<any, DB>> & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>ObservableMap<any, DocT>)): DocT[] {
-	const opt = E(defaultGraphOptions, GetDocs_Options.default, options) as GraphOptions & GetDocs_Options;
+export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphRefs<any, DB>> & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>ObservableMap<any, DocT>)): DocT[] {
+	const opt = E(defaultGraphRefs, GetDocs_Options.default, options) as GraphRefs & GetDocs_Options;
 	NotifyRawDBAccess(opt.graph);
 	let subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
 	//let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
@@ -93,8 +93,8 @@ export class GetDoc_Options {
 	ifLoading_bail_message?: string;
 	ifLoading_returnVal? = undefined;
 }
-export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphOptions<any, DB>> & GetDoc_Options, docPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>DocT)): DocT|null|undefined {
-	const opt = E(defaultGraphOptions, GetDoc_Options.default, options) as GraphOptions & GetDoc_Options;
+export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphRefs<any, DB>> & GetDoc_Options, docPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>DocT)): DocT|null|undefined {
+	const opt = E(defaultGraphRefs, GetDoc_Options.default, options) as GraphRefs & GetDoc_Options;
 	NotifyRawDBAccess(opt.graph);
 	let subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
 	//let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;

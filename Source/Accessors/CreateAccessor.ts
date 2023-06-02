@@ -1,18 +1,18 @@
 import {Assert, CE, E} from "js-vextensions";
-import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
+import {defaultGraphRefs, GraphRefs} from "../Graphlink.js";
 import {UT_StoreShape} from "../UserTypes.js";
 import {BailError, CatchBail} from "../Utils/General/BailManager.js";
 import {AccessorCallPlan} from "./@AccessorCallPlan.js";
 import {AccessorMetadata, accessorMetadata, AccessorOptions} from "./@AccessorMetadata.js";
 import {GetAsync, GetWait} from "./Helpers.js";
 
-export function WithStore<T>(options: Partial<GraphOptions>, store: any, accessorFunc: ()=>T): T {
-	const opt = E(defaultGraphOptions, options) as GraphOptions;
-	opt.graph.storeOverridesStack.push(store);
+export function WithStore<T>(graphRefs: Partial<GraphRefs>, store: any, accessorFunc: ()=>T): T {
+	const refs = E(defaultGraphRefs, graphRefs) as GraphRefs;
+	refs.graph.storeOverridesStack.push(store);
 	try {
 		var result = accessorFunc();
 	} finally {
-		opt.graph.storeOverridesStack.pop();
+		refs.graph.storeOverridesStack.pop();
 	}
 	return result;
 }
@@ -92,9 +92,10 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 
 	const wrapperAccessor = (...callArgs)=>{
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
-		//let graphOpt = E(defaultGraphOptions, CE(opt).IncludeKeys("graph"));
-		let graphOpt = opt.graph ? E(defaultGraphOptions, {graph: opt.graph}) : defaultGraphOptions; // structured for perf
-		const graph = graphOpt.graph;
+		//let accOpt = E(AccessorOptions.default, defaultGraphOptions, CE(opt).IncludeKeys("graph"));
+		// overrides are handled this way for performance reasons // edit: I am skeptical that it actually makes a significant difference... (but will leave it alone for now)
+		let graphRefs = opt.graph ? E(defaultGraphRefs, {graph: opt.graph}) : defaultGraphRefs;
+		const graph = graphRefs.graph;
 
 		const store = graph.storeOverridesStack.length == 0 ? graph.rootStore : graph.storeOverridesStack.slice(-1)[0];
 		const allowCacheGetOrSet = opt.cache && !graph.storeAccessorCachingTempDisabled;
@@ -142,19 +143,19 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 	/** Func.Async(...) is shortcut for GetAsync(()=>Func(...)) */
 	wrapperAccessor.Async = (...callArgs)=>{
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
-		const opt = E(AccessorOptions.default, options!) as Partial<GraphOptions> & AccessorOptions;
-		let graphOpt = E(defaultGraphOptions, CE(opt).IncludeKeys("graph"));
+		const opt = E(AccessorOptions.default, options!) as Partial<GraphRefs> & AccessorOptions;
+		let graphRefs = E(defaultGraphRefs, CE(opt).IncludeKeys("graph"));
 
-		return GetAsync(()=>wrapperAccessor(...callArgs), graphOpt);
+		return GetAsync(()=>wrapperAccessor(...callArgs), graphRefs);
 	};
 	// Func.Wait(thing) is shortcut for GetWait(()=>Func(thing))
 	// Note: This function doesn't really have a purpose atm, now that "bailing" system is in place.
 	wrapperAccessor.Wait = (...callArgs)=>{
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
-		const opt = E(AccessorOptions.default, options!) as Partial<GraphOptions> & AccessorOptions;
-		let graphOpt = E(defaultGraphOptions, CE(opt).IncludeKeys("graph"));
+		const opt = E(AccessorOptions.default, options!) as Partial<GraphRefs> & AccessorOptions;
+		let graphRefs = E(defaultGraphRefs, CE(opt).IncludeKeys("graph"));
 
-		return GetWait(()=>wrapperAccessor(...callArgs), graphOpt);
+		return GetWait(()=>wrapperAccessor(...callArgs), graphRefs);
 	};
 	wrapperAccessor.CatchBail = (bailResultOrGetter, ...callArgs)=>{
 		return CatchBail(bailResultOrGetter, wrapperAccessor, callArgs);

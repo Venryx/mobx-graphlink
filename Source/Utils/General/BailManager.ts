@@ -1,6 +1,6 @@
 import {Assert, emptyArray_forLoading} from "js-vextensions";
 import {ArgumentsType} from "updeep/types/types";
-import {defaultGraphOptions} from "../../Graphlink.js";
+import {defaultGraphRefs} from "../../Graphlink.js";
 
 export class BailError extends Error {
 	static createdCount = 0; // for estimating the performance impact of the associated error-creations/stack-trace-unwinds (see: https://stackoverflow.com/questions/11502052/throwing-strings-instead-of-errors#comment120540097_27501348)

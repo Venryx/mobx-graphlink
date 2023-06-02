@@ -13,10 +13,14 @@ import {AccessorCallPlan, CallPlanMeta} from "./@AccessorCallPlan.js";
 //export class AccessorOptions<T> {
 export class AccessorOptions<RootState = any, DBShape = any> {
 	static default = new AccessorOptions();
+
+	// fields from GraphRefs
+	declare graph?: Graphlink<RootState, DBShape>;
+	//graph: Graphlink<any, any>;
+
 	cache = true;
 	cache_keepAlive = false;
 	cache_unwrapArrays = true;
-	declare graph?: Graphlink<RootState, DBShape>;
 	//callArgToDependencyConvertorFunc?: CallArgToDependencyConvertorFunc;
 
 	/** Short for bail-result. */

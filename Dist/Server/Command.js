@@ -3,7 +3,7 @@ import { ArrayCE, Assert, CE, Clone, ConvertPathGetterFuncToPropChain, E } from 
 import { GetAsync } from "../Accessors/Helpers.js";
 import { AssertValidate } from "../Extensions/JSONSchemaHelpers.js";
 import { GenerateUUID } from "../Extensions/KeyGenerator.js";
-import { defaultGraphOptions } from "../Graphlink.js";
+import { defaultGraphRefs } from "../Graphlink.js";
 import { CleanDBData } from "../index.js";
 import { WithBrackets } from "../Tree/QueryParams.js";
 import { DBUpdate, DBUpdateType } from "../Utils/DB/DBUpdate.js";
@@ -46,7 +46,7 @@ export class Command {
             [payload] = args;
         else
             [options, payload] = args;
-        const opt = E(defaultGraphOptions, options);
+        const opt = E(defaultGraphRefs, options);
         this.type = this.constructor.name;
         this.options = opt;
         //this.payload = E(this.constructor["defaultPayload"], payload);

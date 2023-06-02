@@ -6,10 +6,10 @@ import { DeepMap } from "../Utils/General/DeepMap.js";
 import { AccessorCallPlan, CallPlanMeta } from "./@AccessorCallPlan.js";
 export declare class AccessorOptions<RootState = any, DBShape = any> {
     static default: AccessorOptions<any, any>;
+    graph?: Graphlink<RootState, DBShape>;
     cache: boolean;
     cache_keepAlive: boolean;
     cache_unwrapArrays: boolean;
-    graph?: Graphlink<RootState, DBShape>;
 }
 export declare type CallArgToDependencyConvertorFunc = (callArgs: any[]) => any[];
 export declare const accessorMetadata: Map<string, AccessorMetadata>;

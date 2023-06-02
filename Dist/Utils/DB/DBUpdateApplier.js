@@ -2,7 +2,7 @@ import { Assert, CE, GetTreeNodesInObjTree } from "js-vextensions";
 import u from "updeep";
 import { GetFieldDBInit, GetMGLClass, TableNameToDocSchemaName } from "../../Extensions/Decorators.js";
 import { GetSchemaJSON } from "../../Extensions/JSONSchemaHelpers.js";
-import { defaultGraphOptions } from "../../Graphlink.js";
+import { defaultGraphRefs } from "../../Graphlink.js";
 import { MaybeLog_Base } from "../General/General.js";
 import { dbpPrefix } from "./DBPaths.js";
 import { SimplifyDBUpdates } from "./DBUpdateSimplifier.js";
@@ -64,7 +64,7 @@ export async function ApplyDBUpdates(dbUpdates, simplifyDBUpdates = true, deferC
     var _a;
     dbUpdates = FinalizeDBUpdates(dbUpdates, simplifyDBUpdates);
     // prepare pg-client and knex
-    const { pgPool, knexModule } = defaultGraphOptions.graph.subs;
+    const { pgPool, knexModule } = defaultGraphRefs.graph.subs;
     Assert(pgPool != null, "pgPool must be supplied to Graphlink instance to be able to call ApplyDBUpdates. (only possible from db-server instance)");
     Assert(knexModule != null, "knexModule (the export of knex npm-module) must be supplied to Graphlink instance to be able to call ApplyDBUpdates. (only possible from db-server instance)");
     const knex_raw = (_a = pgPool["_knex"]) !== null && _a !== void 0 ? _a : (pgPool["_knex"] = knexModule({ client: "pg" }));

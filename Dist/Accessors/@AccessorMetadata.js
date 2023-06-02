@@ -7,6 +7,7 @@ import { AccessorCallPlan, CallPlanMeta } from "./@AccessorCallPlan.js";
 //export class AccessorOptions<T> {
 export class AccessorOptions {
     constructor() {
+        //graph: Graphlink<any, any>;
         this.cache = true;
         this.cache_keepAlive = false;
         this.cache_unwrapArrays = true;

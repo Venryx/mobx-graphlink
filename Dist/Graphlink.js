@@ -1,14 +1,22 @@
 import { nodesByPath, SubscriptionStatus, TreeNode } from "./Tree/TreeNode.js";
 import { observable } from "mobx";
 import { makeObservable_safe, RunInAction } from "./Utils/General/MobX.js";
-export let defaultGraphOptions;
-export function SetDefaultGraphOptions(opt) {
-    defaultGraphOptions = opt;
-}
+import { Assert } from "js-vextensions";
+import { DataCommitScheduler } from "./Components/DataCommitScheduler.js";
 export class GraphlinkInitOptions {
 }
+export class GraphlinkOptions {
+    constructor(data) {
+        this.unsubscribeTreeNodesAfter = 5000;
+        /** After each data-update, how long to wait for another data-update; if another occurs during this period, the timer is reset, and another wait occurs. (until max-wait is reached) */
+        this.dataUpdateBuffering_minWait = 10;
+        this.dataUpdateBuffering_maxWait = 100;
+        this.dataUpdateBuffering_breakApartCommitSetsLongerThan = 1000;
+        Object.assign(this, data);
+    }
+}
 export class Graphlink {
-    constructor(initOptions) {
+    constructor(initOptions, options) {
         this.initialized = false;
         this.storeOverridesStack = [];
         /** Set this to false if you need to make sure all relevant database-requests within an accessor tree are being activated. */
@@ -27,11 +35,13 @@ export class Graphlink {
             userInfo: observable,
         });
         if (initOptions) {
-            this.Initialize(initOptions);
+            this.Initialize(initOptions, options);
+        }
+        else {
+            Assert(options == null);
         }
     }
-    Initialize(initOptions) {
-        var _a;
+    Initialize(initOptions, options) {
         let { rootStore, apollo, onServer, knexModule, pgPool } = initOptions;
         Graphlink.instances.push(this);
         this.rootStore = rootStore;
@@ -41,7 +51,8 @@ export class Graphlink {
         this.subs.apollo = apollo;
         this.subs.knexModule = knexModule;
         this.subs.pgPool = pgPool;
-        this.unsubscribeTreeNodesAfter = (_a = initOptions.unsubscribeTreeNodesAfter) !== null && _a !== void 0 ? _a : 5000;
+        this.options = options !== null && options !== void 0 ? options : new GraphlinkOptions();
+        this.commitScheduler = new DataCommitScheduler(this);
         this.tree = new TreeNode(this, []);
         this.initialized = true;
     }
@@ -108,4 +119,10 @@ export class GraphlinkStats {
     }
 }
 export class UserInfo {
+}
+// graph-refs system (this is how the standalone functions are able to know which graph they're operating on)
+// ==========
+export let defaultGraphRefs;
+export function SetDefaultGraphRefs(opt) {
+    defaultGraphRefs = opt;
 }

@@ -3,11 +3,7 @@ import { TreeRequestWatcher } from "./Tree/TreeRequestWatcher.js";
 import type Knex from "knex";
 import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
 import { AccessorCallPlan } from "./Accessors/@AccessorCallPlan.js";
-export declare let defaultGraphOptions: GraphOptions;
-export declare function SetDefaultGraphOptions(opt: GraphOptions): void;
-export interface GraphOptions<StoreShape = any, DBShape = any> {
-    graph: Graphlink<StoreShape, DBShape>;
-}
+import { DataCommitScheduler } from "./Components/DataCommitScheduler.js";
 export declare class GraphlinkInitOptions<StoreShape> {
     rootStore: StoreShape;
     apollo: ApolloClient<NormalizedCacheObject>;
@@ -20,11 +16,19 @@ export declare class GraphlinkInitOptions<StoreShape> {
     knexModule?: typeof Knex;
     pgPool?: any;
 }
+export declare class GraphlinkOptions {
+    constructor(data?: Partial<GraphlinkOptions>);
+    unsubscribeTreeNodesAfter: number;
+    /** After each data-update, how long to wait for another data-update; if another occurs during this period, the timer is reset, and another wait occurs. (until max-wait is reached) */
+    dataUpdateBuffering_minWait: number;
+    dataUpdateBuffering_maxWait: number;
+    dataUpdateBuffering_breakApartCommitSetsLongerThan: number;
+}
 export declare class Graphlink<StoreShape, DBShape> {
     static instances: Graphlink<any, any>[];
-    constructor(initOptions?: GraphlinkInitOptions<StoreShape>);
+    constructor(initOptions?: GraphlinkInitOptions<StoreShape>, options?: GraphlinkOptions);
     initialized: boolean;
-    Initialize(initOptions: GraphlinkInitOptions<StoreShape>): void;
+    Initialize(initOptions: GraphlinkInitOptions<StoreShape>, options?: GraphlinkOptions): void;
     rootStore: StoreShape;
     storeOverridesStack: StoreShape[];
     /** Set this to false if you need to make sure all relevant database-requests within an accessor tree are being activated. */
@@ -37,11 +41,12 @@ export declare class Graphlink<StoreShape, DBShape> {
         knexModule?: typeof Knex | null | undefined;
         pgPool?: any | null;
     };
-    unsubscribeTreeNodesAfter: number;
+    options: GraphlinkOptions;
     readonly userInfo: UserInfo | null;
     /** Can be called prior to Graphlink.Initialize(). */
     SetUserInfo(userInfo: UserInfo | null, clearCaches?: boolean, resubscribeAfter?: boolean): Promise<Set<TreeNode<any>> | undefined>;
     ClearCaches(): Promise<Set<TreeNode<any>>>;
+    commitScheduler: DataCommitScheduler;
     tree: TreeNode<DBShape>;
     treeRequestWatchers: Set<TreeRequestWatcher>;
     UnsubscribeAll(): void;
@@ -58,4 +63,9 @@ export declare class GraphlinkStats {
 }
 export declare class UserInfo {
     id: string;
+}
+export declare let defaultGraphRefs: GraphRefs;
+export declare function SetDefaultGraphRefs(opt: GraphRefs): void;
+export interface GraphRefs<StoreShape = any, DBShape = any> {
+    graph: Graphlink<StoreShape, DBShape>;
 }

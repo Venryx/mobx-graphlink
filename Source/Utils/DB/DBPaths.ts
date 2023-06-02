@@ -1,5 +1,5 @@
 import {Assert, IsString, E, CE, IsArray, IsFunction} from "js-vextensions";
-import {defaultGraphOptions, GraphOptions} from "../../Graphlink.js";
+import {defaultGraphRefs, GraphRefs} from "../../Graphlink.js";
 import {SplitStringBySlash_Cached} from "./StringSplitCache.js";
 import {UT_DBShape} from "../../UserTypes.js";
 

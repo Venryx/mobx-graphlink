@@ -1,10 +1,10 @@
 import {Assert, E, StringCE, WaitXThenRun} from "js-vextensions";
 import {reaction, when} from "mobx";
-import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
+import {defaultGraphRefs} from "../Graphlink.js";
+import {Graphlink, GraphRefs} from "../index.js";
 import {DataStatus} from "../Tree/TreeNodeData.js";
 import {TreeNodePlaceholder, TreeRequestWatcher} from "../Tree/TreeRequestWatcher.js";
 import {n} from "../Utils/@Internal/Types.js";
-import {MobXPathGetterToPath} from "../Utils/DB/DBPaths.js";
 import {BailError} from "../Utils/General/BailManager.js";
 import {RunInAction} from "../Utils/General/MobX.js";
 
@@ -37,17 +37,24 @@ export function MapWithBailHandling<T, T2>(array: T[], mapFunc: (item: T, index:
 		throw bailErrors[0];
 	}
 	return results;
-} 
+}
+
+export class GetWait_Options {
+	static default = new GetWait_Options();
+
+	// fields from GraphRefs
+	graph: Graphlink<any, any>;
+}
 
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 // (one of the rare cases where opt is not the first argument; that's because GetWait may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
 // Note: This function doesn't really have a purpose atm, as Command.Validate functions already use a GetAsync wrapper that quick-throws as soon as any db-request has to wait.
-export function GetWait<T>(dataGetterFunc: ()=>T, options?: Partial<GraphOptions>, funcName?: string): T {
+export function GetWait<T>(dataGetterFunc: ()=>T, options?: Partial<GetWait_Options>, funcName?: string): T {
 	// Alt approach 1) Use checks like "=== null", "=== undefined", and "=== emptyArray_forLoading" [con: hard to ensure these magic values are propogated through every level properly]
 	// Alt approach 2) Find main tree-node, and just checks its single node.status value [con: doesn't work for freeform/multi-tree-node store-accessors]
 	// Alt approach 3) For places where you'd need this func, just call "GetAsync(()=>...)" instead; it will keep re-calling the store-accessor until all accessors within it "fully resolve" [choice atm]
 
-	const opt = E(defaultGraphOptions, options) as GraphOptions;
+	const opt = E(GetWait_Options.default, defaultGraphRefs, options) as GraphRefs;
 	let watcher = new TreeRequestWatcher(opt.graph);
 
 	// prep for getter-func
@@ -80,6 +87,10 @@ export type GetAsync_ErrorHandleType = "rejectAndLog" | "reject" | "log" | "igno
 
 export class GetAsync_Options {
 	static default = new GetAsync_Options();
+
+	// fields from GraphRefs
+	graph: Graphlink<any, any>;
+
 	/** Just meant to alert us for infinite-loop-like calls/getter-funcs. Default: 100 [pretty arbitrary] */
 	maxIterations? = 100; // todo: maybe replace this with system that tracks the list of paths accessed, and which halts if it "senses no progression" [eg. max-iterations-without-change-to-access-paths]
 	/** How to handle errors that occur in accessor, when there are still db-requests in progress. (ie. when accessor is still progressing) */
@@ -98,8 +109,8 @@ export function NotifyWaitingForDB(dbPath: string) {
 
 // async helper
 // (one of the rare cases where opt is not the first argument; that's because GetAsync may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
-export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<GraphOptions> & GetAsync_Options): Promise<T> {
-	const opt = E(defaultGraphOptions, GetAsync_Options.default, options) as GraphOptions & GetAsync_Options;
+export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<GetAsync_Options>): Promise<T> {
+	const opt = E(GetAsync_Options.default, defaultGraphRefs, options) as GetAsync_Options;
 	let watcher = new TreeRequestWatcher(opt.graph);
 
 	/*let lastResult;

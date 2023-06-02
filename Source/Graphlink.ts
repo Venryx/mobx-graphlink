@@ -5,14 +5,8 @@ import type Knex from "knex";
 import {ApolloClient, NormalizedCacheObject} from "@apollo/client";
 import {AccessorCallPlan} from "./Accessors/@AccessorCallPlan.js";
 import {makeObservable_safe, RunInAction} from "./Utils/General/MobX.js";
-
-export let defaultGraphOptions: GraphOptions;
-export function SetDefaultGraphOptions(opt: GraphOptions) {
-	defaultGraphOptions = opt;
-}
-export interface GraphOptions<StoreShape = any, DBShape = any> {
-	graph: Graphlink<StoreShape, DBShape>;
-}
+import {Assert} from "js-vextensions";
+import {DataCommitScheduler} from "./Components/DataCommitScheduler.js";
 
 export class GraphlinkInitOptions<StoreShape> {
 	rootStore: StoreShape;
@@ -30,20 +24,33 @@ export class GraphlinkInitOptions<StoreShape> {
 	pgPool?: any; //Pool;
 }
 
+export class GraphlinkOptions {
+	constructor(data?: Partial<GraphlinkOptions>) {
+		Object.assign(this, data);
+	}
+	unsubscribeTreeNodesAfter = 5000;
+	/** After each data-update, how long to wait for another data-update; if another occurs during this period, the timer is reset, and another wait occurs. (until max-wait is reached) */
+	dataUpdateBuffering_minWait = 10;
+	dataUpdateBuffering_maxWait = 100;
+	dataUpdateBuffering_breakApartCommitSetsLongerThan = 1000;
+}
+
 export class Graphlink<StoreShape, DBShape> {
 	static instances = [] as Graphlink<any, any>[];
 
-	constructor(initOptions?: GraphlinkInitOptions<StoreShape>) {
+	constructor(initOptions?: GraphlinkInitOptions<StoreShape>, options?: GraphlinkOptions) {
 		makeObservable_safe(this, {
 			userInfo: observable,
 	 	});
 		if (initOptions) {
-			this.Initialize(initOptions);
+			this.Initialize(initOptions, options);
+		} else {
+			Assert(options == null);
 		}
 	}
 
 	initialized = false;
-	Initialize(initOptions: GraphlinkInitOptions<StoreShape>) {
+	Initialize(initOptions: GraphlinkInitOptions<StoreShape>, options?: GraphlinkOptions) {
 		let {rootStore, apollo, onServer, knexModule, pgPool} = initOptions;
 
 		Graphlink.instances.push(this);
@@ -54,8 +61,9 @@ export class Graphlink<StoreShape, DBShape> {
 		this.subs.apollo = apollo;
 		this.subs.knexModule = knexModule;
 		this.subs.pgPool = pgPool;
-		this.unsubscribeTreeNodesAfter = initOptions.unsubscribeTreeNodesAfter ?? 5000;
+		this.options = options ?? new GraphlinkOptions();
 
+		this.commitScheduler = new DataCommitScheduler(this);
 		this.tree = new TreeNode(this, []);
 		
 		this.initialized = true;
@@ -86,7 +94,7 @@ export class Graphlink<StoreShape, DBShape> {
 		//pgPool?: Pool|null; // only used if on db-server
 		pgPool?: any|null; // only used if on db-server
 	};
-	unsubscribeTreeNodesAfter: number;
+	options: GraphlinkOptions;
 
 	readonly userInfo: UserInfo|null = null; // [@O]
 	/** Can be called prior to Graphlink.Initialize(). */
@@ -141,6 +149,7 @@ export class Graphlink<StoreShape, DBShape> {
 		// todo
 	}*/
 
+	commitScheduler: DataCommitScheduler;
 	tree: TreeNode<DBShape>;
 	treeRequestWatchers = new Set<TreeRequestWatcher>();
 	//pathSubscriptions: Map<string, PathSubscription>;
@@ -177,4 +186,15 @@ export class GraphlinkStats {
 export class UserInfo {
 	id: string;
 	//displayName: string;
+}
+
+// graph-refs system (this is how the standalone functions are able to know which graph they're operating on)
+// ==========
+
+export let defaultGraphRefs: GraphRefs;
+export function SetDefaultGraphRefs(opt: GraphRefs) {
+	defaultGraphRefs = opt;
+}
+export interface GraphRefs<StoreShape = any, DBShape = any> {
+	graph: Graphlink<StoreShape, DBShape>;
 }

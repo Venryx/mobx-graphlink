@@ -1,6 +1,6 @@
 import { Assert, E, StringCE, WaitXThenRun } from "js-vextensions";
 import { reaction, when } from "mobx";
-import { defaultGraphOptions } from "../Graphlink.js";
+import { defaultGraphRefs } from "../Graphlink.js";
 import { DataStatus } from "../Tree/TreeNodeData.js";
 import { TreeNodePlaceholder, TreeRequestWatcher } from "../Tree/TreeRequestWatcher.js";
 import { BailError } from "../Utils/General/BailManager.js";
@@ -39,6 +39,9 @@ export function MapWithBailHandling(array, mapFunc, bailHandling = BailHandling.
     }
     return results;
 }
+export class GetWait_Options {
+}
+GetWait_Options.default = new GetWait_Options();
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 // (one of the rare cases where opt is not the first argument; that's because GetWait may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
 // Note: This function doesn't really have a purpose atm, as Command.Validate functions already use a GetAsync wrapper that quick-throws as soon as any db-request has to wait.
@@ -46,7 +49,7 @@ export function GetWait(dataGetterFunc, options, funcName) {
     // Alt approach 1) Use checks like "=== null", "=== undefined", and "=== emptyArray_forLoading" [con: hard to ensure these magic values are propogated through every level properly]
     // Alt approach 2) Find main tree-node, and just checks its single node.status value [con: doesn't work for freeform/multi-tree-node store-accessors]
     // Alt approach 3) For places where you'd need this func, just call "GetAsync(()=>...)" instead; it will keep re-calling the store-accessor until all accessors within it "fully resolve" [choice atm]
-    const opt = E(defaultGraphOptions, options);
+    const opt = E(GetWait_Options.default, defaultGraphRefs, options);
     let watcher = new TreeRequestWatcher(opt.graph);
     // prep for getter-func
     watcher.Start();
@@ -91,7 +94,7 @@ export function NotifyWaitingForDB(dbPath: string) {
 // async helper
 // (one of the rare cases where opt is not the first argument; that's because GetAsync may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
 export async function GetAsync(dataGetterFunc, options) {
-    const opt = E(defaultGraphOptions, GetAsync_Options.default, options);
+    const opt = E(GetAsync_Options.default, defaultGraphRefs, options);
     let watcher = new TreeRequestWatcher(opt.graph);
     /*let lastResult;
     let nodesRequested_obj_last;

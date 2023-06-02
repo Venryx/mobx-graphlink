@@ -1,5 +1,5 @@
 import { GetAsync_Options } from "../Accessors/Helpers.js";
-import { GraphOptions } from "../Graphlink.js";
+import { GraphRefs } from "../Graphlink.js";
 import { UserInfo } from "../index.js";
 import { n } from "../Utils/@Internal/Types.js";
 import { DBPPath } from "../Utils/DB/DBPaths.js";
@@ -13,11 +13,11 @@ export declare abstract class Command<Payload, ReturnData extends {
     static augmentValidate?: (command: Command<any>) => any;
     static augmentDBUpdates?: (command: Command<any>, db: DBHelper) => any;
     constructor(payload: Payload);
-    constructor(options: Partial<GraphOptions>, payload: Payload);
+    constructor(options: Partial<GraphRefs>, payload: Payload);
     _userInfo_override: UserInfo | null | undefined;
     get userInfo(): UserInfo;
     type: string;
-    options: GraphOptions;
+    options: GraphRefs;
     payload_orig: Payload;
     payload: Payload;
     returnData: ReturnData;
@@ -40,8 +40,8 @@ export declare abstract class Command<Payload, ReturnData extends {
     /** Same as the command-provided Validate() function, except also validating the payload and return-data against their schemas. */
     Validate_Full(): void;
     Validate_Safe(): string | undefined;
-    Validate_Async(options?: Partial<GraphOptions> & GetAsync_Options): Promise<void>;
-    Validate_Async_Safe(options?: Partial<GraphOptions> & GetAsync_Options): Promise<string | undefined>;
+    Validate_Async(options?: Partial<GraphRefs> & GetAsync_Options): Promise<void>;
+    Validate_Async_Safe(options?: Partial<GraphRefs> & GetAsync_Options): Promise<string | undefined>;
     /** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
     GetDBUpdates(parentHelper: DBHelper): DBUpdate[];
     abstract DeclareDBUpdates(helper: DBHelper): any;

@@ -92,7 +92,7 @@ export class TreeNode<DataShape> {
 		AssertWarn(oldNodesOnPath.filter(a=>a.self_subscription != null).length == 0, `Found another TreeNode with the exact same path, with a live subscription! @path:${this.path}`);
 		nodesByPath.set(this.path, oldNodesOnPath.concat(this));
 
-		this.countSecondsWithoutObserver_timer = new Timer(this.graph.unsubscribeTreeNodesAfter, ()=>{
+		this.countSecondsWithoutObserver_timer = new Timer(this.graph.options.unsubscribeTreeNodesAfter, ()=>{
 			/*if (this.path_noQuery == "commandRuns/J5Vk5OYCRi-7tP6XtEBTQg") {
 				let a = "test1";
 			}
@@ -116,7 +116,7 @@ export class TreeNode<DataShape> {
 			//console.log("@path:", this.path, "@observedDataFields.size:", this.observedDataFields.size);
 
 			if (this.observedDataFields.size == 0) {
-				if (this.graph.unsubscribeTreeNodesAfter != -1) {
+				if (this.graph.options.unsubscribeTreeNodesAfter != -1) {
 					this.countSecondsWithoutObserver_timer.Start();
 				}
 			} else {
@@ -133,7 +133,7 @@ export class TreeNode<DataShape> {
 		onBecomeObserved(this, "DocDatas_ForDirectSubscriber", ()=>OnDataFieldObservedStateChange("DocDatas_ForDirectSubscriber", true));
 		onBecomeUnobserved(this, "DocDatas_ForDirectSubscriber", ()=>OnDataFieldObservedStateChange("DocDatas_ForDirectSubscriber", false));
 		// just because a TreeNode was created, does not mean anyone is actually mobx-observing it; so start the unsubscribe timer as soon as it's created
-		if (this.graph.unsubscribeTreeNodesAfter != -1) {
+		if (this.graph.options.unsubscribeTreeNodesAfter != -1) {
 			this.countSecondsWithoutObserver_timer.Start();
 		}
 	}
@@ -194,7 +194,7 @@ export class TreeNode<DataShape> {
 					Assert(Object.values(returnedData).length == 1);
 					const returnedDocument = Object.values(returnedData)[0] as any; // so unwrap it here
 					MaybeLog_Base(a=>a.subscriptions, l=>l(`Got doc snapshot. @path(${this.path}) @snapshot:`, returnedDocument));
-					RunInAction_WhenAble("TreeNode.Subscribe.onSnapshot_doc", ()=> {
+					this.graph.commitScheduler.ScheduleDataUpdateCommit(()=> {
 						this.data_fromSelf.SetData(returnedDocument, false);
 						this.self_subscriptionStatus = SubscriptionStatus.ReadyAndLive;
 					});
@@ -214,7 +214,7 @@ export class TreeNode<DataShape> {
 					const fromCache = false;
 
 					MaybeLog_Base(a=>a.subscriptions, l=>l(`Got collection snapshot. @path(${this.path}) @docs:`, docs));
-					RunInAction_WhenAble("TreeNode.Subscribe.onSnapshot_collection", ()=> {
+					this.graph.commitScheduler.ScheduleDataUpdateCommit(()=>{
 						const deletedDocIDs = CE(Array.from(this.docNodes.keys())).Exclude(...docs.map(a=>a.id));
 						let dataChanged = false;
 						for (const doc of docs) {

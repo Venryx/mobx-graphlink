@@ -3,7 +3,7 @@ import {ArrayCE, Assert, CE, Clone, ConvertPathGetterFuncToPropChain, E, ObjectC
 import {GetAsync, GetAsync_Options} from "../Accessors/Helpers.js";
 import {AssertValidate} from "../Extensions/JSONSchemaHelpers.js";
 import {GenerateUUID} from "../Extensions/KeyGenerator.js";
-import {defaultGraphOptions, GraphOptions} from "../Graphlink.js";
+import {defaultGraphRefs, GraphRefs} from "../Graphlink.js";
 import {CleanDBData, UserInfo} from "../index.js";
 import {WithBrackets} from "../Tree/QueryParams.js";
 import {n} from "../Utils/@Internal/Types.js";
@@ -40,12 +40,12 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	static augmentDBUpdates?: (command: Command<any>, db: DBHelper)=>any;
 
 	constructor(payload: Payload);
-	constructor(options: Partial<GraphOptions>, payload: Payload);
+	constructor(options: Partial<GraphRefs>, payload: Payload);
 	constructor(...args) {
-		let options: Partial<GraphOptions>, payload: Payload;
+		let options: Partial<GraphRefs>, payload: Payload;
 		if (args.length == 1) [payload] = args;
 		else [options, payload] = args;
-		const opt = E(defaultGraphOptions, options!) as GraphOptions;
+		const opt = E(defaultGraphRefs, options!) as GraphRefs;
 
 		this.type = this.constructor.name;
 		this.options = opt;
@@ -67,7 +67,7 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		}
 	}
 	type: string;
-	options: GraphOptions;
+	options: GraphRefs;
 	payload_orig: Payload;
 	payload: Payload;
 
@@ -157,12 +157,12 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 			return ex?.message ?? ex?.toString();
 		}
 	}
-	async Validate_Async(options?: Partial<GraphOptions> & GetAsync_Options) {
+	async Validate_Async(options?: Partial<GraphRefs> & GetAsync_Options) {
 		//await GetAsync(()=>this.Validate(), E({errorHandling: "ignore"}, IsNumber(maxIterations) && {maxIterations}));
 		//await GetAsync(()=>this.Validate(), {errorHandling: "ignore", maxIterations: OmitIfFalsy(maxIterations)});
 		await GetAsync(()=>this.Validate_Full(), E({throwImmediatelyOnDBWait: true} as Partial<GetAsync_Options>, options));
 	}
-	async Validate_Async_Safe(options?: Partial<GraphOptions> & GetAsync_Options): Promise<string|undefined> {
+	async Validate_Async_Safe(options?: Partial<GraphRefs> & GetAsync_Options): Promise<string|undefined> {
 		try {
 			await this.Validate_Async(options);
 			this.validateError = undefined;

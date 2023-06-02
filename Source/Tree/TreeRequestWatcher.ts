@@ -1,5 +1,5 @@
 import {Assert} from "js-vextensions";
-import {Graphlink, GraphOptions} from "../Graphlink.js";
+import {Graphlink, GraphRefs} from "../Graphlink.js";
 import {TreeNode} from "./TreeNode.js";
 
 export class TreeRequestWatcher {

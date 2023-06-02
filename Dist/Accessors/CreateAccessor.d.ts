@@ -1,8 +1,8 @@
-import { GraphOptions } from "../Graphlink.js";
+import { GraphRefs } from "../Graphlink.js";
 import { UT_StoreShape } from "../UserTypes.js";
 import { AccessorCallPlan } from "./@AccessorCallPlan.js";
 import { AccessorOptions } from "./@AccessorMetadata.js";
-export declare function WithStore<T>(options: Partial<GraphOptions>, store: any, accessorFunc: () => T): T;
+export declare function WithStore<T>(graphRefs: Partial<GraphRefs>, store: any, accessorFunc: () => T): T;
 declare type FuncExtensions<Func> = {
     Async: Func extends ((..._: infer Args) => infer ReturnTypeX) ? (..._: Args) => Promise<ReturnTypeX> : never;
     Wait: Func;

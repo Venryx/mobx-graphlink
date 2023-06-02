@@ -3,7 +3,7 @@ import type Knex from "knex";
 import u from "updeep";
 import {GetFieldDBInit, GetMGLClass, mglClasses, TableNameToDocSchemaName} from "../../Extensions/Decorators.js";
 import {GetSchemaJSON, NewSchema} from "../../Extensions/JSONSchemaHelpers.js";
-import {defaultGraphOptions} from "../../Graphlink.js";
+import {defaultGraphRefs} from "../../Graphlink.js";
 import {MaybeLog_Base} from "../General/General.js";
 import {DBPPath, dbpPrefix} from "./DBPaths.js";
 import {DBUpdate} from "./DBUpdate.js";
@@ -74,7 +74,7 @@ export async function ApplyDBUpdates(dbUpdates: DBUpdate[], simplifyDBUpdates = 
 	dbUpdates = FinalizeDBUpdates(dbUpdates, simplifyDBUpdates);
 
 	// prepare pg-client and knex
-	const {pgPool, knexModule} = defaultGraphOptions.graph.subs;
+	const {pgPool, knexModule} = defaultGraphRefs.graph.subs;
 	Assert(pgPool != null, "pgPool must be supplied to Graphlink instance to be able to call ApplyDBUpdates. (only possible from db-server instance)")
 	Assert(knexModule != null, "knexModule (the export of knex npm-module) must be supplied to Graphlink instance to be able to call ApplyDBUpdates. (only possible from db-server instance)")
 	type KnexInstance = ReturnType<typeof Knex>;
