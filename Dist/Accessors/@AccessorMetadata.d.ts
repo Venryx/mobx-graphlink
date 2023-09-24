@@ -1,4 +1,4 @@
-import { IComputedValueOptions } from "mobx";
+import { IComputedValueOptions, IEqualsComparer } from "mobx";
 import { Graphlink } from "../index.js";
 import { UT_StoreShape } from "../UserTypes.js";
 import { BailError } from "../Utils/General/BailManager.js";
@@ -8,6 +8,7 @@ export declare class AccessorOptions<RootState = any, DBShape = any> {
     static default: AccessorOptions<any, any>;
     graph?: Graphlink<RootState, DBShape>;
     cache: boolean;
+    cache_comparer?: IEqualsComparer<any>;
     cache_keepAlive: boolean;
     cache_unwrapArrays: boolean;
 }

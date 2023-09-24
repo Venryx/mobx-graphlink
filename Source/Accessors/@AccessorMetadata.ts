@@ -1,5 +1,5 @@
 import {CE} from "js-vextensions";
-import {IComputedValue, IComputedValueOptions, computed, onBecomeUnobserved, _isComputingDerivation, onBecomeObserved} from "mobx"
+import {IComputedValue, IComputedValueOptions, computed, onBecomeUnobserved, _isComputingDerivation, onBecomeObserved, comparer, IEqualsComparer} from "mobx"
 import {Graphlink} from "../index.js";
 import {UT_StoreShape} from "../UserTypes.js";
 import {BailError} from "../Utils/General/BailManager.js";
@@ -19,6 +19,7 @@ export class AccessorOptions<RootState = any, DBShape = any> {
 	//graph: Graphlink<any, any>;
 
 	cache = true;
+	cache_comparer?: IEqualsComparer<any>;
 	cache_keepAlive = false;
 	cache_unwrapArrays = true;
 	//callArgToDependencyConvertorFunc?: CallArgToDependencyConvertorFunc;

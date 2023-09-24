@@ -67,7 +67,7 @@ export class AccessorCallPlan {
     //uselessCachingWarned = false;
     //_lastCall_startTime?: number; // for debugging/profiling purposes only
     Call_OrReturnCache() {
-        var _a;
+        var _a, _b;
         // cache hit, return
         if (this.cachedResult_wrapper != null) {
             return this.cachedResult_wrapper.get();
@@ -87,6 +87,7 @@ export class AccessorCallPlan {
         this.cachedResult_wrapper = computed(() => this.accessorMeta.accessor.apply(this, this.callArgs), {
             name: `computedFn(${this.accessorMeta.accessor.name}#${++this.callPlanIndex})`,
             keepAlive: (_a = this.accessorMeta.options.cache_keepAlive) !== null && _a !== void 0 ? _a : false,
+            equals: (_b = this.accessorMeta.options.cache_comparer) !== null && _b !== void 0 ? _b : undefined,
         });
         // if/when the cached-result-wrapper becomes no-longer-observed, also clean up this call-plan object
         if (!this.accessorMeta.options.cache_keepAlive) {

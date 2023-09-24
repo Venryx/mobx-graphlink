@@ -1,5 +1,5 @@
 import {IsPrimitive} from "js-vextensions";
-import {computed, IComputedValue, IComputedValueOptions, onBecomeUnobserved, _isComputingDerivation} from "mobx";
+import {comparer, computed, IComputedValue, IComputedValueOptions, onBecomeUnobserved, _isComputingDerivation} from "mobx";
 import {Graphlink, CatchBail} from "../index.js";
 import {UT_StoreShape} from "../UserTypes.js";
 import {AccessorMetadata, ProfilingInfo} from "./@AccessorMetadata.js";
@@ -122,6 +122,7 @@ export class AccessorCallPlan {
 		this.cachedResult_wrapper = computed(()=>this.accessorMeta.accessor.apply(this, this.callArgs), {
 			name: `computedFn(${this.accessorMeta.accessor.name}#${++this.callPlanIndex})`,
 			keepAlive: this.accessorMeta.options.cache_keepAlive ?? false,
+			equals: this.accessorMeta.options.cache_comparer ?? undefined,
 		});
 		// if/when the cached-result-wrapper becomes no-longer-observed, also clean up this call-plan object
 		if (!this.accessorMeta.options.cache_keepAlive) {

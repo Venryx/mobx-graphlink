@@ -48,34 +48,32 @@ export class DataCommitScheduler {
 				// wrapping multiple commit-funcs in a single action is a nice idea, but the time-based throttling system doesn't really work then, since almost all the execution time is in running the reactions
 				// we leave it like this for now though, opting instead to rely on the "dataUpdateBuffering_commitSetMaxFuncCount" option
 				RunInAction("DataCommitScheduler.commit", ()=>{
-
-				const commitStartTime = Date.now();
-				let commitFuncsExecuted = 0;
-				while (commitFuncsLeftToRun.length > 0) {
-					const func = commitFuncsLeftToRun.shift()!;
-					func();
-					//RunInAction("DataCommitScheduler.commit", ()=>func());
-					commitFuncsExecuted++;
-					if (commitFuncsExecuted >= this.graph.options.dataUpdateBuffering_commitSetMaxFuncCount) {
-						break;
+					const commitStartTime = Date.now();
+					let commitFuncsExecuted = 0;
+					while (commitFuncsLeftToRun.length > 0) {
+						const func = commitFuncsLeftToRun.shift()!;
+						func();
+						//RunInAction("DataCommitScheduler.commit", ()=>func());
+						commitFuncsExecuted++;
+						if (commitFuncsExecuted >= this.graph.options.dataUpdateBuffering_commitSetMaxFuncCount) {
+							break;
+						}
+						if (Date.now() - commitStartTime > this.graph.options.dataUpdateBuffering_commitSetMaxTime) {
+							break;
+						}
 					}
-					if (Date.now() - commitStartTime > this.graph.options.dataUpdateBuffering_commitSetMaxTime) {
-						break;
+
+					// if we haven't run all the commit-funcs yet, schedule the next subset to run in a moment
+					if (commitFuncsLeftToRun.length > 0) {
+						setTimeout(ProceedWithCommitting, this.graph.options.dataUpdateBuffering_breakDuration);
+					} else {
+						this.scheduledCommit_status = "inactive";
+
+						// there were commit-funcs that wanted in on this set, but had to wait; kick off a new set for them
+						if (this.scheduledCommit_commitFuncs.length > 0) {
+							this.ScheduleDataUpdateCommit(()=>{});
+						}
 					}
-				}
-
-				// if we haven't run all the commit-funcs yet, schedule the next subset to run in a moment
-				if (commitFuncsLeftToRun.length > 0) {
-					setTimeout(ProceedWithCommitting, this.graph.options.dataUpdateBuffering_breakDuration);
-				} else {
-					this.scheduledCommit_status = "inactive";
-
-					// there were commit-funcs that wanted in on this set, but had to wait; kick off a new set for them
-					if (this.scheduledCommit_commitFuncs.length > 0) {
-						this.ScheduleDataUpdateCommit(()=>{});
-					}
-				}
-
 				});
 			};
 			ProceedWithCommitting();
