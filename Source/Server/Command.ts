@@ -62,9 +62,8 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		if (this.options.graph.onServer) {
 			Assert(this._userInfo_override != null, `For commands being run on the server, user-info must be explicitly attached. @Command:${this.constructor.name}`);
 			return this._userInfo_override;
-		} else {
-			return this.options.graph.userInfo!;
 		}
+		return this.options.graph.userInfo!;
 	}
 	type: string;
 	options: GraphRefs;
@@ -343,7 +342,7 @@ export class DBHelper {
 	// ==========
 
 	dbUpdates = [] as DBUpdate[];
-	
+
 	// add multiple pre-made db-updates (eg. from subcommand)
 	add(dbUpdates: DBUpdate[]) {
 		this.dbUpdates.push(...dbUpdates);

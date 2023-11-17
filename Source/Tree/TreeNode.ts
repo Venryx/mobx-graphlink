@@ -1,7 +1,7 @@
 import {Assert, AssertWarn, CE, E, Timer, ToJSON} from "js-vextensions";
 import {computed, makeObservable, observable, ObservableMap, onBecomeObserved, onBecomeUnobserved, runInAction, _getGlobalState} from "mobx";
-import {Graphlink} from "../Graphlink.js";
 import {FetchResult, Observable, ObservableSubscription} from "@apollo/client";
+import {Graphlink} from "../Graphlink.js";
 import {CleanDBData} from "../Utils/DB/DBDataHelpers.js";
 import {PathOrPathGetterToPath, PathOrPathGetterToPathSegments} from "../Utils/DB/DBPaths.js";
 import {MaybeLog_Base} from "../Utils/General/General.js";
@@ -194,7 +194,7 @@ export class TreeNode<DataShape> {
 					Assert(Object.values(returnedData).length == 1);
 					const returnedDocument = Object.values(returnedData)[0] as any; // so unwrap it here
 					MaybeLog_Base(a=>a.subscriptions, l=>l(`Got doc snapshot. @path(${this.path}) @snapshot:`, returnedDocument));
-					this.graph.commitScheduler.ScheduleDataUpdateCommit(()=> {
+					this.graph.commitScheduler.ScheduleDataUpdateCommit(()=>{
 						this.data_fromSelf.SetData(returnedDocument, false);
 						this.self_subscriptionStatus = SubscriptionStatus.ReadyAndLive;
 					});
@@ -230,7 +230,7 @@ export class TreeNode<DataShape> {
 							//docNode?.Unsubscribe(); // if someone subscribed directly, I guess we let them keep the detached subscription?
 							this.docNodes.delete(docID);
 						}
-	
+
 						this.data_fromSelf.UpdateStatusAfterDataChange(dataChanged, fromCache);
 						this.self_subscriptionStatus = SubscriptionStatus.ReadyAndLive;
 					});
@@ -242,7 +242,7 @@ export class TreeNode<DataShape> {
 	}
 	Unsubscribe(allowKeepDataCached = true) {
 		if (this.self_apolloObservable == null || this.self_subscription == null) return null;
-		let {self_apolloObservable: observable, self_subscription: subscription} = this;
+		const {self_apolloObservable: observable, self_subscription: subscription} = this;
 		this.self_apolloObservable = null;
 		MaybeLog_Base(a=>a.subscriptions, l=>l(`Unsubscribing from: ${this.path}`));
 		this.self_subscription.unsubscribe();
@@ -261,7 +261,7 @@ export class TreeNode<DataShape> {
 		this.docNodes.forEach(a=>a.UnsubscribeAll(allowKeepDataCached, nodesThatHadActiveSubscription));
 		return nodesThatHadActiveSubscription;
 	}
-	
+
 	// data
 	// ==========
 
@@ -299,8 +299,8 @@ export class TreeNode<DataShape> {
 		//let docNodes = Array.from(this.docNodes.values()).filter(a=>a.status_forDirectSubscription == DataStatus.Received_Full && a.data != null);
 		//let docNodes = Array.from(this.docNodes.values()).filter(a=>a.IsDataAcceptableToConsume(true));
 		// for collections, we need to filter out nodes that were found (or at least requested) at some point, but whose data is now null (collections should never have null items)
-		let docNodes = Array.from(this.docNodes.values()).filter(a=>a.data_fromParent.data != null);
-		let docDatas = docNodes.map(docNode=>docNode.data_fromParent.data);
+		const docNodes = Array.from(this.docNodes.values()).filter(a=>a.data_fromParent.data != null);
+		const docDatas = docNodes.map(docNode=>docNode.data_fromParent.data);
 		//let docDatas = observable.array(docNodes.map(docNode=>docNode.data));
 		return docDatas;
 	}
@@ -311,7 +311,7 @@ export class TreeNode<DataShape> {
 	// for doc (and root) nodes
 	collectionNodes = observable.map<string, TreeNode<any>>(); // [@O]
 	//collectionNodes = new Map<string, TreeNode<any>>();
-	
+
 	// for collection (and collection-query) nodes
 	queryNodes = observable.map<string, TreeNode<any>>(); // [@O] for collection nodes
 	//queryNodes = new Map<string, TreeNode<any>>(); // for collection nodes
@@ -332,15 +332,15 @@ export class TreeNode<DataShape> {
 
 	// default createTreeNodesIfMissing to false, so that it's safe to call this from a computation (which includes store-accessors)
 	Get(subpathOrGetterFunc: string | string[] | ((data: DataShape)=>any), query?: QueryParams, createTreeNodesIfMissing = false): TreeNode<any>|null {
-		let subpathSegments = PathOrPathGetterToPathSegments(subpathOrGetterFunc);
+		const subpathSegments = PathOrPathGetterToPathSegments(subpathOrGetterFunc);
 
-		let proceed_inAction = ()=>RunInAction(`TreeNode.Get @path(${this.path})`, ()=>proceed(true)); // cannot use DoX_ComputationSafe, since we need the return value
+		const proceed_inAction = ()=>RunInAction(`TreeNode.Get @path(${this.path})`, ()=>proceed(true)); // cannot use DoX_ComputationSafe, since we need the return value
 		//let proceed_inAction = ()=>DoX_ComputationSafe(`TreeNode.Get @path(${this.path})`, ()=>proceed(true));
-		let proceed = (inAction: boolean)=> {
+		const proceed = (inAction: boolean)=>{
 			let currentNode: TreeNode<any> = this;
-			for (let [index, segment] of subpathSegments.entries()) {
-				let subpathSegmentsToHere = subpathSegments.slice(0, index + 1);
-				let childNodesMap = currentNode[currentNode.type == TreeNodeType.Collection ? "docNodes" : "collectionNodes"] as ObservableMap<string, TreeNode<any>>;
+			for (const [index, segment] of subpathSegments.entries()) {
+				const subpathSegmentsToHere = subpathSegments.slice(0, index + 1);
+				const childNodesMap = currentNode[currentNode.type == TreeNodeType.Collection ? "docNodes" : "collectionNodes"] as ObservableMap<string, TreeNode<any>>;
 
 				// if tree-node is non-existent, we have to either create it (if permitted), or abort
 				if (!childNodesMap.has(segment)) {
@@ -363,14 +363,14 @@ export class TreeNode<DataShape> {
 				if (!currentNode.queryNodes.has(query.toString())) {
 					if (!createTreeNodesIfMissing) return null; // if not permitted to create, abort
 					if (!inAction) return proceed_inAction(); // if permitted to create, restart function in action (creation must be in action)
-					currentNode.queryNodes.set(query.toString(), new TreeNode(this.graph, this.pathSegments.concat(subpathSegments).concat("@query:" + query)))
+					currentNode.queryNodes.set(query.toString(), new TreeNode(this.graph, this.pathSegments.concat(subpathSegments).concat(`@query:${query}`)));
 				}
 
 				currentNode = currentNode.queryNodes.get(query.toString())!;
 			}
 
 			return currentNode;
-		}
+		};
 		// first, try proceeding without runInAction 
 		return proceed(false);
 	}
@@ -385,7 +385,7 @@ export class TreeNode<DataShape> {
 }
 
 export function GetTreeNodeTypeForPath(pathOrSegments: string | string[]) {
-	let pathSegments = PathOrPathGetterToPathSegments(pathOrSegments);
+	const pathSegments = PathOrPathGetterToPathSegments(pathOrSegments);
 	if (pathSegments == null || pathSegments.length == 0) return TreeNodeType.Root;
 	if (pathSegments.length == 1) return TreeNodeType.Collection;
 	if (pathSegments.length == 2 || pathSegments.length == 3) {
@@ -404,7 +404,7 @@ export function GetTreeNodeTypeForPath(pathOrSegments: string | string[]) {
 }*/
 
 export function TreeNodeToRawData<DataShape>(treeNode: TreeNode<DataShape>, addTreeLink = true) {
-	let result = {};
+	const result = {};
 	if (addTreeLink) {
 		CE(result)._AddItem("_node", treeNode);
 	}
@@ -414,10 +414,10 @@ export function TreeNodeToRawData<DataShape>(treeNode: TreeNode<DataShape>, addT
 	}*/
 	result["data"] = treeNode.PreferredData;
 
-	for (let [key, collection] of treeNode.collectionNodes) {
+	for (const [key, collection] of treeNode.collectionNodes) {
 		result[key] = TreeNodeToRawData(collection);
 	}
-	for (let [key, collection] of treeNode.queryNodes) {
+	for (const [key, collection] of treeNode.queryNodes) {
 		result[key] = TreeNodeToRawData(collection);
 	}
 
@@ -425,7 +425,7 @@ export function TreeNodeToRawData<DataShape>(treeNode: TreeNode<DataShape>, addT
 		let docsAsRawData = Array.from(treeNode.docNodes.values()).map(docNode=>TreeNodeToRawData(docNode));
 		CE(result)._AddItem("_subs", docsAsRawData);
 	}*/
-	for (let [key, doc] of treeNode.docNodes) {
+	for (const [key, doc] of treeNode.docNodes) {
 		result[key] = TreeNodeToRawData(doc);
 	}
 

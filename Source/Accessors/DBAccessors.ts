@@ -21,14 +21,14 @@ export function NotifyRawDBAccess(graph: Graphlink<any, any>) {
 Why use explicit GetDocs, GetDoc, etc. calls instead of just Proxy's in mobx store fields?
 1) It lets you add options (like filters) in a consistent way. (consistent among sync db-accesses, and, old: consistent with async db-accesses, eg. GetDocAsync)
 2) It makes it visually clear where a db-access is taking place, as opposed to a mere store access.
-*/ 
+*/
 
 export class GetDocs_Options {
 	static default = new GetDocs_Options();
 	inLinkRoot? = true;
 	//queryOps?: QueryOp[];
 	params?: QueryParams;
-	
+
 	ifLoading_bail? = true;
 	ifLoading_bail_message?: string;
 	ifLoading_returnVal? = emptyArray_forLoading;
@@ -37,9 +37,9 @@ export class GetDocs_Options {
 export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphRefs<any, DB>> & GetDocs_Options, collectionPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>ObservableMap<any, DocT>)): DocT[] {
 	const opt = E(defaultGraphRefs, GetDocs_Options.default, options) as GraphRefs & GetDocs_Options;
 	NotifyRawDBAccess(opt.graph);
-	let subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
+	const subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
 	//let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
-	let pathSegments = subpathSegments;
+	const pathSegments = subpathSegments;
 	if (!PathSegmentsAreValid(pathSegments)) return emptyArray;
 
 	// include a mobx-access of user-info; this way, the accessor-stack is refreshed when user-info changes (which we want, since RLS policies can cause results to change depending on user-info)
@@ -66,8 +66,8 @@ export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphRefs<
 	}
 
 	// always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
-	let data = treeNode?.DocDatas_ForDirectSubscriber;
-	
+	const data = treeNode?.DocDatas_ForDirectSubscriber;
+
 	if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
 		//NotifyWaitingForDB(pathSegments.join("/"));
 		if (opt.ifLoading_bail) {
@@ -96,9 +96,9 @@ export class GetDoc_Options {
 export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphRefs<any, DB>> & GetDoc_Options, docPathOrGetterFunc: string | string[] | ((dbRoot: DB)=>DocT)): DocT|null|undefined {
 	const opt = E(defaultGraphRefs, GetDoc_Options.default, options) as GraphRefs & GetDoc_Options;
 	NotifyRawDBAccess(opt.graph);
-	let subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
+	const subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
 	//let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
-	let pathSegments = subpathSegments;
+	const pathSegments = subpathSegments;
 	if (!PathSegmentsAreValid(pathSegments)) return null;
 
 	// include a mobx-access of user-info; this way, the accessor-stack is refreshed when user-info changes (which we want, since RLS policies can cause results to change depending on user-info)
@@ -125,7 +125,7 @@ export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphRefs<a
 	}
 
 	// always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
-	let data = treeNode?.Data_ForDirectSubscriber;
+	const data = treeNode?.Data_ForDirectSubscriber;
 
 	if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
 		//NotifyWaitingForDB(pathSegments.join("/"));

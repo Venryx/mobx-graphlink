@@ -32,10 +32,10 @@ export class DeepMapEntry<T> {
 		}
 		this.closestStore_depth = i;
 	}
-	
+
 	private deepMap: DeepMap<any>;
 	private args: any[];
-	
+
 	private closestStore: Map<any, any>;
 	private closestStore_depth = 0;
 	isDisposed = false;
@@ -68,7 +68,7 @@ export class DeepMapEntry<T> {
 	}
 
 	delete() {
-		this.assertNotDisposed()
+		this.assertNotDisposed();
 		if (!this.exists()) throw new Error("Entry doesn't exist");
 		const l = this.args.length;
 		this.closestStore.delete(this.args[l - 1]);

@@ -12,7 +12,7 @@ export enum DataStatus {
 	Received_Live = "Received_Live",
 }
 export function GetPreferenceLevelOfDataStatus(status: DataStatus) {
-	switch(status) {
+	switch (status) {
 		case DataStatus.Initial: return 1;
 		case DataStatus.Received_CachedByApollo: return 2;
 		case DataStatus.Received_CachedByMGL: return 3;
@@ -48,7 +48,7 @@ export class TreeNodeData<DataShape> {
 	IsDataAcceptableToConsume() {
 		return ObjectCE(this.status).IsOneOf(DataStatus.Received_Live, DataStatus.Received_CachedByMGL);
 	}
-	
+
 	SetData(data: DataShape, fromCache: boolean) {
 		// this.data being "undefined" is used to signify that it's still loading; so if firebase-given value is "undefined", change it to "null"
 		if (data === undefined) {
@@ -71,7 +71,7 @@ export class TreeNodeData<DataShape> {
 		}
 
 		this.UpdateStatusAfterDataChange(dataChanged, fromCache);
-		
+
 		return dataChanged;
 	}
 

@@ -1,5 +1,5 @@
 import {CE} from "js-vextensions";
-import {IComputedValue, IComputedValueOptions, computed, onBecomeUnobserved, _isComputingDerivation, onBecomeObserved, comparer, IEqualsComparer} from "mobx"
+import {IComputedValue, IComputedValueOptions, computed, onBecomeUnobserved, _isComputingDerivation, onBecomeObserved, comparer, IEqualsComparer} from "mobx";
 import {Graphlink} from "../index.js";
 import {UT_StoreShape} from "../UserTypes.js";
 import {BailError} from "../Utils/General/BailManager.js";
@@ -68,8 +68,8 @@ export class AccessorMetadata {
 	mobxCacheOpts: IComputedValueOptions<any> = {};
 	callPlans = new DeepMap<AccessorCallPlan>();
 	callPlanMetas = [] as CallPlanMeta[]; // stored separately, because the meta should be kept even after the call-plan itself is unobserved->destroyed
-   callPlansStored = 0;
-   GetCallPlan(graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[], useCache: boolean) {
+	callPlansStored = 0;
+	GetCallPlan(graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[], useCache: boolean) {
 		const callPlan_new_index = useCache ? this.callPlansStored : -1;
 		const callPlan_new = new AccessorCallPlan(this, graph, store, catchItemBails, catchItemBails_asX, callArgs, callPlan_new_index, ()=>{
 			if (useCache) {
@@ -104,7 +104,7 @@ export class ProfilingInfo {
 	waitTime_first = 0;
 	waitTime_min = 0;
 	waitTime_max = 0;
-	
+
 	currentWaitTime_startedAt: number|undefined;
 	NotifyOfCall(runTime: number, cached: boolean, error: BailError | Error | string) {
 		let waitTime = 0;

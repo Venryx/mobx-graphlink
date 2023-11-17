@@ -40,7 +40,7 @@ type FuncExtensions<Func> = {
 type CA_ReturnType<Func> = Func & FuncExtensions<Func>;*/
 interface CreateAccessor_Shape<StoreShape_PreSet = UT_StoreShape> {
 	// the "AccessorCallPlan|void" is needed so that we can have the return-type base be the plain "Func"; otherwise it strips the types of "paramName = defaultVal" entries, and param comments
-	<Func extends (this: AccessorCallPlan|void, ...args: any[])=>any, StoreShape = StoreShape_PreSet>(																						accessor: Func): Func & FuncExtensions<Func>;
+	<Func extends (this: AccessorCallPlan|void, ...args: any[])=>any, StoreShape = StoreShape_PreSet>(accessor: Func): Func & FuncExtensions<Func>;
 	<Func extends (this: AccessorCallPlan|void, ...args: any[])=>any, StoreShape = StoreShape_PreSet>(options: Partial<AccessorOptions<StoreShape>>,						accessor: Func): Func & FuncExtensions<Func>;
 	<Func extends (this: AccessorCallPlan|void, ...args: any[])=>any, StoreShape = StoreShape_PreSet>(name: string,																	accessor: Func): Func & FuncExtensions<Func>;
 	<Func extends (this: AccessorCallPlan|void, ...args: any[])=>any, StoreShape = StoreShape_PreSet>(name: string, options: Partial<AccessorOptions<StoreShape>>,		accessor: Func): Func & FuncExtensions<Func>;
@@ -74,7 +74,7 @@ Wrap a function with CreateAccessor if it's under the "Store/" path, and one of 
 2) It involves "heavy" processing, such that it's worth caching that processing. (rather than use computedFn directly, just standardize on CreateAccessor)
 3) It involves a transformation of data into a new wrapper (ie. breaking reference equality), such that it's worth caching the processing. (to not trigger unnecessary child-ui re-renders)
 */
-export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
+export const CreateAccessor: CreateAccessor_Shape = (...args)=>{
 	let name: string|undefined, options: Partial<AccessorOptions<any>>|null, accessor: Function;
 	if (typeof args[0] == "function" && args.length == 1) [accessor] = args;
 	else if (typeof args[0] == "object" && args.length == 2) [options, accessor] = args;
@@ -94,7 +94,7 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
 		//let accOpt = E(AccessorOptions.default, defaultGraphOptions, CE(opt).IncludeKeys("graph"));
 		// overrides are handled this way for performance reasons // edit: I am skeptical that it actually makes a significant difference... (but will leave it alone for now)
-		let graphRefs = opt.graph ? E(defaultGraphRefs, {graph: opt.graph}) : defaultGraphRefs;
+		const graphRefs = opt.graph ? E(defaultGraphRefs, {graph: opt.graph}) : defaultGraphRefs;
 		const graph = graphRefs.graph;
 
 		const store = graph.storeOverridesStack.length == 0 ? graph.rootStore : graph.storeOverridesStack.slice(-1)[0];
@@ -117,7 +117,7 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 					ex.message += `\n@callPlan:${callPlan.toString()}`;
 					ex.message += `\n@accessor:${accessor.name || accessor.toString()}`;
 				}
-				
+
 				/*if (isRootAccessor) {
 					return opt.onBail; // if not set, will be "undefined", which is fine (it's traditionally what I've used to indicate "still loading")
 				}*/
@@ -144,7 +144,7 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 	wrapperAccessor.Async = (...callArgs)=>{
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
 		const opt = E(AccessorOptions.default, options!) as Partial<GraphRefs> & AccessorOptions;
-		let graphRefs = E(defaultGraphRefs, CE(opt).IncludeKeys("graph"));
+		const graphRefs = E(defaultGraphRefs, CE(opt).IncludeKeys("graph"));
 
 		return GetAsync(()=>wrapperAccessor(...callArgs), graphRefs);
 	};
@@ -153,7 +153,7 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=> {
 	wrapperAccessor.Wait = (...callArgs)=>{
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
 		const opt = E(AccessorOptions.default, options!) as Partial<GraphRefs> & AccessorOptions;
-		let graphRefs = E(defaultGraphRefs, CE(opt).IncludeKeys("graph"));
+		const graphRefs = E(defaultGraphRefs, CE(opt).IncludeKeys("graph"));
 
 		return GetWait(()=>wrapperAccessor(...callArgs), graphRefs);
 	};
