@@ -29,9 +29,9 @@ GetDocs_Options.default = new GetDocs_Options();
 export function GetDocs(options, collectionPathOrGetterFunc) {
     const opt = E(defaultGraphRefs, GetDocs_Options.default, options);
     NotifyRawDBAccess(opt.graph);
-    let subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
+    const subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
     //let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
-    let pathSegments = subpathSegments;
+    const pathSegments = subpathSegments;
     if (!PathSegmentsAreValid(pathSegments))
         return emptyArray;
     // include a mobx-access of user-info; this way, the accessor-stack is refreshed when user-info changes (which we want, since RLS policies can cause results to change depending on user-info)
@@ -57,7 +57,7 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
         });
     }
     // always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
-    let data = treeNode === null || treeNode === void 0 ? void 0 : treeNode.DocDatas_ForDirectSubscriber;
+    const data = treeNode === null || treeNode === void 0 ? void 0 : treeNode.DocDatas_ForDirectSubscriber;
     if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
         //NotifyWaitingForDB(pathSegments.join("/"));
         if (opt.ifLoading_bail) {
@@ -85,9 +85,9 @@ GetDoc_Options.default = new GetDoc_Options();
 export function GetDoc(options, docPathOrGetterFunc) {
     const opt = E(defaultGraphRefs, GetDoc_Options.default, options);
     NotifyRawDBAccess(opt.graph);
-    let subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
+    const subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
     //let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
-    let pathSegments = subpathSegments;
+    const pathSegments = subpathSegments;
     if (!PathSegmentsAreValid(pathSegments))
         return null;
     // include a mobx-access of user-info; this way, the accessor-stack is refreshed when user-info changes (which we want, since RLS policies can cause results to change depending on user-info)
@@ -113,7 +113,7 @@ export function GetDoc(options, docPathOrGetterFunc) {
         });
     }
     // always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
-    let data = treeNode === null || treeNode === void 0 ? void 0 : treeNode.Data_ForDirectSubscriber;
+    const data = treeNode === null || treeNode === void 0 ? void 0 : treeNode.Data_ForDirectSubscriber;
     if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
         //NotifyWaitingForDB(pathSegments.join("/"));
         if (opt.ifLoading_bail) {

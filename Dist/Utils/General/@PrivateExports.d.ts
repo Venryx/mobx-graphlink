@@ -1,2 +1,2 @@
 /// <reference types="node" />
-export declare const g: (Window & typeof globalThis) | (NodeJS.Global & typeof globalThis);
+export declare const g: (NodeJS.Global & typeof globalThis) | (Window & typeof globalThis);

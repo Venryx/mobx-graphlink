@@ -1,6 +1,5 @@
-import { runInAction, _getGlobalState } from "mobx";
+import { runInAction, _getGlobalState, makeObservable } from "mobx";
 import { WaitXThenRun } from "js-vextensions";
-import { makeObservable } from "mobx";
 export let _reactModule;
 export function ProvideReactModule(reactModule) {
     _reactModule = reactModule;
@@ -8,7 +7,7 @@ export function ProvideReactModule(reactModule) {
 export function makeObservable_safe(target, annotations, options) {
     if (annotations) {
         // for each annotated property, make sure the property exists (by setting it to undefined), else mobx will error
-        for (let key of Object.keys(annotations)) {
+        for (const key of Object.keys(annotations)) {
             if (!(key in target)) {
                 target[key] = undefined;
             }
@@ -53,28 +52,28 @@ export function RunInAction_WhenAble(actionName, funcThatChangesObservables) {
         RunInAction(actionName, funcThatChangesObservables);
         return true;
     }
-    else {
+    else { // eslint-disable-line
         // else, wait till we're out of computation/render call-stack, *then* run it
         //WaitXThenRun(0, funcThatChangesObservables);
         // (use bundled version of setImmediate; this is important, because it allows multiple TreeNode.Request() calls to activate in the same tick -- preventing ancestor accessors from triggering for every tree-node's attachment)
         //RunInNextTick_BundledInOneAction(funcThatChangesObservables);
         RunInNextTick_BundledInOneAction(() => {
             // Calling RunInAction here seems redundant, but:
-            // 1) It provides more info in mobx-devtools.
+            // 1) It provides more info in mobx-devtools. 
             // 2) It possibly affects the program flow a bit. (an issue, re. GetAsync() not reliably returning a db-entry, seemed to get a bit worse when this was removed; perhaps a fluke though)
             return RunInAction(actionName, funcThatChangesObservables);
         });
         return false;
     }
 }
-export let RunInNextTick_BundledInOneAction_funcs = [];
+export const RunInNextTick_BundledInOneAction_funcs = [];
 export function RunInNextTick_BundledInOneAction(func) {
     const funcs = RunInNextTick_BundledInOneAction_funcs;
     funcs.push(func);
     if (funcs.length == 1) {
         WaitXThenRun(0, () => {
             RunInAction("SharedAction", () => {
-                let funcs_copy = funcs.slice();
+                const funcs_copy = funcs.slice();
                 funcs.length = 0;
                 for (const func of funcs_copy) {
                     func();

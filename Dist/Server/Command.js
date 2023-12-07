@@ -61,9 +61,7 @@ export class Command {
             Assert(this._userInfo_override != null, `For commands being run on the server, user-info must be explicitly attached. @Command:${this.constructor.name}`);
             return this._userInfo_override;
         }
-        else {
-            return this.options.graph.userInfo;
-        }
+        return this.options.graph.userInfo;
     }
     /** Alias for the parent command, ie. the prior command that constructed this command. */
     get up() { return this.parentCommand; }

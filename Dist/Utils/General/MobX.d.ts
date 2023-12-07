@@ -11,6 +11,6 @@ export declare function MobX_AllowStateChanges(): boolean;
  * Returns true if was able to run immediately; else, returns false.
  * */
 export declare function RunInAction_WhenAble(actionName: string, funcThatChangesObservables: () => any): boolean;
-export declare let RunInNextTick_BundledInOneAction_funcs: Function[];
+export declare const RunInNextTick_BundledInOneAction_funcs: Function[];
 export declare function RunInNextTick_BundledInOneAction(func: Function): void;
 export {};

@@ -1,9 +1,9 @@
-import { TreeNode } from "./Tree/TreeNode.js";
-import { TreeRequestWatcher } from "./Tree/TreeRequestWatcher.js";
-import type Knex from "knex";
 import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
+import type Knex from "knex";
 import { AccessorCallPlan } from "./Accessors/@AccessorCallPlan.js";
 import { DataCommitScheduler } from "./Components/DataCommitScheduler.js";
+import { TreeNode } from "./Tree/TreeNode.js";
+import { TreeRequestWatcher } from "./Tree/TreeRequestWatcher.js";
 export declare class GraphlinkInitOptions<StoreShape> {
     rootStore: StoreShape;
     apollo: ApolloClient<NormalizedCacheObject>;

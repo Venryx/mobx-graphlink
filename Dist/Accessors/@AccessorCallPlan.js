@@ -42,7 +42,6 @@ export class AccessorCallPlan {
                 callArgs_unwrapped.splice(argIndex, 1, "$ARRAY_ITEMS_START", ...callArg, "$ARRAY_ITEMS_END");
             }
         }
-        ;
         return callArgs_unwrapped;
     }
     GetCacheKey() {
@@ -52,7 +51,7 @@ export class AccessorCallPlan {
             /*this.catchItemBails,
             this.catchItemBails_asX,*/
         ];
-        let callArgs_unwrapped = this.CallArgs_Unwrapped;
+        const callArgs_unwrapped = this.CallArgs_Unwrapped;
         return [...contextArgs, ...callArgs_unwrapped];
     }
     toString() {

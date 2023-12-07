@@ -1,7 +1,7 @@
 import { Timer } from "js-vextensions";
 import { ObservableMap } from "mobx";
-import { Graphlink } from "../Graphlink.js";
 import { FetchResult, Observable, ObservableSubscription } from "@apollo/client";
+import { Graphlink } from "../Graphlink.js";
 import { QueryParams, QueryParams_Linked } from "./QueryParams.js";
 import { TreeNodeData } from "./TreeNodeData.js";
 export declare enum TreeNodeType {

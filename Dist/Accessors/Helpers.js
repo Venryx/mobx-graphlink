@@ -12,10 +12,10 @@ export var BailHandling;
     BailHandling[BailHandling["CallCustomHandler"] = 2] = "CallCustomHandler";
 })(BailHandling || (BailHandling = {}));
 export function MapWithBailHandling(array, mapFunc, bailHandling = BailHandling.ThrowAtEnd_1st, customBailHandler = () => { }) {
-    let bailErrors = [];
-    let results = array.map((item, index) => {
+    const bailErrors = [];
+    const results = array.map((item, index) => {
         try {
-            let result = mapFunc(item, index);
+            const result = mapFunc(item, index);
             return result;
         }
         catch (ex) {
@@ -50,23 +50,23 @@ export function GetWait(dataGetterFunc, options, funcName) {
     // Alt approach 2) Find main tree-node, and just checks its single node.status value [con: doesn't work for freeform/multi-tree-node store-accessors]
     // Alt approach 3) For places where you'd need this func, just call "GetAsync(()=>...)" instead; it will keep re-calling the store-accessor until all accessors within it "fully resolve" [choice atm]
     const opt = E(GetWait_Options.default, defaultGraphRefs, options);
-    let watcher = new TreeRequestWatcher(opt.graph);
+    const watcher = new TreeRequestWatcher(opt.graph);
     // prep for getter-func
     watcher.Start();
     // flip some flag here to say, "don't use cached data -- re-request!"
     //storeAccessorCachingTempDisabled = true;
-    let result = dataGetterFunc();
+    const result = dataGetterFunc();
     // cleanup for getter-func
     //storeAccessorCachingTempDisabled = false;
     watcher.Stop();
-    let nodesRequested_array = Array.from(watcher.nodesRequested);
-    let requestsBeingWaitedFor = nodesRequested_array.filter(node => {
+    const nodesRequested_array = Array.from(watcher.nodesRequested);
+    const requestsBeingWaitedFor = nodesRequested_array.filter(node => {
         if (node instanceof TreeNodePlaceholder)
             return true;
         // arguably, this may be able to use node.PreferredData; but to be safe, we use node.data_fromSelf
         return node.data_fromSelf.status != DataStatus.Received_Live; // only accept Received_Live as valid, in GetAsync
     });
-    let done = requestsBeingWaitedFor.length == 0;
+    const done = requestsBeingWaitedFor.length == 0;
     if (!done) {
         throw new BailError(`Store-accessor "${funcName !== null && funcName !== void 0 ? funcName : "n/a"}" not yet resolved. (it still has ${requestsBeingWaitedFor.length} requests being waited for)`);
     }
@@ -95,7 +95,7 @@ export function NotifyWaitingForDB(dbPath: string) {
 // (one of the rare cases where opt is not the first argument; that's because GetAsync may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
 export async function GetAsync(dataGetterFunc, options) {
     const opt = E(GetAsync_Options.default, defaultGraphRefs, options);
-    let watcher = new TreeRequestWatcher(opt.graph);
+    const watcher = new TreeRequestWatcher(opt.graph);
     /*let lastResult;
     let nodesRequested_obj_last;
     let nodesRequested_obj;
@@ -121,7 +121,7 @@ export async function GetAsync(dataGetterFunc, options) {
     return lastResult;*/
     return new Promise((resolve, reject) => {
         let iterationIndex = -1;
-        let dispose = reaction(() => {
+        const dispose = reaction(() => {
             iterationIndex++;
             // prep for getter-func
             watcher.Start();
@@ -162,8 +162,8 @@ export async function GetAsync(dataGetterFunc, options) {
             opt.graph.storeAccessorCachingTempDisabled = false;
             //if (options?.throwImmediatelyOnDBWait) GetAsync_throwImmediatelyOnDBWait_activeDepth--;
             watcher.Stop();
-            let nodesRequested_array = Array.from(watcher.nodesRequested);
-            let requestsBeingWaitedFor = nodesRequested_array.filter(node => {
+            const nodesRequested_array = Array.from(watcher.nodesRequested);
+            const requestsBeingWaitedFor = nodesRequested_array.filter(node => {
                 if (node instanceof TreeNodePlaceholder)
                     return true;
                 // arguably, this may be able to use node.PreferredData; but to be safe, we use node.data_fromSelf
@@ -171,7 +171,7 @@ export async function GetAsync(dataGetterFunc, options) {
             });
             const dbRequestsAllResolved = requestsBeingWaitedFor.length == 0 && !(accessor_lastError instanceof BailError);
             const maxIterationsReached = iterationIndex >= opt.maxIterations - 1;
-            let finalCall = dbRequestsAllResolved || maxIterationsReached;
+            const finalCall = dbRequestsAllResolved || maxIterationsReached;
             // if this is our last iteration, and an error is still being hit in accessor, apply the "errorHandling_final" option (generally triggers error without catching, so error bubbles out of this function)
             if (finalCall && accessor_lastError != null) {
                 //Assert(error == null, `Error occurred during final GetAsync iteration: ${error}`);
@@ -202,7 +202,7 @@ export async function GetAsync(dataGetterFunc, options) {
             // if data is null, it means an error occured in the computation-func above
             if (data == null)
                 return;
-            let { result, nodesRequested_array, fullyResolved } = data;
+            const { result, nodesRequested_array, fullyResolved } = data;
             if (!fullyResolved)
                 return;
             //Assert(result != null, "GetAsync should not usually return null.");
@@ -282,7 +282,7 @@ export function AssertV(condition, messageOrMessageFunc) {
     return true;
 }
 Object.defineProperty(Function.prototype, "AV", {
-    value: function () {
+    value() {
         //this.propName = propNameOrGetter instanceof Function ? MobXPathGetterToPath(propNameOrGetter) : propNameOrGetter;
         return new AVWrapper(this);
     },

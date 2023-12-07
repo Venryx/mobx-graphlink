@@ -62,7 +62,7 @@ export const CreateAccessor = (...args) => {
         // initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
         //let accOpt = E(AccessorOptions.default, defaultGraphOptions, CE(opt).IncludeKeys("graph"));
         // overrides are handled this way for performance reasons // edit: I am skeptical that it actually makes a significant difference... (but will leave it alone for now)
-        let graphRefs = opt.graph ? E(defaultGraphRefs, { graph: opt.graph }) : defaultGraphRefs;
+        const graphRefs = opt.graph ? E(defaultGraphRefs, { graph: opt.graph }) : defaultGraphRefs;
         const graph = graphRefs.graph;
         const store = graph.storeOverridesStack.length == 0 ? graph.rootStore : graph.storeOverridesStack.slice(-1)[0];
         const allowCacheGetOrSet = opt.cache && !graph.storeAccessorCachingTempDisabled;
@@ -108,7 +108,7 @@ export const CreateAccessor = (...args) => {
     wrapperAccessor.Async = (...callArgs) => {
         // initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
         const opt = E(AccessorOptions.default, options);
-        let graphRefs = E(defaultGraphRefs, CE(opt).IncludeKeys("graph"));
+        const graphRefs = E(defaultGraphRefs, CE(opt).IncludeKeys("graph"));
         return GetAsync(() => wrapperAccessor(...callArgs), graphRefs);
     };
     // Func.Wait(thing) is shortcut for GetWait(()=>Func(thing))
@@ -116,7 +116,7 @@ export const CreateAccessor = (...args) => {
     wrapperAccessor.Wait = (...callArgs) => {
         // initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
         const opt = E(AccessorOptions.default, options);
-        let graphRefs = E(defaultGraphRefs, CE(opt).IncludeKeys("graph"));
+        const graphRefs = E(defaultGraphRefs, CE(opt).IncludeKeys("graph"));
         return GetWait(() => wrapperAccessor(...callArgs), graphRefs);
     };
     wrapperAccessor.CatchBail = (bailResultOrGetter, ...callArgs) => {

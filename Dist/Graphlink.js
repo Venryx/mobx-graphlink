@@ -1,8 +1,8 @@
-import { nodesByPath, SubscriptionStatus, TreeNode } from "./Tree/TreeNode.js";
-import { observable } from "mobx";
-import { makeObservable_safe, RunInAction } from "./Utils/General/MobX.js";
 import { Assert } from "js-vextensions";
+import { observable } from "mobx";
 import { DataCommitScheduler } from "./Components/DataCommitScheduler.js";
+import { nodesByPath, SubscriptionStatus, TreeNode } from "./Tree/TreeNode.js";
+import { makeObservable_safe, RunInAction } from "./Utils/General/MobX.js";
 export class GraphlinkInitOptions {
 }
 export class GraphlinkOptions {
@@ -44,7 +44,7 @@ export class Graphlink {
         }
     }
     Initialize(initOptions, options) {
-        let { rootStore, apollo, onServer, knexModule, pgPool } = initOptions;
+        const { rootStore, apollo, onServer, knexModule, pgPool } = initOptions;
         Graphlink.instances.push(this);
         this.rootStore = rootStore;
         //if (initSubs) {
@@ -66,7 +66,7 @@ export class Graphlink {
         this.userInfo = userInfo;
         if (clearCaches && this.initialized) {
             console.log("Clearing mobx-graphlink and apollo cache, due to user-info change.");
-            let nodesThatHadActiveSubscription = await this.ClearCaches();
+            const nodesThatHadActiveSubscription = await this.ClearCaches();
             if (resubscribeAfter) {
                 RunInAction("SetUserInfo.resubscribeAfter", () => {
                     for (const node of nodesThatHadActiveSubscription) {
@@ -84,7 +84,7 @@ export class Graphlink {
             node.data
         }*/
         // first, unsubscribe everything; this lets the server release the old live-queries
-        let nodesThatHadActiveSubscription = this.tree.UnsubscribeAll(false);
+        const nodesThatHadActiveSubscription = this.tree.UnsubscribeAll(false);
         nodesByPath.clear(); // also clear this (debugging collection to track if multiple nodes are created for same path); tree is resetting, so reset this list too
         // then, delete/detach all the collection tree-nodes; this is equivalent to clearing the mobx-graphlink cache (well, cache should be cleared by `UnsubscribeAll(false)` above, but this makes certain)
         // commented; this causes issues in mobx-graphlink, where the old subtrees are still being observed (by the accessors), yet are disconnected from the new set created by new requests
