@@ -1,6 +1,6 @@
+import { Assert, CE, E } from "js-vextensions";
 import { AddSchema, collection_docSchemaName } from "./JSONSchemaHelpers.js";
 import { BailError } from "../Utils/General/BailManager.js";
-import { Assert, CE, E } from "js-vextensions";
 // metadata-retrieval helpers
 // ==========
 export function TableNameToDocSchemaName(tableName, errorIfMissing = true) {
@@ -54,11 +54,9 @@ export function BailHandler(...args) {
                     if (mgl)
                         mgl.NotifyBailError(ex);
                     const loadingUI = (_c = (_b = (_a = this.loadingUI) !== null && _a !== void 0 ? _a : targetClass.prototype.loadingUI) !== null && _b !== void 0 ? _b : opts.loadingUI) !== null && _c !== void 0 ? _c : BailHandler_loadingUI_default;
-                    return loadingUI.call(this, { comp: this, bailMessage: ex });
+                    return loadingUI.call(this, { comp: this, bailMessage: ex }); // current v-pref is to have loading-uis not care about the "this" passed, but kept same for now (doesn't hurt anything)
                 }
-                else {
-                    throw ex;
-                }
+                throw ex;
             }
         };
     }
@@ -84,7 +82,7 @@ export class MGLCompMeta {
         this.NotifyRenderResult(ex.message);
     }
     NotifyRenderResult(bailMessage) {
-        let lastResultSpan = CE(this.renderResultSpans).LastOrX();
+        const lastResultSpan = CE(this.renderResultSpans).LastOrX();
         if (bailMessage != (lastResultSpan === null || lastResultSpan === void 0 ? void 0 : lastResultSpan.bailMessage)) {
             const now = Date.now();
             if (lastResultSpan != null) {
@@ -100,7 +98,7 @@ export class MGLCompMeta {
             this.renderResultSpans.push({
                 bailMessage,
                 accessorInfo,
-                startTime: now
+                startTime: now,
             });
         }
     }
@@ -123,14 +121,14 @@ function EnsureImported_MobXReact() {
     //observer = observer ?? WP_ImportSync("mobx-react").observer;
     observer = observer !== null && observer !== void 0 ? observer : WP_ImportSync("/mobx-react/dist/mobxreact.esm.js").observer;
 }
-export class MGLObserver_Options {
+export class ObserverMGL_Options {
     constructor() {
         this.bailHandler = true;
     }
 }
-export function MGLObserver(...args) {
+export function ObserverMGL(...args) {
     EnsureImported_MobXReact();
-    let opts = new MGLObserver_Options();
+    let opts = new ObserverMGL_Options();
     if (typeof args[0] == "function") {
         ApplyToClass(args[0]);
     }
@@ -143,6 +141,34 @@ export function MGLObserver(...args) {
             BailHandler(opts.bailHandler_opts)(targetClass);
         observer(targetClass);
     }
+}
+export function observer_mgl(...args) {
+    EnsureImported_MobXReact();
+    let opts = new ObserverMGL_Options();
+    let func;
+    if (args[1] == null) {
+        func = args[0];
+    }
+    else {
+        opts = E(opts, args[0]);
+        func = args[1];
+    }
+    if (opts.bailHandler) {
+        return observer(props => {
+            var _a, _b;
+            try {
+                return func(props);
+            }
+            catch (ex) {
+                if (ex instanceof BailError) {
+                    const loadingUI_final = (_b = (_a = opts.bailHandler_opts) === null || _a === void 0 ? void 0 : _a.loadingUI) !== null && _b !== void 0 ? _b : BailHandler_loadingUI_default;
+                    return loadingUI_final({ comp: { name: "unknown", props }, bailMessage: ex });
+                }
+                throw ex;
+            }
+        });
+    }
+    return observer(func);
 }
 // db stuff
 // ==========
@@ -171,7 +197,7 @@ export function MGLClass(opts, schemaExtrasOrGetter, initFunc_pre) {
         }
         AddSchema(typeName, schemaDeps, () => {
             var _a, _b, _c, _d;
-            let schema = schemaExtrasOrGetter instanceof Function ? schemaExtrasOrGetter() : (schemaExtrasOrGetter !== null && schemaExtrasOrGetter !== void 0 ? schemaExtrasOrGetter : {});
+            const schema = schemaExtrasOrGetter instanceof Function ? schemaExtrasOrGetter() : (schemaExtrasOrGetter !== null && schemaExtrasOrGetter !== void 0 ? schemaExtrasOrGetter : {});
             schema.properties = (_a = schema.properties) !== null && _a !== void 0 ? _a : {};
             for (const [key, fieldSchemaOrGetter] of Object.entries((_b = constructor["_fields"]) !== null && _b !== void 0 ? _b : [])) {
                 let fieldSchema = fieldSchemaOrGetter instanceof Function ? fieldSchemaOrGetter() : fieldSchemaOrGetter;

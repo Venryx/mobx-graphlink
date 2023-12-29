@@ -1,3 +1,4 @@
+/// <reference types="react" />
 import type { Knex } from "knex";
 import { BailError } from "../Utils/General/BailManager.js";
 import { n } from "../Utils/@Internal/Types.js";
@@ -32,12 +33,16 @@ export declare class MGLCompMeta {
     NotifyBailError(ex: BailError): void;
     NotifyRenderResult(bailMessage: string | null): void;
 }
-export declare class MGLObserver_Options {
+export declare class ObserverMGL_Options {
     bailHandler: boolean;
     bailHandler_opts?: BailHandler_Options;
 }
-export declare function MGLObserver(targetClass: Function): any;
-export declare function MGLObserver(options: Partial<MGLObserver_Options> | n): any;
+/** Variant of mobx-react's `observer` function (for comp-classes), which also adds bail-handling behavior. */
+export declare function ObserverMGL(targetClass: Function): any;
+export declare function ObserverMGL(options: Partial<ObserverMGL_Options> | n): any;
+/** Variant of mobx-react's `observer` function (for render-funcs), which also adds bail-handling behavior. */
+export declare function observer_mgl<T>(func: React.FC<T>): React.FC<T>;
+export declare function observer_mgl<T>(options: Partial<ObserverMGL_Options> | n, func: React.FC<T>): React.FC<T>;
 export declare const mglClasses: Function[];
 export declare function GetMGLClass(name: string): Function | undefined;
 export declare function MGLClass(opts?: {
