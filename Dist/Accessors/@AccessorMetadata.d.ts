@@ -12,7 +12,7 @@ export declare class AccessorOptions<RootState = any, DBShape = any> {
     cache_keepAlive: boolean;
     cache_unwrapArrays: boolean;
 }
-export declare type CallArgToDependencyConvertorFunc = (callArgs: any[]) => any[];
+export type CallArgToDependencyConvertorFunc = (callArgs: any[]) => any[];
 export declare const accessorMetadata: Map<string, AccessorMetadata>;
 export declare class AccessorMetadata {
     constructor(data: Partial<AccessorMetadata>);

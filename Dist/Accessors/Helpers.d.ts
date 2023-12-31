@@ -14,7 +14,7 @@ export declare class GetWait_Options {
 /** Accessor wrapper which throws an error if one of the base db-requests is still loading. (to be used in Command.Validate functions) */
 export declare function GetWait<T>(dataGetterFunc: () => T, options?: Partial<GetWait_Options>, funcName?: string): T;
 /** reject: caller of "await GetAsync()" receives the error, log: catch error and log it, ignore: catch error */
-export declare type GetAsync_ErrorHandleType = "rejectAndLog" | "reject" | "log" | "ignore";
+export type GetAsync_ErrorHandleType = "rejectAndLog" | "reject" | "log" | "ignore";
 export declare class GetAsync_Options {
     static default: GetAsync_Options;
     graph: Graphlink<any, any>;
@@ -26,8 +26,8 @@ export declare class GetAsync_Options {
     errorHandling_final?: GetAsync_ErrorHandleType | undefined;
 }
 export declare function GetAsync<T>(dataGetterFunc: () => T, options?: Partial<GetAsync_Options>): Promise<T>;
-export declare type EffectFunc = () => any;
-export declare type AddEffect = (effectFunc: EffectFunc) => void;
+export type EffectFunc = () => any;
+export type AddEffect = (effectFunc: EffectFunc) => void;
 /** Similar to GetAsync, except includes helper for delaying effect-execution (ie. mobx changes) till end, and without certain data-centric behaviors (like disabling db-cache during resolution). */
 export declare function WaitTillResolvedThenExecuteSideEffects({ resolveCondition, effectExecution, timeout, onTimeout, timeoutMessage, }: {
     resolveCondition?: "returns true" | "no bail-error" | "no error" | undefined;
@@ -54,7 +54,7 @@ declare class AVWrapper {
     static generic: AVWrapper;
     constructor(propNameOrGetter: string | ((..._: any[]) => any));
     private propName;
-    NonNull_<T>(value: T): T;
+    NonNull_<T>(value: T): NonNullable<T>;
     set NonNull(value: NonNullable<any>);
 }
 /** Helper object for making in-line assertions. */

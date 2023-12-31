@@ -3,7 +3,7 @@ import { UT_StoreShape } from "../UserTypes.js";
 import { AccessorCallPlan } from "./@AccessorCallPlan.js";
 import { AccessorOptions } from "./@AccessorMetadata.js";
 export declare function WithStore<T>(graphRefs: Partial<GraphRefs>, store: any, accessorFunc: () => T): T;
-declare type FuncExtensions<Func> = {
+type FuncExtensions<Func> = {
     Async: Func extends ((..._: infer Args) => infer ReturnTypeX) ? (..._: Args) => Promise<ReturnTypeX> : never;
     Wait: Func;
     CatchBail: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(bailResultOrGetter: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : never;

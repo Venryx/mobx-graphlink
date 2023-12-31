@@ -5,8 +5,8 @@ import { n } from "../Utils/@Internal/Types.js";
 import { DBPPath } from "../Utils/DB/DBPaths.js";
 import { DBUpdate } from "../Utils/DB/DBUpdate.js";
 export declare const commandsWaitingToComplete_new: Command<any, any>[];
-export declare type PayloadOf<T> = T extends Command<infer Payload> ? Payload : never;
-export declare type ReturnDataOf<T> = T extends Command<infer Payload, infer ReturnData> ? ReturnData : never;
+export type PayloadOf<T> = T extends Command<infer Payload> ? Payload : never;
+export type ReturnDataOf<T> = T extends Command<infer Payload, infer ReturnData> ? ReturnData : never;
 export declare abstract class Command<Payload, ReturnData extends {
     [key: string]: any;
 } = {}> {

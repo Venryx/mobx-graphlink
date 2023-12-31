@@ -6,11 +6,11 @@ export declare function TableNameToDocSchemaName(tableName: string, errorIfMissi
 export declare function TableNameToGraphQLDocRetrieverKey(tableName: string): string;
 export declare let BailHandler_loadingUI_default: BailHandler;
 export declare function BailHandler_loadingUI_default_Set(value: BailHandler): void;
-export declare type BailInfo = {
+export type BailInfo = {
     comp: any;
     bailMessage: BailError;
 };
-export declare type BailHandler = (info: BailInfo) => any;
+export type BailHandler = (info: BailInfo) => any;
 export declare class BailHandler_Options {
     loadingUI?: BailHandler;
     storeMetadata: boolean;
@@ -50,7 +50,7 @@ export declare function MGLClass(opts?: {
     table?: string;
     schemaDeps?: string[];
 }, schemaExtrasOrGetter?: Object | (() => Object), initFunc_pre?: (t: Knex.TableBuilder) => any): (constructor: Function) => void;
-export declare type Field_Extras = {
+export type Field_Extras = {
     /** If true, two changes are made:
     1) Field is removed from the list of required properties. (fields are required by default)
     2) Field's schema is changed to accept either the listed type, or null. (as elsewhere, null and undefined/not-present are meant to be treated the same) */
@@ -62,7 +62,7 @@ Note that the "requiredness" of properties should be based on what's valid for a
     this is different than the TS "?" marker, which should match with the requiredness of the property when already in the db. (for new entries, the TS constructors already make all props optional)
 */
 export declare function Field(schemaOrGetter: Object | (() => Object), extras?: Field_Extras): (target: any, propertyKey: string) => void;
-export declare type DeferRef_Options = {
+export type DeferRef_Options = {
     enforceAtTransactionEnd?: boolean;
 };
 declare module "knex" {
@@ -72,7 +72,7 @@ declare module "knex" {
         }
     }
 }
-export declare type DBInitFunc = (t: Knex.TableBuilder, n: string) => any;
+export type DBInitFunc = (t: Knex.TableBuilder, n: string) => any;
 /**
 Marks the given field to be a database column for the current class. (ie. in its generated table definition)
 Note that "notNullable()" is called for these fields automatically; if you want it to be optional/nullable within the db, add ".nullable()" to the chain.

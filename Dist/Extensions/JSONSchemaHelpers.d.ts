@@ -4,7 +4,7 @@ export declare const ajv: AJV_Extended;
 export declare const collection_docSchemaName: Map<string, string>;
 export declare function GetTypePolicyFieldsMappingSingleDocQueriesToCache(): {};
 export declare function NewSchema(schema: any, allowInferTypeObject?: boolean): any;
-declare type JSONSchemaProperties = {
+type JSONSchemaProperties = {
     [k: string]: JSONSchema7;
 };
 /** Specify required props by adding a "$" to the start of the prop name. */
@@ -18,7 +18,7 @@ export declare function AddSchema(name: string, schemaOrGetter: JSONSchema7 | ((
 export declare function AddSchema(name: string, schemaDeps: string[] | null | undefined, schemaGetter: () => JSONSchema7): Ajv | Promise<Ajv>;
 export declare function GetSchemaJSON(name: string, errorOnMissing?: boolean): JSONSchema7;
 export declare function GetSchemaJSON_Cloned(name: string, errorOnMissing?: boolean): JSONSchema7;
-export declare type SchemaModifiers<T> = {
+export type SchemaModifiers<T> = {
     includeOnly?: Array<keyof T>;
     makeOptional?: Array<keyof T>;
     /** This is applied prior to makeRequired[_all] -- so they can be combined to make X required, and all else optional. */
@@ -35,10 +35,10 @@ export declare function ClassKeys<T extends {
 }>(...keys: Array<keyof T>): (keyof T)[];
 export declare function RunXOnceSchemasAdded(schemaDeps: string[], funcX: () => void): void;
 export declare function WaitTillSchemaAdded(schemaName: string): Promise<void> | null;
-declare type AJV_Extended = Ajv & {
+type AJV_Extended = Ajv & {
     FullErrorsText(): string;
 };
-export declare type AJVExtraCheckFunc = (item: any) => string;
+export type AJVExtraCheckFunc = (item: any) => string;
 export declare const ajvExtraChecks: {
     [key: string]: AJVExtraCheckFunc[];
 };
@@ -65,5 +65,5 @@ export declare function GetInvalidPropPaths(data: Object, schemaObject: Object):
 }[];
 export declare function IsJSONSchemaScalar(typeStr: string | undefined): boolean;
 export declare function IsJSONSchemaOfTypeScalar(jsonSchema: JSONSchema7): boolean;
-export declare function JSONSchemaScalarTypeToGraphQLScalarType(jsonSchemaScalarType: string): "String" | "Int" | "Float" | "Boolean" | undefined;
+export declare function JSONSchemaScalarTypeToGraphQLScalarType(jsonSchemaScalarType: string): "Int" | "Float" | "String" | "Boolean" | undefined;
 export {};

@@ -98,7 +98,7 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		fieldSetter: ((subcommand: T)=>any) | null,
 		/** If a command is passed, the field is set every time (to the passed command); if a function is passed, the field is only set once (to the result of the function's first invokation). */
 		subcommandOrCreator: T | (()=>T),
-		preValidate?: (subcommand: T)=>any
+		preValidate?: (subcommand: T)=>any,
 	) {
 		let subcommand: T;
 		if (typeof subcommandOrCreator == "function") {
@@ -254,7 +254,7 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 					}
 				}
 			`,
-			variables: this.payload,
+			variables: this.payload as any,
 		});
 		const returnData = CleanDBData(fetchResult.data[this.constructor.name]);
 		AssertValidate(returnDataSchema, returnData, `Return-data for command did not match the expected shape. ReturnData: ${JSON.stringify(returnData, null, 2)}`);

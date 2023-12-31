@@ -5,9 +5,6 @@ import { ConstructGQLArgsStr } from "../Extensions/GQLSchemaHelpers.js";
 import { GetSchemaJSON } from "../Extensions/JSONSchemaHelpers.js";
 import { TreeNodeType } from "./TreeNode.js";
 export class QueryParams {
-    constructor(initialData) {
-        CE(this).Extend(initialData);
-    }
     static ParseString(dataStr) {
         return QueryParams.ParseData(FromJSON(dataStr));
     }
@@ -34,18 +31,21 @@ export class QueryParams {
         }
         return this;
     }
+    constructor(initialData) {
+        CE(this).Extend(initialData);
+    }
 }
 /** Class specifies the filtering, sorting, etc. for a given TreeNode. */
 // (comments based on usage with Postgraphile and https://github.com/graphile-contrib/postgraphile-plugin-connection-filter)
 export class QueryParams_Linked extends QueryParams {
+    toString() {
+        return ToJSON(this);
+    }
     constructor(initialData) {
         super();
         CE(this).Extend(initialData);
         this.Clean(); // our data is probably already cleaned (ie. if called from "TreeNode.Get(...)"), but clean it again (in case user called this constructor directly)
         this.CalculateDerivatives();
-    }
-    toString() {
-        return ToJSON(this);
     }
     get CollectionName() {
         return this.treeNode.pathSegments[0];

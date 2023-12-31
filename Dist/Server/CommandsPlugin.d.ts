@@ -4,7 +4,7 @@ import { TypeDef } from "../Extensions/GQLSchemaHelpers.js";
 import { n } from "../Utils/@Internal/Types.js";
 import { DBUpdate } from "../Utils/DB/DBUpdate.js";
 import { Command } from "./Command.js";
-declare type Context = {
+type Context = {
     req: IncomingMessage & {
         user?: any;
     };

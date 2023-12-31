@@ -17,7 +17,7 @@ export declare function MobXPathGetterToPathSegments(pathGetterFunc: (dbRoot: UT
 export declare const dbpPrefix = "[@dbp:]";
 export declare const DBPPath_Symbol: unique symbol;
 /** This is actually just a string with a special prefix; but we pretend it's a unique type, so that TS will warn about basic-strings being put in places where only dbp-template-literals should be. */
-export declare type DBPPath = string & {
+export type DBPPath = string & {
     _: typeof DBPPath_Symbol;
 };
 /** When creating db-path strings, always create it using this function to construct the template-literal.

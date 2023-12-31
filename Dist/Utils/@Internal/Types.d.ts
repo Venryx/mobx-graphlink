@@ -1,1 +1,1 @@
-export declare type n = null | undefined;
+export type n = null | undefined;
