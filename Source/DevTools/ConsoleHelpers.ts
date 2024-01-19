@@ -13,13 +13,13 @@ export function LogAccessorMetadatas() {
 }
 
 export function GetAccessorRunInfos() {
-	type RunInfo = {name: string} & Omit<ProfilingInfo, "NotifyOfCall">  & {callPlansStored: number, rest: AccessorMetadata};
+	type RunInfo = {name: string} & Omit<ProfilingInfo, "NotifyOfCall"> & {callPlansCreated: number, rest: AccessorMetadata};
 	//const result = {} as {[key: string]: RunInfo};
 	const result = [] as RunInfo[];
 	const entries = Array.from(accessorMetadata);
 	for (const [key, value] of CE(entries).OrderByDescending(a=>a[1].profilingInfo.runTime_sum + a[1].profilingInfo.waitTime_sum)) {
 		//result[key] = {callCount: value.callCount, totalRunTime: value.totalRunTime, rest: value};
-		result.push({name: key, ...value.profilingInfo, callPlansStored: value.callPlansStored, rest: value});
+		result.push({name: key, ...value.profilingInfo, callPlansCreated: value.callPlansCreated, rest: value});
 	}
 	return result;
 }

@@ -25,8 +25,14 @@ export class CallPlanMeta {
 
 export class AccessorCallPlan {
 	constructor(
-		accessorMeta: AccessorMetadata, graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[],
-		callPlanIndex: number, onUnobserved: ()=>any,
+		accessorMeta: AccessorMetadata,
+		graph: Graphlink<UT_StoreShape, any>,
+		store: UT_StoreShape,
+		catchItemBails: boolean,
+		catchItemBails_asX: any,
+		callArgs: any[],
+		callPlanIndex: number,
+		onUnobserved: ()=>any,
 	) {
 		this.accessorMeta = accessorMeta;
 		this.graph = graph;
@@ -120,7 +126,7 @@ export class AccessorCallPlan {
 
 		// create new entry
 		this.cachedResult_wrapper = computed(()=>this.accessorMeta.accessor.apply(this, this.callArgs), {
-			name: `computedFn(${this.accessorMeta.accessor.name}#${++this.callPlanIndex})`,
+			name: `computedFn(${this.accessorMeta.name}#${++this.callPlanIndex})`,
 			keepAlive: this.accessorMeta.options.cache_keepAlive ?? false,
 			equals: this.accessorMeta.options.cache_comparer ?? undefined,
 		});

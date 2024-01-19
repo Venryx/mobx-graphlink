@@ -11,7 +11,6 @@ export class AccessorOptions {
         this.cache = true;
         this.cache_keepAlive = false;
         this.cache_unwrapArrays = true;
-        //callArgToDependencyConvertorFunc?: CallArgToDependencyConvertorFunc;
         /** Short for bail-result. */
         //onBail: T;
         //onBail: any;
@@ -31,7 +30,8 @@ export class AccessorMetadata {
         this.mobxCacheOpts = {};
         this.callPlans = new DeepMap();
         this.callPlanMetas = []; // stored separately, because the meta should be kept even after the call-plan itself is unobserved->destroyed
-        this.callPlansStored = 0;
+        this.callPlansCreated = 0; // todo: maybe remove this (could use callPlanMetas.length instead)
+        this.callPlansActive = 0;
         Object.assign(this, data);
     }
     get CodeStr_Cached() {
@@ -49,10 +49,11 @@ export class AccessorMetadata {
     }
     GetCallPlan(graph, store, catchItemBails, catchItemBails_asX, callArgs, useCache) {
         var _a;
-        const callPlan_new_index = useCache ? this.callPlansStored : -1;
+        const callPlan_new_index = useCache ? this.callPlansCreated : -1;
         const callPlan_new = new AccessorCallPlan(this, graph, store, catchItemBails, catchItemBails_asX, callArgs, callPlan_new_index, () => {
             if (useCache) {
                 this.callPlans.entry(cacheKey).delete();
+                this.callPlansActive--;
             }
         });
         callPlan_new.callPlanMeta = (_a = this.callPlanMetas[callPlan_new.callPlanIndex]) !== null && _a !== void 0 ? _a : new CallPlanMeta(callPlan_new);
@@ -63,7 +64,8 @@ export class AccessorMetadata {
         if (!entry.exists()) {
             entry.set(callPlan_new);
             this.callPlanMetas[callPlan_new_index] = callPlan_new.callPlanMeta;
-            this.callPlansStored++;
+            this.callPlansCreated++;
+            this.callPlansActive++;
         }
         return entry.get();
     }

@@ -8,11 +8,21 @@ type FuncExtensions<Func> = {
     Wait: Func;
     CatchBail: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(bailResultOrGetter: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : never;
 };
+type AccessInnerFunc_Basic = Function;
+type AccessInnerFunc_CtxUsed = (this: AccessorCallPlan, ...args: any[]) => any;
+type Options_Ctx0<StoreShape> = Partial<AccessorOptions<StoreShape>> & {
+    ctx?: null | undefined | 0;
+};
+type Options_Ctx1<StoreShape> = Partial<AccessorOptions<StoreShape>> & {
+    ctx: 1;
+};
 interface CreateAccessor_Shape<StoreShape_PreSet = UT_StoreShape> {
-    <Func extends (this: AccessorCallPlan | void, ...args: any[]) => any, StoreShape = StoreShape_PreSet>(accessor: Func): Func & FuncExtensions<Func>;
-    <Func extends (this: AccessorCallPlan | void, ...args: any[]) => any, StoreShape = StoreShape_PreSet>(options: Partial<AccessorOptions<StoreShape>>, accessor: Func): Func & FuncExtensions<Func>;
-    <Func extends (this: AccessorCallPlan | void, ...args: any[]) => any, StoreShape = StoreShape_PreSet>(name: string, accessor: Func): Func & FuncExtensions<Func>;
-    <Func extends (this: AccessorCallPlan | void, ...args: any[]) => any, StoreShape = StoreShape_PreSet>(name: string, options: Partial<AccessorOptions<StoreShape>>, accessor: Func): Func & FuncExtensions<Func>;
+    <Func extends AccessInnerFunc_Basic, StoreShape = StoreShape_PreSet>(accessor: Func): Func & FuncExtensions<Func>;
+    <Func extends AccessInnerFunc_Basic, StoreShape = StoreShape_PreSet>(options: Options_Ctx0<StoreShape>, accessor: Func): Func & FuncExtensions<Func>;
+    <Func extends AccessInnerFunc_Basic, StoreShape = StoreShape_PreSet>(name: string, accessor: Func): Func & FuncExtensions<Func>;
+    <Func extends AccessInnerFunc_Basic, StoreShape = StoreShape_PreSet>(name: string, options: Options_Ctx0<StoreShape>, accessor: Func): Func & FuncExtensions<Func>;
+    <Func extends AccessInnerFunc_CtxUsed, StoreShape = StoreShape_PreSet>(options: Options_Ctx1<StoreShape>, accessor: Func): OmitThisParameter<Func> & FuncExtensions<Func>;
+    <Func extends AccessInnerFunc_CtxUsed, StoreShape = StoreShape_PreSet>(name: string, options: Options_Ctx1<StoreShape>, accessor: Func): OmitThisParameter<Func> & FuncExtensions<Func>;
 }
 /**
 Probably temp. Usage:

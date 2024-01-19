@@ -35,24 +35,24 @@ type FuncExtensions<Func> = {
 		: never,*/
 };
 
-// I want to use these to extract out the typing, but then it makes the metadata harder to understand for library users
-/*type CA_Accessor<Func, RootState> = (context: AccessorContext<RootState>)=>Func;
-type CA_ReturnType<Func> = Func & FuncExtensions<Func>;*/
+type AccessInnerFunc_Basic = Function;
+type AccessInnerFunc_CtxUsed = (this: AccessorCallPlan, ...args: any[]) => any;
+type Options_Ctx0<StoreShape> = Partial<AccessorOptions<StoreShape>> & {ctx?: null|undefined|0};
+type Options_Ctx1<StoreShape> = Partial<AccessorOptions<StoreShape>> & {ctx: 1};
+/* eslint-disable no-multi-spaces, space-in-parens */
 interface CreateAccessor_Shape<StoreShape_PreSet = UT_StoreShape> {
-	// the "AccessorCallPlan|void" is needed so that we can have the return-type base be the plain "Func"; otherwise it strips the types of "paramName = defaultVal" entries, and param comments
-	<Func extends (this: AccessorCallPlan|void, ...args: any[])=>any, StoreShape = StoreShape_PreSet>(accessor: Func): Func & FuncExtensions<Func>;
-	<Func extends (this: AccessorCallPlan|void, ...args: any[])=>any, StoreShape = StoreShape_PreSet>(options: Partial<AccessorOptions<StoreShape>>,						accessor: Func): Func & FuncExtensions<Func>;
-	<Func extends (this: AccessorCallPlan|void, ...args: any[])=>any, StoreShape = StoreShape_PreSet>(name: string,																	accessor: Func): Func & FuncExtensions<Func>;
-	<Func extends (this: AccessorCallPlan|void, ...args: any[])=>any, StoreShape = StoreShape_PreSet>(name: string, options: Partial<AccessorOptions<StoreShape>>,		accessor: Func): Func & FuncExtensions<Func>;
+	<Func extends AccessInnerFunc_Basic,   StoreShape = StoreShape_PreSet>(                                                 accessor: Func): Func & FuncExtensions<Func>;
+	<Func extends AccessInnerFunc_Basic,   StoreShape = StoreShape_PreSet>(              options: Options_Ctx0<StoreShape>, accessor: Func): Func & FuncExtensions<Func>;
+	<Func extends AccessInnerFunc_Basic,   StoreShape = StoreShape_PreSet>(name: string,                                    accessor: Func): Func & FuncExtensions<Func>;
+	<Func extends AccessInnerFunc_Basic,   StoreShape = StoreShape_PreSet>(name: string, options: Options_Ctx0<StoreShape>, accessor: Func): Func & FuncExtensions<Func>;
+
+	// Type-helper variants of the above functions (well, those with an options parameter), marking their "this" pseudo-parameters to explicitly be of type "AccessorCallPlan".
+	// Helpful for accessors that make use of "this" (ie. the accessor-call-plan/context-object). (see "ctx" param of AccessorOptions for more info)
+	// Note: Why have user mark with `{ctx: 1}`, not `(this: AccessorCallPlan)`? This way, explanation is easier to find (just hover over the "ctx" field). Also, less ugly when param comments/inline-doc-text are needed.
+	<Func extends AccessInnerFunc_CtxUsed, StoreShape = StoreShape_PreSet>(              options: Options_Ctx1<StoreShape>, accessor: Func): OmitThisParameter<Func> & FuncExtensions<Func>;
+	<Func extends AccessInnerFunc_CtxUsed, StoreShape = StoreShape_PreSet>(name: string, options: Options_Ctx1<StoreShape>, accessor: Func): OmitThisParameter<Func> & FuncExtensions<Func>;
 }
-// I want to use the approach below, but the TS type-inference for args (after removing the 1st one) is still not perfect; it strips the types of "paramName = defaultVal" entries, and param comments
-/*export declare type ArgumentsType_ExceptFirst<F extends (firstArg: any, ...args: any[]) => any> = F extends (firstArg: any, ...args: infer A) => any ? A : never;
-export type AccessorWithContext = (context: AccessorContext, ...args: any[])=>any;
-export type AccessorWithContext_CallShape<Func extends AccessorWithContext> = ((...args: ArgumentsType_ExceptFirst<Func>)=>ReturnType<Func>);
-interface CreateAccessor_Shape2<RootState_PreSet = RootStoreShape> {
-	<Func extends AccessorWithContext, RootState = RootState_PreSet>(accessor: Func): AccessorWithContext_CallShape<Func> & FuncExtensions<Func>;
-	...
-}*/
+/* eslint-enable no-multi-spaces, space-in-parens */
 
 /**
 Probably temp. Usage:
@@ -81,13 +81,15 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=>{
 	else if (args.length == 2) [name, accessor] = args;
 	else [name, options, accessor] = args;
 
-	name = name ?? accessor.toString();
+	name = name ?? accessor.name;
+	const id = name ?? accessor.toString();
 	const meta = new AccessorMetadata({
 		name,
+		id,
 		options: E(AccessorOptions.default, options!),
 		accessor,
 	});
-	accessorMetadata.set(name, meta);
+	accessorMetadata.set(id, meta);
 	const opt = meta.options;
 
 	const wrapperAccessor = (...callArgs)=>{
@@ -115,7 +117,7 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=>{
 				ex["callPlan"] = callPlan;
 				if (ex.message == "[generic bail error]") {
 					ex.message += `\n@callPlan:${callPlan.toString()}`;
-					ex.message += `\n@accessor:${accessor.name || accessor.toString()}`;
+					ex.message += `\n@accessor:${id}`;
 				}
 
 				/*if (isRootAccessor) {
@@ -127,6 +129,8 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=>{
 		} finally {
 			graph.callPlan_callStack.pop();
 
+			// You can access this profiling-data from the `accessorMetadata` field, exported from `@AccessorMetadata.ts`
+			// Example: `RR.accessorMetadata.VValues().OrderByDescending(a=>a.profilingInfo.runTime_sum)`
 			if (globalThis.DEV_DYN) {
 				const runTime = performance.now() - startTime;
 				meta.profilingInfo.NotifyOfCall(runTime, resultIsCached, error);

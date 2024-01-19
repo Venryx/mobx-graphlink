@@ -9,6 +9,7 @@ import {BailError} from "../Utils/General/BailManager.js";
 const { DeepMap } = deepMap_; // wrapper for ts-node (eg. init-db scripts)*/
 import {DeepMap} from "../Utils/General/DeepMap.js";
 import {AccessorCallPlan, CallPlanMeta} from "./@AccessorCallPlan.js";
+import {n} from "../Utils/@Internal/Types.js";
 
 //export class AccessorOptions<T> {
 export class AccessorOptions<RootState = any, DBShape = any> {
@@ -24,6 +25,23 @@ export class AccessorOptions<RootState = any, DBShape = any> {
 	cache_unwrapArrays = true;
 	//callArgToDependencyConvertorFunc?: CallArgToDependencyConvertorFunc;
 
+	/**
+	 * Set this field to 1, if (and only if) the accessor needs to access the "accessor context" (technically the `AccessorCallPlan` object),
+	 * 	for type-safe access to contextual info (eg. the mobx store) that are not available from the passed arguments alone.
+	 * This flag does not actually change runtime behavior at all; it's used simply to preserve type-data with less fuss (ie. without having to use `as` casts).
+	 * 
+	 * Example usage (recommended approach):  
+	 * ```const GetUserAge = CreateAccessor({ctx: 1}, function(username: string) { this.store.userAges.get(username); })```
+	 * 
+	 * Alternative (without using the ctx param; not recommended):  
+	 * ```const GetUserAge = CreateAccessor(function(username: string) { (this as AccessorCallPlan).store.userAges.get(username); })```
+	 * 
+	 * While using the ctx param is recommended, it does have two drawbacks:
+	 * * It results in the stripping of param comments/inline-doc-text. (not a problem for me, since I prefer info placed in the function doc-text rather than param doc-text anyway)
+	 * * It prevents type-inference for params with default-values. (their types can still be marked explicitly though; a bit annoying, but not a big deal, and not needed that often)
+	 */
+	declare ctx?: 1|n;
+
 	/** Short for bail-result. */
 	//onBail: T;
 	//onBail: any;
@@ -36,6 +54,7 @@ export class AccessorMetadata {
 		Object.assign(this, data);
 	}
 	name: string;
+	id: string;
 	options: AccessorOptions;
 	accessor: Function;
 
@@ -68,12 +87,14 @@ export class AccessorMetadata {
 	mobxCacheOpts: IComputedValueOptions<any> = {};
 	callPlans = new DeepMap<AccessorCallPlan>();
 	callPlanMetas = [] as CallPlanMeta[]; // stored separately, because the meta should be kept even after the call-plan itself is unobserved->destroyed
-	callPlansStored = 0;
+	callPlansCreated = 0; // todo: maybe remove this (could use callPlanMetas.length instead)
+	callPlansActive = 0;
 	GetCallPlan(graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[], useCache: boolean) {
-		const callPlan_new_index = useCache ? this.callPlansStored : -1;
+		const callPlan_new_index = useCache ? this.callPlansCreated : -1;
 		const callPlan_new = new AccessorCallPlan(this, graph, store, catchItemBails, catchItemBails_asX, callArgs, callPlan_new_index, ()=>{
 			if (useCache) {
 				this.callPlans.entry(cacheKey).delete();
+				this.callPlansActive--;
 			}
 		});
 		callPlan_new.callPlanMeta = this.callPlanMetas[callPlan_new.callPlanIndex] ?? new CallPlanMeta(callPlan_new);
@@ -84,7 +105,8 @@ export class AccessorMetadata {
 		if (!entry.exists()) {
 			entry.set(callPlan_new);
 			this.callPlanMetas[callPlan_new_index] = callPlan_new.callPlanMeta;
-			this.callPlansStored++;
+			this.callPlansCreated++;
+			this.callPlansActive++;
 		}
 		return entry.get();
 	}

@@ -19,12 +19,12 @@ if (Function.prototype.Normal != null) {
 }
 else {
     Object.defineProperty(Function.prototype, "Normal", { get() { return this; } });
-    Object.defineProperty(Function.prototype, "BIN", { value: function (...args) {
+    Object.defineProperty(Function.prototype, "BIN", { value(...args) {
             const result = this.apply(null, args);
             BailIfNull(result, `Function "${this.name}" returned value ${result}, which violates a non-null type-guard. Execution will bubble-up until it hits a bail-handler. The caller will try again once the underlying data changes.`);
             return result;
         } });
-    Object.defineProperty(Function.prototype, "BILA", { value: function (...args) {
+    Object.defineProperty(Function.prototype, "BILA", { value(...args) {
             const result = this.apply(null, args);
             BailUnless(result != emptyArray_forLoading, `Function "${this.name}" returned value equal to emptyArray_loading, which violates a non-loading-array type-guard. Execution will bubble-up until it hits a bail-handler. The caller will try again once the underlying data changes.`);
             return result;
@@ -46,13 +46,10 @@ export function CatchBail(bailResultOrGetter, func, args, thisArg) {
             const bailResult = bailResultOrGetter instanceof Function ? bailResultOrGetter() : bailResultOrGetter;
             return bailResult;
         }
-        else {
-            throw ex;
-        }
+        throw ex;
     }
     return result;
 }
-;
 export let bailContext;
 export function Bail(messageOrMessageFunc, triggerDebugger = false) {
     let message = messageOrMessageFunc instanceof Function ? messageOrMessageFunc() : messageOrMessageFunc;
@@ -61,8 +58,8 @@ export function Bail(messageOrMessageFunc, triggerDebugger = false) {
         // if in accessor-call-stack, use that to make a more informative bail-message
         if (lastRunAccessor_meta) {
             //message = `[generic bail error, at: ${accessorCallStack.map(a=>GetAccessorName(a.meta.accessor)).join("->")}]`
-            //message = `[generic bail error, at: ${accessorCallStack.map(a=>a.meta.accessor.name).join("->")}]`
-            message = `[generic bail error, at: ${lastRunAccessor_meta.accessor.name || lastRunAccessor_meta.accessor.toString()}]`
+            //message = `[generic bail error, at: ${accessorCallStack.map(a=>a.meta.name).join("->")}]`
+            message = `[generic bail error, at: ${lastRunAccessor_meta.name}]`
         } else {
             message = "[generic bail error]";
         }*/

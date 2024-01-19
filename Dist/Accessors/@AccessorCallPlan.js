@@ -84,7 +84,7 @@ export class AccessorCallPlan {
         }
         // create new entry
         this.cachedResult_wrapper = computed(() => this.accessorMeta.accessor.apply(this, this.callArgs), {
-            name: `computedFn(${this.accessorMeta.accessor.name}#${++this.callPlanIndex})`,
+            name: `computedFn(${this.accessorMeta.name}#${++this.callPlanIndex})`,
             keepAlive: (_a = this.accessorMeta.options.cache_keepAlive) !== null && _a !== void 0 ? _a : false,
             equals: (_b = this.accessorMeta.options.cache_comparer) !== null && _b !== void 0 ? _b : undefined,
         });

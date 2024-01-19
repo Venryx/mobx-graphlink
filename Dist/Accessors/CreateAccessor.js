@@ -14,14 +14,7 @@ export function WithStore(graphRefs, store, accessorFunc) {
     }
     return result;
 }
-// I want to use the approach below, but the TS type-inference for args (after removing the 1st one) is still not perfect; it strips the types of "paramName = defaultVal" entries, and param comments
-/*export declare type ArgumentsType_ExceptFirst<F extends (firstArg: any, ...args: any[]) => any> = F extends (firstArg: any, ...args: infer A) => any ? A : never;
-export type AccessorWithContext = (context: AccessorContext, ...args: any[])=>any;
-export type AccessorWithContext_CallShape<Func extends AccessorWithContext> = ((...args: ArgumentsType_ExceptFirst<Func>)=>ReturnType<Func>);
-interface CreateAccessor_Shape2<RootState_PreSet = RootStoreShape> {
-    <Func extends AccessorWithContext, RootState = RootState_PreSet>(accessor: Func): AccessorWithContext_CallShape<Func> & FuncExtensions<Func>;
-    ...
-}*/
+/* eslint-enable no-multi-spaces, space-in-parens */
 /**
 Probably temp. Usage:
 export const CreateAccessor_Typed = Create_CreateAccessor_Typed<RootStoreShape>();
@@ -50,13 +43,15 @@ export const CreateAccessor = (...args) => {
         [name, accessor] = args;
     else
         [name, options, accessor] = args;
-    name = name !== null && name !== void 0 ? name : accessor.toString();
+    name = name !== null && name !== void 0 ? name : accessor.name;
+    const id = name !== null && name !== void 0 ? name : accessor.toString();
     const meta = new AccessorMetadata({
         name,
+        id,
         options: E(AccessorOptions.default, options),
         accessor,
     });
-    accessorMetadata.set(name, meta);
+    accessorMetadata.set(id, meta);
     const opt = meta.options;
     const wrapperAccessor = (...callArgs) => {
         // initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
@@ -82,7 +77,7 @@ export const CreateAccessor = (...args) => {
                 ex["callPlan"] = callPlan;
                 if (ex.message == "[generic bail error]") {
                     ex.message += `\n@callPlan:${callPlan.toString()}`;
-                    ex.message += `\n@accessor:${accessor.name || accessor.toString()}`;
+                    ex.message += `\n@accessor:${id}`;
                 }
                 /*if (isRootAccessor) {
                     return opt.onBail; // if not set, will be "undefined", which is fine (it's traditionally what I've used to indicate "still loading")
@@ -93,6 +88,8 @@ export const CreateAccessor = (...args) => {
         }
         finally {
             graph.callPlan_callStack.pop();
+            // You can access this profiling-data from the `accessorMetadata` field, exported from `@AccessorMetadata.ts`
+            // Example: `RR.accessorMetadata.VValues().OrderByDescending(a=>a.profilingInfo.runTime_sum)`
             if (globalThis.DEV_DYN) {
                 const runTime = performance.now() - startTime;
                 meta.profilingInfo.NotifyOfCall(runTime, resultIsCached, error);

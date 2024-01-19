@@ -4,7 +4,7 @@ export declare function LogAccessorMetadatas(): void;
 export declare function GetAccessorRunInfos(): ({
     name: string;
 } & Omit<ProfilingInfo, "NotifyOfCall"> & {
-    callPlansStored: number;
+    callPlansCreated: number;
     rest: AccessorMetadata;
 })[];
 export declare function LogAccessorRunInfos(): void;
