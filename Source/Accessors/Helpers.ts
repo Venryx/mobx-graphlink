@@ -97,15 +97,12 @@ export class GetAsync_Options {
 	errorHandling_during? = "ignore" as GetAsync_ErrorHandleType;
 	/** How to handle errors that occur in accessor, when no db-requests are still in progress. (ie. on final accessor call) */
 	errorHandling_final? = "reject" as GetAsync_ErrorHandleType;
-	/** If true, db requests within dataGetterFunc that find themselves waiting for remote db-data, with throw an error immediately. (avoiding higher-level processing) */
-	//throwImmediatelyOnDBWait? = false; // todo: probably remove this, since it's redundant now I think (given the bail-error system`)
+
+	// todo: maybe add these fields, to customize whether/what-type of cache-blocking to use
+	//blockCallPlanEntryCacheUsage?: boolean; // blocks "finding" of any existing `CallPlan` entries, for the tree of accessor-invocations that occur within `dataGetterFunc` [active atm, and needed for GetAsync to know when it has "resolved"]
+	//blockCallPlanResultCacheUsage?: boolean; // blocks usage of `AccessorCallPlan.cachedResult_wrapper` [not yet implemented; probably not necessary, though may be cleaner alternative to `blockCallPlanEntryCacheUsage`]
+	//blockTreeNodeDataCacheUsage?: boolean; // if this caching is blocked alongside one/both of the cache-types above, fresh data will be requested from the db (well, assuming the apollo-client layer is not caching it anyway) [not yet implemented]
 }
-/*export let GetAsync_throwImmediatelyOnDBWait_activeDepth = 0;
-export function NotifyWaitingForDB(dbPath: string) {
-	if (GetAsync_throwImmediatelyOnDBWait_activeDepth > 0) {
-		throw new BailError(`DB tree-node for "${dbPath}" is waiting for database data that isn't ready yet. Throwing error now (to avoid higher-level processing) until data is ready.`);
-	}
-}*/
 
 // async helper
 // (one of the rare cases where opt is not the first argument; that's because GetAsync may be called very frequently/in-sequences, and usually wraps nice user accessors, so could add too much visual clutter)
@@ -144,7 +141,6 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<GetAs
 
 			// prep for getter-func
 			watcher.Start();
-			//if (options?.throwImmediatelyOnDBWait) GetAsync_throwImmediatelyOnDBWait_activeDepth++;
 			// flip some flag here to say, "don't use cached data -- re-request!"
 			opt.graph.storeAccessorCachingTempDisabled = true;
 			let result;
@@ -181,7 +177,6 @@ export async function GetAsync<T>(dataGetterFunc: ()=>T, options?: Partial<GetAs
 
 			// cleanup for getter-func
 			opt.graph.storeAccessorCachingTempDisabled = false;
-			//if (options?.throwImmediatelyOnDBWait) GetAsync_throwImmediatelyOnDBWait_activeDepth--;
 			watcher.Stop();
 
 			const nodesRequested_array = Array.from(watcher.nodesRequested);

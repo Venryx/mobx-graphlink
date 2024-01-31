@@ -87,7 +87,7 @@ export class AccessorMetadata {
 	mobxCacheOpts: IComputedValueOptions<any> = {};
 	callPlans = new DeepMap<AccessorCallPlan>();
 	callPlanMetas = [] as CallPlanMeta[]; // stored separately, because the meta should be kept even after the call-plan itself is unobserved->destroyed
-	callPlansCreated = 0; // todo: maybe remove this (could use callPlanMetas.length instead)
+	callPlansCreated = 0; // Why not just use callPlanMetas.length? Because I'll probably add an option to disable call-plan-meta storing for accessors with frequently changing arguments (eg. time-progression).
 	callPlansActive = 0;
 	GetCallPlan(graph: Graphlink<UT_StoreShape, any>, store: UT_StoreShape, catchItemBails: boolean, catchItemBails_asX: any, callArgs: any[], useCache: boolean) {
 		const callPlan_new_index = useCache ? this.callPlansCreated : -1;
@@ -117,6 +117,11 @@ export class ProfilingInfo {
 	calls_cached = 0;
 	calls_waited = 0;
 
+	overheadTime_sum = 0;
+	overheadTime_first = 0;
+	overheadTime_min = 0;
+	overheadTime_max = 0;
+
 	runTime_sum = 0;
 	runTime_first = 0;
 	runTime_min = 0;
@@ -128,7 +133,7 @@ export class ProfilingInfo {
 	waitTime_max = 0;
 
 	currentWaitTime_startedAt: number|undefined;
-	NotifyOfCall(runTime: number, cached: boolean, error: BailError | Error | string) {
+	NotifyOfCall(runTime: number, overheadTime: number, cached: boolean, error: BailError | Error | string) {
 		let waitTime = 0;
 		const waitActiveFromLastCall = this.currentWaitTime_startedAt != null;
 		if (waitActiveFromLastCall) {
@@ -142,6 +147,11 @@ export class ProfilingInfo {
 		this.calls++;
 		if (cached) this.calls_cached++;
 		if (waitActiveFromLastCall) this.calls_waited++;
+
+		this.overheadTime_sum += overheadTime;
+		if (this.calls == 1) this.overheadTime_first = overheadTime;
+		this.overheadTime_min = this.calls == 1 ? overheadTime : Math.min(overheadTime, this.overheadTime_min);
+		this.overheadTime_max = this.calls == 1 ? overheadTime : Math.max(overheadTime, this.overheadTime_max);
 
 		this.runTime_sum += runTime;
 		if (this.calls == 1) this.runTime_first = runTime;

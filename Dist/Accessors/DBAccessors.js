@@ -59,7 +59,6 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
     // always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
     const data = treeNode === null || treeNode === void 0 ? void 0 : treeNode.DocDatas_ForDirectSubscriber;
     if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
-        //NotifyWaitingForDB(pathSegments.join("/"));
         if (opt.ifLoading_bail) {
             Bail(opt.ifLoading_bail_message);
         }
@@ -115,7 +114,6 @@ export function GetDoc(options, docPathOrGetterFunc) {
     // always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
     const data = treeNode === null || treeNode === void 0 ? void 0 : treeNode.Data_ForDirectSubscriber;
     if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
-        //NotifyWaitingForDB(pathSegments.join("/"));
         if (opt.ifLoading_bail) {
             Bail(opt.ifLoading_bail_message);
         }

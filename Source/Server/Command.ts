@@ -159,7 +159,8 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	async Validate_Async(options?: Partial<GraphRefs> & GetAsync_Options) {
 		//await GetAsync(()=>this.Validate(), E({errorHandling: "ignore"}, IsNumber(maxIterations) && {maxIterations}));
 		//await GetAsync(()=>this.Validate(), {errorHandling: "ignore", maxIterations: OmitIfFalsy(maxIterations)});
-		await GetAsync(()=>this.Validate_Full(), E({throwImmediatelyOnDBWait: true} as Partial<GetAsync_Options>, options));
+		//await GetAsync(()=>this.Validate_Full(), E({throwImmediatelyOnDBWait: true} as Partial<GetAsync_Options>, options));
+		await GetAsync(()=>this.Validate_Full(), options);
 	}
 	async Validate_Async_Safe(options?: Partial<GraphRefs> & GetAsync_Options): Promise<string|undefined> {
 		try {

@@ -30,7 +30,7 @@ export class AccessorMetadata {
         this.mobxCacheOpts = {};
         this.callPlans = new DeepMap();
         this.callPlanMetas = []; // stored separately, because the meta should be kept even after the call-plan itself is unobserved->destroyed
-        this.callPlansCreated = 0; // todo: maybe remove this (could use callPlanMetas.length instead)
+        this.callPlansCreated = 0; // Why not just use callPlanMetas.length? Because I'll probably add an option to disable call-plan-meta storing for accessors with frequently changing arguments (eg. time-progression).
         this.callPlansActive = 0;
         Object.assign(this, data);
     }
@@ -75,6 +75,10 @@ export class ProfilingInfo {
         this.calls = 0;
         this.calls_cached = 0;
         this.calls_waited = 0;
+        this.overheadTime_sum = 0;
+        this.overheadTime_first = 0;
+        this.overheadTime_min = 0;
+        this.overheadTime_max = 0;
         this.runTime_sum = 0;
         this.runTime_first = 0;
         this.runTime_min = 0;
@@ -84,7 +88,7 @@ export class ProfilingInfo {
         this.waitTime_min = 0;
         this.waitTime_max = 0;
     }
-    NotifyOfCall(runTime, cached, error) {
+    NotifyOfCall(runTime, overheadTime, cached, error) {
         let waitTime = 0;
         const waitActiveFromLastCall = this.currentWaitTime_startedAt != null;
         if (waitActiveFromLastCall) {
@@ -99,6 +103,11 @@ export class ProfilingInfo {
             this.calls_cached++;
         if (waitActiveFromLastCall)
             this.calls_waited++;
+        this.overheadTime_sum += overheadTime;
+        if (this.calls == 1)
+            this.overheadTime_first = overheadTime;
+        this.overheadTime_min = this.calls == 1 ? overheadTime : Math.min(overheadTime, this.overheadTime_min);
+        this.overheadTime_max = this.calls == 1 ? overheadTime : Math.max(overheadTime, this.overheadTime_max);
         this.runTime_sum += runTime;
         if (this.calls == 1)
             this.runTime_first = runTime;

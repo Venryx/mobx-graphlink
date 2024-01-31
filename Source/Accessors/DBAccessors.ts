@@ -69,7 +69,6 @@ export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphRefs<
 	const data = treeNode?.DocDatas_ForDirectSubscriber;
 
 	if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
-		//NotifyWaitingForDB(pathSegments.join("/"));
 		if (opt.ifLoading_bail) {
 			Bail(opt.ifLoading_bail_message);
 		}
@@ -128,7 +127,6 @@ export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphRefs<a
 	const data = treeNode?.Data_ForDirectSubscriber;
 
 	if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
-		//NotifyWaitingForDB(pathSegments.join("/"));
 		if (opt.ifLoading_bail) {
 			Bail(opt.ifLoading_bail_message);
 		}

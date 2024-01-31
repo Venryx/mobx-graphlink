@@ -4,7 +4,10 @@ import { AccessorCallPlan } from "./@AccessorCallPlan.js";
 import { AccessorOptions } from "./@AccessorMetadata.js";
 export declare function WithStore<T>(graphRefs: Partial<GraphRefs>, store: any, accessorFunc: () => T): T;
 type FuncExtensions<Func> = {
+    /** Func.Async(...) is shortcut for GetAsync(()=>Func(...)) */
     Async: Func extends ((..._: infer Args) => infer ReturnTypeX) ? (..._: Args) => Promise<ReturnTypeX> : never;
+    /** First tries to call the wrapper-accessor directly/without-await. If the result is non-null, returns that synchronously; else, calls Func.Async(...) and returns its promise. */
+    /** Func.Wait(thing) is shortcut for GetWait(()=>Func(thing)) */
     Wait: Func;
     CatchBail: Func extends ((..._: infer Args) => infer ReturnTypeX) ? <T>(bailResultOrGetter: T, ..._: Args) => NonNullable<ReturnTypeX> | (T extends (() => any) ? ReturnType<T> : T) : never;
 };

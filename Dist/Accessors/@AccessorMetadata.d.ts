@@ -57,6 +57,10 @@ export declare class ProfilingInfo {
     calls: number;
     calls_cached: number;
     calls_waited: number;
+    overheadTime_sum: number;
+    overheadTime_first: number;
+    overheadTime_min: number;
+    overheadTime_max: number;
     runTime_sum: number;
     runTime_first: number;
     runTime_min: number;
@@ -66,5 +70,5 @@ export declare class ProfilingInfo {
     waitTime_min: number;
     waitTime_max: number;
     currentWaitTime_startedAt: number | undefined;
-    NotifyOfCall(runTime: number, cached: boolean, error: BailError | Error | string): void;
+    NotifyOfCall(runTime: number, overheadTime: number, cached: boolean, error: BailError | Error | string): void;
 }

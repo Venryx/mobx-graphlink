@@ -132,7 +132,8 @@ export class Command {
     async Validate_Async(options) {
         //await GetAsync(()=>this.Validate(), E({errorHandling: "ignore"}, IsNumber(maxIterations) && {maxIterations}));
         //await GetAsync(()=>this.Validate(), {errorHandling: "ignore", maxIterations: OmitIfFalsy(maxIterations)});
-        await GetAsync(() => this.Validate_Full(), E({ throwImmediatelyOnDBWait: true }, options));
+        //await GetAsync(()=>this.Validate_Full(), E({throwImmediatelyOnDBWait: true} as Partial<GetAsync_Options>, options));
+        await GetAsync(() => this.Validate_Full(), options);
     }
     async Validate_Async_Safe(options) {
         var _a;

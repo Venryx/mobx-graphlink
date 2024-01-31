@@ -22,17 +22,25 @@ export function WithStore<T>(graphRefs: Partial<GraphRefs>, store: any, accessor
 	: never;*/
 // these extensions are only present on functions returned by CreateAccessor (see bottom of file)
 type FuncExtensions<Func> = {
+	/** Func.Async(...) is shortcut for GetAsync(()=>Func(...)) */
 	Async: Func extends ((..._: infer Args)=>infer ReturnTypeX)
 		? (..._: Args)=>Promise<ReturnTypeX>
 		: never,
+	/** First tries to call the wrapper-accessor directly/without-await. If the result is non-null, returns that synchronously; else, calls Func.Async(...) and returns its promise. */
+	/*AsyncMaybe: Func extends ((..._: infer Args)=>infer ReturnTypeX)
+		? (..._: Args)=>(ReturnTypeX | Promise<ReturnTypeX>)
+		: never,*/
+	/** Func.Wait(thing) is shortcut for GetWait(()=>Func(thing)) */
+	// Note: This function doesn't really have a purpose atm, now that "bailing" system is in place.
 	Wait: Func,
-	// other functions, like BIN and BILA, are provided in BailManager.ts as Function.prototype extensions
 	CatchBail: Func extends ((..._: infer Args)=>infer ReturnTypeX)
 		? <T>(bailResultOrGetter: T, ..._: Args)=>NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T)
 		: never,
 	/*CatchItemBails: Func extends ((..._: infer Args)=>infer ReturnTypeX)
 		? <T>(itemBailResult: T, ..._: Args)=>NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T)
 		: never,*/
+
+	// note: some other functions, like Normal and BIN and BILA, are provided in BailManager.ts as Function.prototype extensions
 };
 
 type AccessInnerFunc_Basic = Function;
@@ -93,6 +101,8 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=>{
 	const opt = meta.options;
 
 	const wrapperAccessor = (...callArgs)=>{
+		const prepTime_start = globalThis.DEV_DYN ? performance.now() : -1;
+
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
 		//let accOpt = E(AccessorOptions.default, defaultGraphOptions, CE(opt).IncludeKeys("graph"));
 		// overrides are handled this way for performance reasons // edit: I am skeptical that it actually makes a significant difference... (but will leave it alone for now)
@@ -105,10 +115,10 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=>{
 		meta.ResetNextCallFields();
 
 		let result, error;
-		const startTime = globalThis.DEV_DYN ? performance.now() : -1;
 		graph.callPlan_callStack.push(callPlan);
 		//const isRootAccessor = graph.accessorContext.accessorCallStack.length == 1;
 		const resultIsCached = callPlan.cachedResult_wrapper != null;
+		const runTime_start = globalThis.DEV_DYN ? performance.now() : -1;
 		try {
 			result = callPlan.Call_OrReturnCache();
 		} catch (ex) {
@@ -132,9 +142,10 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=>{
 			// You can access this profiling-data from the `accessorMetadata` field, exported from `@AccessorMetadata.ts`
 			// Example: `RR.accessorMetadata.VValues().OrderByDescending(a=>a.profilingInfo.runTime_sum)`
 			if (globalThis.DEV_DYN) {
-				const runTime = performance.now() - startTime;
-				meta.profilingInfo.NotifyOfCall(runTime, resultIsCached, error);
-				callPlan.callPlanMeta.profilingInfo.NotifyOfCall(runTime, resultIsCached, error);
+				const overheadTime = runTime_start - prepTime_start;
+				const runTime = performance.now() - runTime_start;
+				meta.profilingInfo.NotifyOfCall(runTime, overheadTime, resultIsCached, error);
+				callPlan.callPlanMeta.profilingInfo.NotifyOfCall(runTime, overheadTime, resultIsCached, error);
 				/*if (isRootAccessor) {
 					meta.totalRunTime_asRoot += runTime;
 				}*/
@@ -144,7 +155,7 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=>{
 		return result;
 	};
 
-	/** Func.Async(...) is shortcut for GetAsync(()=>Func(...)) */
+	// see `type FuncExtensions` above for doc-text for these extensions
 	wrapperAccessor.Async = (...callArgs)=>{
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
 		const opt = E(AccessorOptions.default, options!) as Partial<GraphRefs> & AccessorOptions;
@@ -152,8 +163,11 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=>{
 
 		return GetAsync(()=>wrapperAccessor(...callArgs), graphRefs);
 	};
-	// Func.Wait(thing) is shortcut for GetWait(()=>Func(thing))
-	// Note: This function doesn't really have a purpose atm, now that "bailing" system is in place.
+	/*wrapperAccessor.AsyncMaybe = (...callArgs)=>{
+		const result = wrapperAccessor(...callArgs);
+		if (result != null) return result;
+		return wrapperAccessor.Async(...callArgs);
+	};*/
 	wrapperAccessor.Wait = (...callArgs)=>{
 		// initialize these in wrapper-accessor rather than root-func, because defaultFireOptions is usually not ready when root-func is called
 		const opt = E(AccessorOptions.default, options!) as Partial<GraphRefs> & AccessorOptions;
