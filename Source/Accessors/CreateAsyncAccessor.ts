@@ -11,7 +11,7 @@ export class AsyncToObservablePack<T> {
 	startIfNotYet: ()=>void;
 }
 export function CreateAsyncAccessor<Func extends(...args: any[])=>Promise<any>>(accessorFunc: Func) {
-	const packAccessor = CreateAccessor((...args)=>{
+	const packAccessor = CreateAccessor(function(...args) {
 		const pack = {
 			started: false,
 			completionEvent: createAtom("completionEvent"),
@@ -20,7 +20,7 @@ export function CreateAsyncAccessor<Func extends(...args: any[])=>Promise<any>>(
 				if (pack.started) return;
 				pack.started = true;
 				(async()=>{
-					pack.result = await accessorFunc(...args);
+					pack.result = await accessorFunc.apply(this, args);
 
 					// notify the observer (the regular-accessor below) that the result has been set
 					pack.completionEvent.reportChanged();

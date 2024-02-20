@@ -3,7 +3,7 @@ import { CreateAccessor } from "./CreateAccessor.js";
 export class AsyncToObservablePack {
 }
 export function CreateAsyncAccessor(accessorFunc) {
-    const packAccessor = CreateAccessor((...args) => {
+    const packAccessor = CreateAccessor(function (...args) {
         const pack = {
             started: false,
             completionEvent: createAtom("completionEvent"),
@@ -13,7 +13,7 @@ export function CreateAsyncAccessor(accessorFunc) {
                     return;
                 pack.started = true;
                 (async () => {
-                    pack.result = await accessorFunc(...args);
+                    pack.result = await accessorFunc.apply(this, args);
                     // notify the observer (the regular-accessor below) that the result has been set
                     pack.completionEvent.reportChanged();
                 })();
