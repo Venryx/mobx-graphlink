@@ -1,6 +1,6 @@
 import { g } from "./Utils/General/@PrivateExports.js";
 // warn about multiple lib instances
-let vLibCounts = (g["vLibCounts"] = g["vLibCounts"] || {});
+const vLibCounts = (g["vLibCounts"] = g["vLibCounts"] || {});
 vLibCounts["mobx-graphlink"] = (vLibCounts["mobx-graphlink"] || 0) + 1;
 if (vLibCounts["mobx-graphlink"] >= 2) {
     console.warn("More than one instance of mobx-graphlink loaded. This can cause issues, eg. with WrapDBValue.");
@@ -13,6 +13,7 @@ export * from "./Graphlink.js"; // main
 export * from "./Accessors/@AccessorMetadata.js";
 export * from "./Accessors/@AccessorCallPlan.js";
 export * from "./Accessors/CreateAccessor.js";
+export * from "./Accessors/CreateAsyncAccessor.js";
 export * from "./Accessors/DBAccessors.js";
 export * from "./Accessors/Helpers.js";
 export * from "./DBShape/Constructs.js";

@@ -2,6 +2,7 @@ export * from "./Graphlink.js";
 export * from "./Accessors/@AccessorMetadata.js";
 export * from "./Accessors/@AccessorCallPlan.js";
 export * from "./Accessors/CreateAccessor.js";
+export * from "./Accessors/CreateAsyncAccessor.js";
 export * from "./Accessors/DBAccessors.js";
 export * from "./Accessors/Helpers.js";
 export * from "./DBShape/Constructs.js";
