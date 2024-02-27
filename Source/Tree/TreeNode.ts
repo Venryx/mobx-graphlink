@@ -87,10 +87,13 @@ export class TreeNode<DataShape> {
 			this.query.CalculateDerivatives();
 		}
 
-		const oldNodesOnPath = nodesByPath.get(this.path) ?? [];
-		//Assert(oldNodesOnPath.length == 0, `Found another TreeNode with the exact same path! @path:${this.path}`);
-		AssertWarn(oldNodesOnPath.filter(a=>a.self_subscription != null).length == 0, `Found another TreeNode with the exact same path, with a live subscription! @path:${this.path}`);
-		nodesByPath.set(this.path, oldNodesOnPath.concat(this));
+		// only do these checks in dev-mode, since causes memory usage to keep going up (due to the map never being cleared)
+		if (globalThis.DEV_DYN) {
+			const oldNodesOnPath = nodesByPath.get(this.path) ?? [];
+			//Assert(oldNodesOnPath.length == 0, `Found another TreeNode with the exact same path! @path:${this.path}`);
+			AssertWarn(oldNodesOnPath.filter(a=>a.self_subscription != null).length == 0, `Found another TreeNode with the exact same path, with a live subscription! @path:${this.path}`);
+			nodesByPath.set(this.path, oldNodesOnPath.concat(this));
+		}
 
 		this.countSecondsWithoutObserver_timer = new Timer(this.graph.options.unsubscribeTreeNodesAfter, ()=>{
 			/*if (this.path_noQuery == "commandRuns/J5Vk5OYCRi-7tP6XtEBTQg") {
@@ -207,6 +210,7 @@ export class TreeNode<DataShape> {
 				query: this.query.GraphQLQuery,
 				variables: this.query.vars,
 			});
+			let lastSubscriptionResult_docIDs = [] as string[];
 			this.self_subscription = this.self_apolloObservable.subscribe({
 				next: data=>{
 					const docs = data.data[CE(this.pathSegments_noQuery).Last()].nodes;
@@ -215,8 +219,10 @@ export class TreeNode<DataShape> {
 
 					MaybeLog_Base(a=>a.subscriptions, l=>l(`Got collection snapshot. @path(${this.path}) @docs:`, docs));
 					this.graph.commitScheduler.ScheduleDataUpdateCommit(()=>{
-						const deletedDocIDs = CE(Array.from(this.docNodes.keys())).Exclude(...docs.map(a=>a.id));
+						const docIDs = docs.map(a=>a.id);
 						let dataChanged = false;
+
+						// for each doc in the new result-set, ensure a node exists for it, and set/update its "from parent" data
 						for (const doc of docs) {
 							if (!this.docNodes.has(doc.id)) {
 								this.docNodes.set(doc.id, new TreeNode(this.graph, this.pathSegments.concat([doc.id])));
@@ -224,15 +230,23 @@ export class TreeNode<DataShape> {
 							//dataChanged = this.docNodes.get(doc.id)!.SetData(doc.data(), fromCache) || dataChanged;
 							dataChanged = this.docNodes.get(doc.id)!.data_fromParent.SetData(doc, fromCache) || dataChanged;
 						}
-						for (const docID of deletedDocIDs) {
+
+						// if docs are leaving the result set, remove those nodes from the tree
+						const docIDsLeavingResultSet = CE(lastSubscriptionResult_docIDs).Exclude(...docIDs);
+						for (const docID of docIDsLeavingResultSet) {
 							const docNode = this.docNodes.get(docID);
 							dataChanged = docNode?.data_fromParent.SetData(null, fromCache) || dataChanged;
-							//docNode?.Unsubscribe(); // if someone subscribed directly, I guess we let them keep the detached subscription?
+
+							// if this collection-subscription was the only reason the leaving-result-set doc's node was attached, remove that node from the tree (we don't want to detach nodes with active subscriptions)
+							//if (docNode?.self_subscription == null) {
+
+							//docNode?.Unsubscribe(); // commented; unsubscribe not really needed (doc leaves collection -> list-ui updates -> old child-ui leaves -> doc-node unsubscribes organically after delay)
 							this.docNodes.delete(docID);
 						}
 
 						this.data_fromSelf.UpdateStatusAfterDataChange(dataChanged, fromCache);
 						this.self_subscriptionStatus = SubscriptionStatus.ReadyAndLive;
+						lastSubscriptionResult_docIDs = docIDs;
 					});
 				},
 				error: err=>console.error("SubscriptionError:", err), // Does an error here mean the subscription is no longer valid? If so, we should probably unsubscribe->resubscribe.
