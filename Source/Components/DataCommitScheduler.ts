@@ -9,12 +9,12 @@ export class DataCommitScheduler {
 
 	graph: Graphlink<any, any>;
 
-	scheduledCommit_status = "inactive" as "inactive" | "collecting" | "committing";
+	scheduledCommit_status = "inactive" as "inactive" | "collecting" | "committing" | "committing_briefPause";
 	scheduledCommit_collectionStartTime = 0;
 	scheduledCommit_commitFuncs = [] as Function[];
 	scheduledCommit_waitTimer: Timer;
 	//lastCommitTime = 0;
-	
+
 	ScheduleDataUpdateCommit(commitFunc: Function) {
 		// if we are starting a new buffered commit, mark the commit-func-collection start-time
 		if (this.scheduledCommit_status == "inactive") {
@@ -39,16 +39,18 @@ export class DataCommitScheduler {
 		const timerDelay = commitAtEndOfCallStack ? 0 : this.graph.options.dataUpdateBuffering_minWait;
 
 		this.scheduledCommit_waitTimer = new Timer(timerDelay, ()=>{
-			this.scheduledCommit_status = "committing";
 			const commitFuncsLeftToRun = this.scheduledCommit_commitFuncs.slice();
 			this.scheduledCommit_commitFuncs.length = 0;
 
 			// call the actual commit-funcs
 			const ProceedWithCommitting = ()=>{
+				this.scheduledCommit_status = "committing";
+				this.graph.inDataCommitChain = true;
+				const commitStartTime = Date.now();
+
 				// wrapping multiple commit-funcs in a single action is a nice idea, but the time-based throttling system doesn't really work then, since almost all the execution time is in running the reactions
 				// we leave it like this for now though, opting instead to rely on the "dataUpdateBuffering_commitSetMaxFuncCount" option
 				RunInAction("DataCommitScheduler.commit", ()=>{
-					const commitStartTime = Date.now();
 					let commitFuncsExecuted = 0;
 					while (commitFuncsLeftToRun.length > 0) {
 						const func = commitFuncsLeftToRun.shift()!;
@@ -62,19 +64,22 @@ export class DataCommitScheduler {
 							break;
 						}
 					}
-
-					// if we haven't run all the commit-funcs yet, schedule the next subset to run in a moment
-					if (commitFuncsLeftToRun.length > 0) {
-						setTimeout(ProceedWithCommitting, this.graph.options.dataUpdateBuffering_breakDuration);
-					} else {
-						this.scheduledCommit_status = "inactive";
-
-						// there were commit-funcs that wanted in on this set, but had to wait; kick off a new set for them
-						if (this.scheduledCommit_commitFuncs.length > 0) {
-							this.ScheduleDataUpdateCommit(()=>{});
-						}
-					}
 				});
+
+				// if we haven't run all the commit-funcs yet, schedule the next subset to run in a moment
+				if (commitFuncsLeftToRun.length > 0) {
+					this.scheduledCommit_status = "committing_briefPause";
+					this.graph.inDataCommitChain = false;
+					setTimeout(ProceedWithCommitting, this.graph.options.dataUpdateBuffering_breakDuration);
+				} else {
+					this.scheduledCommit_status = "inactive";
+					this.graph.inDataCommitChain = false;
+
+					// there were commit-funcs that wanted in on this set, but had to wait; kick off a new set for them
+					if (this.scheduledCommit_commitFuncs.length > 0) {
+						this.ScheduleDataUpdateCommit(()=>{});
+					}
+				}
 			};
 			ProceedWithCommitting();
 

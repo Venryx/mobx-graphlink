@@ -122,17 +122,30 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=>{
 		try {
 			result = callPlan.Call_OrReturnCache();
 		} catch (ex) {
+			// if error is a BailError, add more debugging info
 			if (ex instanceof BailError) {
-				// add more debugging info
-				ex["callPlan"] = callPlan;
+				//const ex_orig = ex;
+				ex = ex.WithCallPlanStackExtended(callPlan);
+
+				const newAccessorChainStr = ex.callPlanStack.map((plan, i)=>{
+					if (plan.accessorMeta.name) return plan.accessorMeta.name;
+					if (i == ex.callPlanStack.length - 1) return plan.accessorMeta.id; // fallback to showing full id for accessor, if name was null/empty
+					return "??";
+				}).join("/");
+
 				if (ex.message == "[generic bail error]") {
 					ex.message += `\n@callPlan:${callPlan.toString()}`;
-					ex.message += `\n@accessor:${id}`;
+					ex.message += `\n@accessorChain:${newAccessorChainStr}`;
+					//ex.message += ` @accessorChain:${graph.callPlan_callStack.map(a=>a.accessorMeta.name).join("/")}`;
+				} else if (ex.message.startsWith("[generic bail error]\n@callPlan:")) {
+					//ex.message = ex.message.replace(/@accessorChain:(.|\n)+/, `@accessorChain:${newAccessorChainStr}`);
+					ex.message = `${ex.message.split("@accessorChain:")[0]}@accessorChain:${newAccessorChainStr}`;
 				}
 
 				/*if (isRootAccessor) {
 					return opt.onBail; // if not set, will be "undefined", which is fine (it's traditionally what I've used to indicate "still loading")
 				}*/
+
 				error = ex;
 			}
 			throw ex;

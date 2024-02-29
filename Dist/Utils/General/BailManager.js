@@ -1,9 +1,17 @@
 import { emptyArray_forLoading } from "js-vextensions";
 export class BailError extends Error {
-    //static main = new BailMessage("[generic bail error]");
     constructor(message) {
         super(message);
+        //static main = new BailMessage("[generic bail error]");
+        /** Gets populated only in some cases (eg. by code in CreateAccessor func) */
+        this.callPlanStack = [];
         BailError.createdCount++;
+    }
+    /** We create a new error here (rather than extending the existing), since the "original error" can get thrown from multiple parent-accessors, and we need to build up their call-stacks independently. */
+    WithCallPlanStackExtended(callPlan) {
+        const newError = new BailError(this.message);
+        newError.callPlanStack = [callPlan, ...this.callPlanStack];
+        return newError;
     }
 }
 BailError.createdCount = 0; // for estimating the performance impact of the associated error-creations/stack-trace-unwinds (see: https://stackoverflow.com/questions/11502052/throwing-strings-instead-of-errors#comment120540097_27501348)

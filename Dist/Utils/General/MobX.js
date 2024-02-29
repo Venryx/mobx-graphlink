@@ -18,9 +18,18 @@ export function makeObservable_safe(target, annotations, options) {
 export function MobX_GetGlobalState() {
     return _getGlobalState();
 }
-export function RunInAction(name, action) {
+export function RunInAction(name, action, afterActionFunc) {
     Object.defineProperty(action, "name", { value: name });
-    return runInAction(action);
+    let result;
+    let actionErrored = true;
+    try {
+        result = runInAction(action);
+        actionErrored = false;
+    }
+    finally {
+        afterActionFunc === null || afterActionFunc === void 0 ? void 0 : afterActionFunc(actionErrored);
+    }
+    return result;
 }
 export function MobX_AllowStateChanges() {
     return MobX_GetGlobalState().allowStateChanges;
@@ -40,7 +49,7 @@ export function MobX_AllowStateChanges() {
  * Returns true if was able to run immediately; else, returns false.
  * */
 // old: * Supply the react module (using "ProvideReactModule(React)"") for this function to also protect from mobx-observable changes when a component is rendering.
-export function RunInAction_WhenAble(actionName, funcThatChangesObservables) {
+export function RunInAction_WhenAble(actionName, funcThatChangesObservables, afterActionFunc) {
     //const inMobXComputation = MobX_GetGlobalState().computationDepth > 0;
     /*const inMobXComputation = !MobX_GetGlobalState().allowStateChanges;
     const inReactRender = _reactModule?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner.current != null;*/
@@ -49,7 +58,7 @@ export function RunInAction_WhenAble(actionName, funcThatChangesObservables) {
     // (Can't change mobx observables within react-render, else change may trigger mobx to trigger a new react-render, which react dislikes and gives warning for.)
     //if (!inMobXComputation && !inReactRender) {
     if (MobX_AllowStateChanges()) {
-        RunInAction(actionName, funcThatChangesObservables);
+        RunInAction(actionName, funcThatChangesObservables, afterActionFunc);
         return true;
     }
     else { // eslint-disable-line
@@ -62,12 +71,12 @@ export function RunInAction_WhenAble(actionName, funcThatChangesObservables) {
             // 1) It provides more info in mobx-devtools. 
             // 2) It possibly affects the program flow a bit. (an issue, re. GetAsync() not reliably returning a db-entry, seemed to get a bit worse when this was removed; perhaps a fluke though)
             return RunInAction(actionName, funcThatChangesObservables);
-        });
+        }, afterActionFunc);
         return false;
     }
 }
 export const RunInNextTick_BundledInOneAction_funcs = [];
-export function RunInNextTick_BundledInOneAction(func) {
+export function RunInNextTick_BundledInOneAction(func, afterActionFunc) {
     const funcs = RunInNextTick_BundledInOneAction_funcs;
     funcs.push(func);
     if (funcs.length == 1) {
@@ -75,10 +84,10 @@ export function RunInNextTick_BundledInOneAction(func) {
             RunInAction("SharedAction", () => {
                 const funcs_copy = funcs.slice();
                 funcs.length = 0;
-                for (const func of funcs_copy) {
-                    func();
+                for (const func2 of funcs_copy) {
+                    func2();
                 }
-            });
+            }, afterActionFunc);
         });
     }
 }

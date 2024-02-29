@@ -60,9 +60,13 @@ export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphRefs<
 		}
 
 		// ensure a full attach+request is completed (in a moment, out of computation call-stack; we can't change observables from within computations)
-		RunInAction_WhenAble("GetDoc_Request", ()=>{
+		const inDataCommitChain_preWait = opt.graph.inDataCommitChain;
+		let inDataCommitChain_afterWait: boolean;
+		RunInAction_WhenAble("GetDocs_Request", ()=>{
+			inDataCommitChain_afterWait = opt.graph.inDataCommitChain;
+			if (inDataCommitChain_preWait) opt.graph.inDataCommitChain = inDataCommitChain_preWait;
 			opt.graph.tree.Get(pathSegments, opt.params, true)!.Request();
-		});
+		}, ()=>opt.graph.inDataCommitChain = inDataCommitChain_afterWait);
 	}
 
 	// always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
@@ -118,9 +122,13 @@ export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphRefs<a
 		}
 
 		// ensure a full attach+request is completed (in a moment, out of computation call-stack; we can't change observables from within computations)
+		const inDataCommitChain_preWait = opt.graph.inDataCommitChain;
+		let inDataCommitChain_afterWait: boolean;
 		RunInAction_WhenAble("GetDoc_Request", ()=>{
+			inDataCommitChain_afterWait = opt.graph.inDataCommitChain;
+			if (inDataCommitChain_preWait) opt.graph.inDataCommitChain = inDataCommitChain_preWait;
 			opt.graph.tree.Get(pathSegments, undefined, true)!.Request();
-		});
+		}, ()=>opt.graph.inDataCommitChain = inDataCommitChain_afterWait);
 	}
 
 	// always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)

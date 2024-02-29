@@ -1,7 +1,12 @@
 import { ArgumentsType } from "updeep/types/types";
+import { AccessorCallPlan } from "../../index.js";
 export declare class BailError extends Error {
     static createdCount: number;
+    /** Gets populated only in some cases (eg. by code in CreateAccessor func) */
+    callPlanStack: AccessorCallPlan[];
     constructor(message: string);
+    /** We create a new error here (rather than extending the existing), since the "original error" can get thrown from multiple parent-accessors, and we need to build up their call-stacks independently. */
+    WithCallPlanStackExtended(callPlan: AccessorCallPlan): BailError;
 }
 declare global {
     interface Function {

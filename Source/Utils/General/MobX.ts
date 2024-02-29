@@ -1,6 +1,7 @@
 import {runInAction, _getGlobalState, AnnotationsMap, CreateObservableOptions, makeObservable} from "mobx";
 import {WaitXThenRun} from "js-vextensions";
 import type {globalState} from "mobx/dist/internal.js";
+import {Graphlink} from "../../index.js";
 
 export let _reactModule;
 export function ProvideReactModule(reactModule: any) {
@@ -24,9 +25,17 @@ export function MobX_GetGlobalState() {
 	return _getGlobalState() as typeof globalState;
 }
 
-export function RunInAction(name: string, action: ()=>any) {
+export function RunInAction(name: string, action: ()=>any, afterActionFunc?: (actionErrored: boolean)=>any) {
 	Object.defineProperty(action, "name", {value: name});
-	return runInAction(action);
+	let result;
+	let actionErrored = true;
+	try {
+		result = runInAction(action);
+		actionErrored = false;
+	} finally {
+		afterActionFunc?.(actionErrored);
+	}
+	return result;
 }
 
 export function MobX_AllowStateChanges() {
@@ -49,7 +58,7 @@ export function MobX_AllowStateChanges() {
  * Returns true if was able to run immediately; else, returns false.
  * */
 // old: * Supply the react module (using "ProvideReactModule(React)"") for this function to also protect from mobx-observable changes when a component is rendering.
-export function RunInAction_WhenAble(actionName: string, funcThatChangesObservables: ()=>any): boolean {
+export function RunInAction_WhenAble(actionName: string, funcThatChangesObservables: ()=>any, afterActionFunc?: ()=>any): boolean {
 	//const inMobXComputation = MobX_GetGlobalState().computationDepth > 0;
 	/*const inMobXComputation = !MobX_GetGlobalState().allowStateChanges;
 	const inReactRender = _reactModule?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner.current != null;*/
@@ -60,7 +69,7 @@ export function RunInAction_WhenAble(actionName: string, funcThatChangesObservab
 	//if (!inMobXComputation && !inReactRender) {
 
 	if (MobX_AllowStateChanges()) {
-		RunInAction(actionName, funcThatChangesObservables);
+		RunInAction(actionName, funcThatChangesObservables, afterActionFunc);
 		return true;
 	} else { // eslint-disable-line
 		// else, wait till we're out of computation/render call-stack, *then* run it
@@ -73,13 +82,13 @@ export function RunInAction_WhenAble(actionName: string, funcThatChangesObservab
 			// 1) It provides more info in mobx-devtools. 
 			// 2) It possibly affects the program flow a bit. (an issue, re. GetAsync() not reliably returning a db-entry, seemed to get a bit worse when this was removed; perhaps a fluke though)
 			return RunInAction(actionName, funcThatChangesObservables);
-		});
+		}, afterActionFunc);
 		return false;
 	}
 }
 
 export const RunInNextTick_BundledInOneAction_funcs = [] as Function[];
-export function RunInNextTick_BundledInOneAction(func: Function) {
+export function RunInNextTick_BundledInOneAction(func: Function, afterActionFunc?: ()=>any) {
 	const funcs = RunInNextTick_BundledInOneAction_funcs;
 	funcs.push(func);
 	if (funcs.length == 1) {
@@ -87,10 +96,10 @@ export function RunInNextTick_BundledInOneAction(func: Function) {
 			RunInAction("SharedAction", ()=>{
 				const funcs_copy = funcs.slice();
 				funcs.length = 0;
-				for (const func of funcs_copy) {
-					func();
+				for (const func2 of funcs_copy) {
+					func2();
 				}
-			});
+			}, afterActionFunc);
 		});
 	}
 }

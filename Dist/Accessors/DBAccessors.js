@@ -52,9 +52,14 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
             opt.graph.treeRequestWatchers.forEach(a => a.nodesRequested.add(placeholder));
         }
         // ensure a full attach+request is completed (in a moment, out of computation call-stack; we can't change observables from within computations)
-        RunInAction_WhenAble("GetDoc_Request", () => {
+        const inDataCommitChain_preWait = opt.graph.inDataCommitChain;
+        let inDataCommitChain_afterWait;
+        RunInAction_WhenAble("GetDocs_Request", () => {
+            inDataCommitChain_afterWait = opt.graph.inDataCommitChain;
+            if (inDataCommitChain_preWait)
+                opt.graph.inDataCommitChain = inDataCommitChain_preWait;
             opt.graph.tree.Get(pathSegments, opt.params, true).Request();
-        });
+        }, () => opt.graph.inDataCommitChain = inDataCommitChain_afterWait);
     }
     // always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
     const data = treeNode === null || treeNode === void 0 ? void 0 : treeNode.DocDatas_ForDirectSubscriber;
@@ -107,9 +112,14 @@ export function GetDoc(options, docPathOrGetterFunc) {
             opt.graph.treeRequestWatchers.forEach(a => a.nodesRequested.add(placeholder));
         }
         // ensure a full attach+request is completed (in a moment, out of computation call-stack; we can't change observables from within computations)
+        const inDataCommitChain_preWait = opt.graph.inDataCommitChain;
+        let inDataCommitChain_afterWait;
         RunInAction_WhenAble("GetDoc_Request", () => {
+            inDataCommitChain_afterWait = opt.graph.inDataCommitChain;
+            if (inDataCommitChain_preWait)
+                opt.graph.inDataCommitChain = inDataCommitChain_preWait;
             opt.graph.tree.Get(pathSegments, undefined, true).Request();
-        });
+        }, () => opt.graph.inDataCommitChain = inDataCommitChain_afterWait);
     }
     // always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
     const data = treeNode === null || treeNode === void 0 ? void 0 : treeNode.Data_ForDirectSubscriber;

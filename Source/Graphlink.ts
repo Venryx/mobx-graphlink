@@ -152,6 +152,12 @@ export class Graphlink<StoreShape, DBShape> {
 	}*/
 
 	commitScheduler: DataCommitScheduler;
+	/**
+	 * This is set to true whenever a call-chain is running which was triggered by data being committed to the Graphlink tree. (ie. on data being received from server)
+	 * Example usage: For easier debugging of what userland code was running a particular accessor. (add conditional breakpoint, breaking only when `graph.inDataCommitChain == false`)
+	 * Related/alternative: `graph.callPlan_callStack.length > 1`
+	 * */
+	inDataCommitChain = false;
 	tree: TreeNode<DBShape>;
 	treeRequestWatchers = new Set<TreeRequestWatcher>();
 	//pathSubscriptions: Map<string, PathSubscription>;
