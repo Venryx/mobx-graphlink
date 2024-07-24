@@ -20,11 +20,25 @@ export class QueryParams {
     Clean() {
         if (this.filter) {
             const filterObj_final = Clone(this.filter);
-            for (const [key, value] of Object.entries(filterObj_final)) {
-                // first check blocks eg. "{filter: false && {...}}", and second check blocks eg. "{filter: {equalTo: null}}" (both would otherwise error)
-                const isValidFilterEntry = (value != null && typeof value == "object"); // && Object.values(value as any).filter(a=>a != null).length;
-                if (!isValidFilterEntry) {
+            // iterate on entries in this.filter (not filterObj_final), because Clone(...) strips away fields with value of `undefined` (and we want to raise an error if such a thing exists)
+            for (const [key, value] of Object.entries(this.filter)) {
+                // check for these valid (but empty) filters: {myField: null} OR {myField: false && {...}}
+                const isShortCircuit = value == null || value == false;
+                if (isShortCircuit) {
                     delete filterObj_final[key];
+                    continue;
+                }
+                // check for these invalid filters: {myField: 25} OR {myField: {}}
+                const baseErrStr = `Invalid filter-entry found in QueryParams`;
+                const isNonObjectOrUnpopulated = typeof value != "object" || Object.entries(value).length == 0;
+                if (isNonObjectOrUnpopulated)
+                    throw new Error(`${baseErrStr}: filter.${key} -> ${JSON.stringify(value)} (expected an object [with filter-ops inside], or null/false to short-circuit)`);
+                // check for these invalid filters: {myField: {equalTo: undefined}}
+                // (if you want myField to equal null, use `{equalTo: null}` rather than `{equalTo: undefined}`; undefined causes problems in javascript, eg. `Clone({myField: undefined})` becomes just `{}`)
+                const invalidOps = Object.entries(value).filter(entry => entry[1] === undefined);
+                if (invalidOps.length > 0) {
+                    const firstImproperOp = invalidOps[0][0];
+                    throw new Error(`${baseErrStr}: filter.${key}.${firstImproperOp} -> undefined (if filtering is undesired, remove the "${key}" entry entirely, or set "${key}" to null/false; if wanting to filter against null, set ${key}.${firstImproperOp} to null rather than undefined)`);
                 }
             }
             this.filter = filterObj_final;
@@ -69,12 +83,11 @@ export class QueryParams_Linked extends QueryParams {
         const nonNullAutoArgs = ["first", "after", "last", "before", "filter"].filter(key => {
             if (this[key] == null)
                 return false;
-            const IsEmptyObj = obj => typeof obj == "object" && (Object.keys(obj).length == 0 || Object.values(obj).filter(a => a != null).length == 0);
-            if (IsEmptyObj(this[key]))
-                return false; // don't add if just empty object (server complains)
-            if (IsEmptyObj(Object.values(this[key]).filter(a => a)[0]))
-                return false; // don't add if just object containing empty object(s) (server complains)
-            /*if (IsEmptyObj(this[key])) {
+            // commented; the Clean() function should already be avoiding these problems; if problems persist, we *want* the server to detect the problem and alert us of the flaw in QueryParams.Clean()
+            /*const IsEmptyObj = obj=>typeof obj == "object" && (Object.keys(obj).length == 0 || Object.values(obj).filter(a=>a != null).length == 0);
+            if (IsEmptyObj(this[key])) return false; // don't add if just empty object (server complains)
+            if (IsEmptyObj(Object.values(this[key]).filter(a=>a)[0])) return false; // don't add if just object containing empty object(s) (server complains)
+            /#*if (IsEmptyObj(this[key])) {
                 throw new Error(`Query arg "${key}" is invalid; the value is empty (ie. null, a key-less object, or an object whose keys all have null assigned). @arg:${ToJSON_Advanced(this[key], {stringifyUndefinedAs: null})}`);
             }
             const firstNonNullSubObj = Object.values(this[key]).filter(a=>a)[0];
@@ -105,17 +118,15 @@ export class QueryParams_Linked extends QueryParams {
 				}
 			`;
         }
-        else {
-            return `
-				subscription Collection_${this.CollectionName}${WithBrackets(this.varsDefine)} {
-					${this.CollectionName}${WithBrackets(argsStr)} {
-						nodes {
-							${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName)}
-						}
+        return `
+			subscription Collection_${this.CollectionName}${WithBrackets(this.varsDefine)} {
+				${this.CollectionName}${WithBrackets(argsStr)} {
+					nodes {
+						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName)}
 					}
 				}
-			`;
-        }
+			}
+		`;
     }
 }
 /** Adds round-brackets around the passed string, eg. "(...)", if it's non-empty. */
@@ -154,7 +165,7 @@ export function JSONSchemaToGQLFieldsStr(schema, schemaName) {
         }
         // if field's gql-type is not a scalar, then expand that field to its set of subfields
         if (!isScalar) {
-            let fieldTypeName = (_b = fieldValue["$ref"]) !== null && _b !== void 0 ? _b : (_c = fieldValue["items"]) === null || _c === void 0 ? void 0 : _c["$ref"];
+            const fieldTypeName = (_b = fieldValue["$ref"]) !== null && _b !== void 0 ? _b : (_c = fieldValue["items"]) === null || _c === void 0 ? void 0 : _c["$ref"];
             const fieldTypeSchema = GetSchemaJSON(fieldTypeName);
             return `${fieldKey} {
 				${JSONSchemaToGQLFieldsStr(fieldTypeSchema, fieldTypeName)}
