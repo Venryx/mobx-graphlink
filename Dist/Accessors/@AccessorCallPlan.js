@@ -33,7 +33,9 @@ export class AccessorCallPlan {
         let callArgs_unwrapped = this.callArgs;
         if (this.accessorMeta.options.cache_unwrapArrays) {
             //Assert(options.cache, "There is no point to unwrapping-args if caching is disabled.");
-            for (const [argIndex, callArg] of this.callArgs.entries()) {
+            // iterate in reverse order, so that we can modify the array in-place without affecting the indexes of the items we still need to unwrap
+            for (let argIndex = this.callArgs.length - 1; argIndex >= 0; argIndex--) {
+                const callArg = this.callArgs[argIndex];
                 if (!Array.isArray(callArg))
                     continue;
                 // make sure we're not modifying the passed in callArgs array

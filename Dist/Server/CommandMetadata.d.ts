@@ -1,5 +1,5 @@
-import { Command } from "./Command.js";
 import { JSONSchema7 } from "json-schema";
+import { Command } from "./Command.js";
 import { GraphQLSchemaInfo } from "../Extensions/GQLSchemaHelpers.js";
 export declare function CommandMeta(opts: {
     payloadSchema: () => JSONSchema7;

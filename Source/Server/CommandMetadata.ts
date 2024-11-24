@@ -1,6 +1,6 @@
 import {Assert, CE, SleepAsync, string, WaitXThenRun} from "js-vextensions";
-import {Command, DBHelper} from "./Command.js";
 import {JSONSchema7, JSONSchema7Definition, JSONSchema7Type} from "json-schema";
+import {Command, DBHelper} from "./Command.js";
 import {GetGQLSchemaInfoFromJSONSchema, GraphQLSchemaInfo, NormalizeGQLTypeName} from "../Extensions/GQLSchemaHelpers.js";
 import {GetSchemaJSON, IsJSONSchemaOfTypeScalar, IsJSONSchemaScalar, JSONSchemaScalarTypeToGraphQLScalarType, schemaEntryJSONs} from "../Extensions/JSONSchemaHelpers.js";
 
@@ -12,9 +12,9 @@ export function CommandMeta(opts: {
 	exposeToGraphQL?: boolean,
 }) {
 	return (constructor: typeof Command)=>{
-		Assert(!commandClasses.includes(constructor));
+		Assert(!commandClasses.includes(constructor), `This exact command-class was already registered. @name:${constructor.name}`);
 		commandClasses.push(constructor);
-		Assert(!commandClassMetadata.has(constructor.name));
+		Assert(!commandClassMetadata.has(constructor.name), `A command-class was already registered with this name (${constructor.name}), but a different instance.`);
 		const metadata = new CommandClassMetadata({
 			commandClass: constructor,
 			payloadSchemaGetter: opts.payloadSchema,
@@ -105,13 +105,13 @@ export class CommandClassMetadata {
 	FindGQLTypeName(opts: {group: "payload" | "return", typeName?: string, propName?: string, propSchema?: JSONSchema7}) {
 		if (opts.propName) {
 			if (opts.propSchema) {
-				let result = this.FindGQLTypeNameForFieldSchema(opts.group, opts.propSchema);
+				const result = this.FindGQLTypeNameForFieldSchema(opts.group, opts.propSchema);
 				if (result != null) return result;
 			}
 			const groupInfo = opts.group == "payload" ? this.payloadSchema : this.returnSchema;
 			const fieldSchema = groupInfo.properties?.[opts.propName] as JSONSchema7;
 			if (fieldSchema) {
-				let result = this.FindGQLTypeNameForFieldSchema(opts.group, fieldSchema);
+				const result = this.FindGQLTypeNameForFieldSchema(opts.group, fieldSchema);
 				if (result != null) return result;
 			}
 		}
@@ -160,7 +160,7 @@ export class CommandClassMetadata {
 
 		// if we're dealing with an array, recall this function with the schema for the items
 		if (fieldSchema.items != null && typeof fieldSchema.items == "object") {
-			let result = this.FindGQLTypeNameForFieldSchema(group, fieldSchema.items as JSONSchema7);
+			const result = this.FindGQLTypeNameForFieldSchema(group, fieldSchema.items as JSONSchema7);
 			if (result) return `[${result}]`;
 		}
 	}

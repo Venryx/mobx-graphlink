@@ -3,9 +3,9 @@ import { GetGQLSchemaInfoFromJSONSchema, NormalizeGQLTypeName } from "../Extensi
 import { GetSchemaJSON, IsJSONSchemaOfTypeScalar, IsJSONSchemaScalar, JSONSchemaScalarTypeToGraphQLScalarType } from "../Extensions/JSONSchemaHelpers.js";
 export function CommandMeta(opts) {
     return (constructor) => {
-        Assert(!commandClasses.includes(constructor));
+        Assert(!commandClasses.includes(constructor), `This exact command-class was already registered. @name:${constructor.name}`);
         commandClasses.push(constructor);
-        Assert(!commandClassMetadata.has(constructor.name));
+        Assert(!commandClassMetadata.has(constructor.name), `A command-class was already registered with this name (${constructor.name}), but a different instance.`);
         const metadata = new CommandClassMetadata({
             commandClass: constructor,
             payloadSchemaGetter: opts.payloadSchema,
@@ -81,14 +81,14 @@ export class CommandClassMetadata {
         var _a, _b;
         if (opts.propName) {
             if (opts.propSchema) {
-                let result = this.FindGQLTypeNameForFieldSchema(opts.group, opts.propSchema);
+                const result = this.FindGQLTypeNameForFieldSchema(opts.group, opts.propSchema);
                 if (result != null)
                     return result;
             }
             const groupInfo = opts.group == "payload" ? this.payloadSchema : this.returnSchema;
             const fieldSchema = (_a = groupInfo.properties) === null || _a === void 0 ? void 0 : _a[opts.propName];
             if (fieldSchema) {
-                let result = this.FindGQLTypeNameForFieldSchema(opts.group, fieldSchema);
+                const result = this.FindGQLTypeNameForFieldSchema(opts.group, fieldSchema);
                 if (result != null)
                     return result;
             }
@@ -132,7 +132,7 @@ export class CommandClassMetadata {
         }
         // if we're dealing with an array, recall this function with the schema for the items
         if (fieldSchema.items != null && typeof fieldSchema.items == "object") {
-            let result = this.FindGQLTypeNameForFieldSchema(group, fieldSchema.items);
+            const result = this.FindGQLTypeNameForFieldSchema(group, fieldSchema.items);
             if (result)
                 return `[${result}]`;
         }
