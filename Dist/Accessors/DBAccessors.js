@@ -27,7 +27,10 @@ export class GetDocs_Options {
 }
 GetDocs_Options.default = new GetDocs_Options();
 export function GetDocs(options, collectionPathOrGetterFunc) {
+    var _a;
     const opt = E(defaultGraphRefs, GetDocs_Options.default, options);
+    if (!opt.graph.initialized)
+        return opt.ifLoading_returnVal;
     NotifyRawDBAccess(opt.graph);
     const subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
     //let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
@@ -65,7 +68,8 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
     const data = treeNode === null || treeNode === void 0 ? void 0 : treeNode.DocDatas_ForDirectSubscriber;
     if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
         if (opt.ifLoading_bail) {
-            Bail(opt.ifLoading_bail_message);
+            const bailMessage = (_a = opt.ifLoading_bail_message) !== null && _a !== void 0 ? _a : `Data not yet loaded at path "${pathSegments.join("/")}", and this call-path has no bail-handler.`; // no bail-handler IF message seen in ui
+            Bail(bailMessage);
         }
         return opt.ifLoading_returnVal;
     }
@@ -87,7 +91,10 @@ export class GetDoc_Options {
 }
 GetDoc_Options.default = new GetDoc_Options();
 export function GetDoc(options, docPathOrGetterFunc) {
+    var _a;
     const opt = E(defaultGraphRefs, GetDoc_Options.default, options);
+    if (!opt.graph.initialized)
+        return opt.ifLoading_returnVal;
     NotifyRawDBAccess(opt.graph);
     const subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
     //let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
@@ -125,7 +132,8 @@ export function GetDoc(options, docPathOrGetterFunc) {
     const data = treeNode === null || treeNode === void 0 ? void 0 : treeNode.Data_ForDirectSubscriber;
     if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
         if (opt.ifLoading_bail) {
-            Bail(opt.ifLoading_bail_message);
+            const bailMessage = (_a = opt.ifLoading_bail_message) !== null && _a !== void 0 ? _a : `Data not yet loaded at path "${pathSegments.join("/")}", and this call-path has no bail-handler.`; // no bail-handler IF message seen in ui
+            Bail(bailMessage);
         }
         return opt.ifLoading_returnVal;
     }

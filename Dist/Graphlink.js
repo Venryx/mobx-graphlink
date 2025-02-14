@@ -1,12 +1,13 @@
-import { Assert } from "js-vextensions";
 import { observable } from "mobx";
 import { DataCommitScheduler } from "./Components/DataCommitScheduler.js";
 import { nodesByPath, SubscriptionStatus, TreeNode } from "./Tree/TreeNode.js";
 import { makeObservable_safe, RunInAction } from "./Utils/General/MobX.js";
+import { GQLIntrospector } from "./DBShape/GQLIntrospector.js";
 export class GraphlinkInitOptions {
 }
 export class GraphlinkOptions {
     constructor(data) {
+        this.useIntrospection = false;
         this.unsubscribeTreeNodesAfter = 5000;
         /** After each data-update, how long to wait for another data-update; if another occurs during this period, the timer is reset, and another wait occurs. (until max-wait is reached) */
         this.dataUpdateBuffering_minWait = 10;
@@ -18,8 +19,9 @@ export class GraphlinkOptions {
     }
 }
 export class Graphlink {
-    constructor(initOptions, options) {
-        this.initialized = false;
+    /** You must call graphlink.Initialize(...) after constructing the Graphlink instance. */
+    constructor( /*initOptions?: GraphlinkInitOptions<StoreShape>, options?: GraphlinkOptions*/) {
+        this.initialized = false; // [@O]
         this.storeOverridesStack = [];
         /** Set this to false if you need to make sure all relevant database-requests within an accessor tree are being activated. */
         this.storeAccessorCachingTempDisabled = false;
@@ -31,6 +33,19 @@ export class Graphlink {
         this.callPlan_callStack = [];
         this.subs = {};
         this.userInfo = null; // [@O]
+        // todo (probably)
+        /*async LogIn() {
+            // todo
+            return null;
+        }
+        async LogIn_WithCredential() {
+            // todo
+            return null;
+        }
+        async LogOut() {
+            // todo
+        }*/
+        this.introspector = new GQLIntrospector();
         /**
          * This is set to true whenever a call-chain is running which was triggered by data being committed to the Graphlink tree. (ie. on data being received from server)
          * Example usage: For easier debugging of what userland code was running a particular accessor. (add conditional breakpoint, breaking only when `graph.inDataCommitChain == false`)
@@ -40,29 +55,31 @@ export class Graphlink {
         this.treeRequestWatchers = new Set();
         this.allTreeNodes = new Set();
         makeObservable_safe(this, {
+            initialized: observable,
             userInfo: observable,
         });
-        if (initOptions) {
+        /*if (initOptions) {
             this.Initialize(initOptions, options);
-        }
-        else {
+        } else {
             Assert(options == null);
-        }
+        }*/
     }
-    Initialize(initOptions, options) {
-        const { rootStore, apollo, onServer, knexModule, pgPool } = initOptions;
+    async Initialize(initOptions, options) {
+        const { rootStore, apollo, onServer, pgPool } = initOptions;
         Graphlink.instances.push(this);
         this.rootStore = rootStore;
         //if (initSubs) {
         //this.InitSubs();
         this.onServer = onServer;
         this.subs.apollo = apollo;
-        this.subs.knexModule = knexModule;
         this.subs.pgPool = pgPool;
         this.options = options !== null && options !== void 0 ? options : new GraphlinkOptions();
+        if (this.options.useIntrospection) {
+            await this.introspector.RetrieveTypeShapes(apollo);
+        }
         this.commitScheduler = new DataCommitScheduler(this);
         this.tree = new TreeNode(this, []);
-        this.initialized = true;
+        RunInAction("Graphlink.Initialize", () => this.initialized = true);
     }
     GetDeepestCallPlanCurrentlyRunning() {
         return this.callPlan_callStack[this.callPlan_callStack.length - 1];

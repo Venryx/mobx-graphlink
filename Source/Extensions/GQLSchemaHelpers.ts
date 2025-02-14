@@ -1,9 +1,8 @@
 import {Assert, CE, Clone, GetTreeNodesInObjTree, FancyFormat, TreeNode} from "js-vextensions";
 import {JSONSchema7, JSONSchema7Definition} from "json-schema";
+import {getGraphqlSchemaFromJsonSchema} from "@vforks/get-graphql-from-jsonschema";
 import {JSONStringify_NoQuotesForKeys} from "../Utils/General/General.js";
 import {GetSchemaJSON, IsJSONSchemaOfTypeScalar, JSONSchemaScalarTypeToGraphQLScalarType, schemaEntryJSONs} from "./JSONSchemaHelpers.js";
-import {getGraphqlSchemaFromJsonSchema} from "@vforks/get-graphql-from-jsonschema";
-import {CommandsPlugin_opts, CreateCommandPlugin_Options} from "../Server/CommandsPlugin.js";
 //const convert = convert_["default"] as typeof convert_;
 
 export function FinalizeSchemaForConversionToGraphQL(schema: JSONSchema7, refPath: string[] = []): void {
@@ -89,8 +88,8 @@ export function GetGQLSchemaInfoFromJSONSchema(opts: {rootName: string, jsonSche
 	});
 	// if there's an existing schema with exactly the name of one we're passing in, don't include that existing-schema as a placeholder/"dependency"
 	placeholdersForExistingSchemas = placeholdersForExistingSchemas.filter(a=>NormalizeGQLTypeName(a.$id) != NormalizeGQLTypeName(opts.rootName));*/
-	
-	let jsonSchema_final = Clone(jsonSchema);
+
+	const jsonSchema_final = Clone(jsonSchema);
 	//jsonSchema_final.$id = opts.rootName; // only used by "graphql2jsonschema"
 	FinalizeSchemaForConversionToGraphQL(jsonSchema_final);
 
@@ -114,13 +113,6 @@ export function GetGQLSchemaInfoFromJSONSchema(opts: {rootName: string, jsonSche
 		Assert(typeDefs.length, `Could not find/generate type-def for "${rootName}". @typeDefs:${""/*JSON.stringify(typeDefs, null, 2)*/}`);
 		//console.log("TypeDefs_New:", typeDefs_new);
 
-		if (CommandsPlugin_opts?.logTypeDefs_detailed?.includes(rootName)) {
-			console.log("Type-definition details info:\n----------\n",
-				"schema:", jsonSchema_final,
-				"gqlSchemaStr:", gqlSchemaStr_temp,
-			);
-		}
-
 		return new GraphQLSchemaInfo({
 			//typeName: opts.rootName,
 			typeName: typeDefs[0].name,
@@ -128,7 +120,7 @@ export function GetGQLSchemaInfoFromJSONSchema(opts: {rootName: string, jsonSche
 			//schemaAsStr: printSchema(gqlSchema),
 			//schemaAsStr: gqlSchemaStr_newPart,
 			//schemaAsStr: gqlSchemaStr,
-			typeDefs: typeDefs,
+			typeDefs,
 		});
 	} catch (ex) {
 		ex.message += `\n\n@schema:${JSON.stringify(jsonSchema_final, null, 2)}`;

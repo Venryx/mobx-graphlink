@@ -5,6 +5,7 @@ import {TableNameToDocSchemaName, TableNameToGraphQLDocRetrieverKey} from "../Ex
 import {ConstructGQLArgsStr} from "../Extensions/GQLSchemaHelpers.js";
 import {GetSchemaJSON} from "../Extensions/JSONSchemaHelpers.js";
 import {TreeNode, TreeNodeType} from "./TreeNode.js";
+import {GQLIntrospector} from "../DBShape/GQLIntrospector.js";
 
 export class QueryParams {
 	static ParseString(dataStr: string) {
@@ -108,12 +109,27 @@ export class QueryParams_Linked extends QueryParams {
 	}
 
 	// derivatives
+	derivatives_state_introspectionCompleted = false;
+	StateChangedForDerivatives() {
+		return this.treeNode.graph.introspector.introspectionComplete != this.derivatives_state_introspectionCompleted;
+	}
 	private queryStr: string;
-	get QueryStr() { return this.queryStr; }
+	QueryStr(recalcDerivatesIfStateChanged = true) {
+		if (recalcDerivatesIfStateChanged && this.StateChangedForDerivatives()) {
+			this.CalculateDerivatives();
+		}
+		return this.queryStr;
+	}
 	private graphQLQuery: DocumentNode;
-	get GraphQLQuery() { return this.graphQLQuery; }
+	GraphQLQuery(recalcDerivatesIfStateChanged = true) {
+		if (recalcDerivatesIfStateChanged && this.StateChangedForDerivatives()) {
+			this.CalculateDerivatives();
+		}
+		return this.graphQLQuery;
+	}
 	CalculateDerivatives() {
 		if (this.treeNode.type != TreeNodeType.Root) {
+			this.derivatives_state_introspectionCompleted = this.treeNode.graph.introspector.introspectionComplete;
 			this.queryStr = this.ToQueryStr();
 			this.graphQLQuery = gql(this.queryStr);
 		}
@@ -163,7 +179,7 @@ export class QueryParams_Linked extends QueryParams {
 			return `
 				subscription DocInCollection_${this.CollectionName}${WithBrackets(this.varsDefine)} {
 					${TableNameToGraphQLDocRetrieverKey(this.CollectionName)}${WithBrackets(argsStr)} {
-						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName)}
+						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName, this.treeNode.graph.introspector)}
 					}
 				}
 			`;
@@ -172,7 +188,7 @@ export class QueryParams_Linked extends QueryParams {
 			subscription Collection_${this.CollectionName}${WithBrackets(this.varsDefine)} {
 				${this.CollectionName}${WithBrackets(argsStr)} {
 					nodes {
-						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName)}
+						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName, this.treeNode.graph.introspector)}
 					}
 				}
 			}
@@ -191,13 +207,20 @@ export const gqlScalarTypes = [
 	// for postgresql
 	"JSON",
 ];
-export function JSONSchemaToGQLFieldsStr(schema: JSONSchema7, schemaName: string) {
+export function JSONSchemaToGQLFieldsStr(schema: JSONSchema7, schemaName: string, introspector: GQLIntrospector) {
 	//const fields = CE(schema.properties!).Pairs();
 	const fields = Object.entries(schema.properties!);
 	Assert(fields.length > 0, `Cannot create GraphQL query-string for schema "${schemaName}", since it has 0 fields.`);
 
+	const serverTypeForSchema = introspector.typeShapes[schemaName];
+	const fields_final = fields.filter(([fieldKey, fieldValue])=>{
+		// if server doesn't have this field as an "actual field" in its declared graphql schema, then skip it (ie. leave its data as part of the "extras" field)
+		if (serverTypeForSchema?.fields && !serverTypeForSchema.fields.some(a=>a.name == fieldKey)) return false;
+		return true;
+	});
+
 	//return fields.map(field=>{
-	return fields.map(([fieldKey, fieldValue_raw])=>{
+	return fields_final.map(([fieldKey, fieldValue_raw])=>{
 		let fieldValue = fieldValue_raw;
 		// for fields with {opt: true}, mobx-graphlink (on client) sometimes has to use the `{anyOf: [{...}, {type: "null"}]` pattern to represent the nullability, so handle that case
 		if (Object.keys(fieldValue_raw).length == 1 && fieldValue_raw["anyOf"] != null) {
@@ -221,7 +244,7 @@ export function JSONSchemaToGQLFieldsStr(schema: JSONSchema7, schemaName: string
 			const fieldTypeName = fieldValue["$ref"] ?? fieldValue["items"]?.["$ref"];
 			const fieldTypeSchema = GetSchemaJSON(fieldTypeName);
 			return `${fieldKey} {
-				${JSONSchemaToGQLFieldsStr(fieldTypeSchema, fieldTypeName)}
+				${JSONSchemaToGQLFieldsStr(fieldTypeSchema, fieldTypeName, introspector)}
 			}`;
 		}
 

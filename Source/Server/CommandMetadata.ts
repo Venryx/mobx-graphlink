@@ -4,6 +4,8 @@ import {Command, DBHelper} from "./Command.js";
 import {GetGQLSchemaInfoFromJSONSchema, GraphQLSchemaInfo, NormalizeGQLTypeName} from "../Extensions/GQLSchemaHelpers.js";
 import {GetSchemaJSON, IsJSONSchemaOfTypeScalar, IsJSONSchemaScalar, JSONSchemaScalarTypeToGraphQLScalarType, schemaEntryJSONs} from "../Extensions/JSONSchemaHelpers.js";
 
+// I don't think this class/file is really needed anymore; however, I'm keeping it here for the moment, since it's still called from some files in project 1. (called to register metadata that isn't necessary anymore)
+
 export function CommandMeta(opts: {
 	payloadSchema: ()=>JSONSchema7,
 	returnSchema?: ()=>JSONSchema7,

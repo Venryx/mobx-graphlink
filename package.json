@@ -53,7 +53,6 @@
     "chokidar": "^3.5.2",
     "commander": "^8.0.0",
     "js-vextensions": "^1.0.74",
-    "knex": "^2.5.1",
     "strip-comments": "^2.0.1",
     "tiny-glob": "^0.2.9",
     "updeep": "^1.2.0",

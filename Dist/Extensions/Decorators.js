@@ -7,7 +7,7 @@ export function TableNameToDocSchemaName(tableName, errorIfMissing = true) {
     //if (ObjectCE(this.treeNode.type).IsOneOf(TreeNodeType.Collection, TreeNodeType.CollectionQuery)) {
     const docSchemaName = collection_docSchemaName.get(tableName);
     if (errorIfMissing)
-        Assert(docSchemaName, `No schema has been associated with collection "${tableName}". Did you forget the \`@Table("DOC_SCHEMA_NAME")\` decorator?`);
+        Assert(docSchemaName, `No schema has been associated with collection "${tableName}". Did you forget the \`@MGLClass({table: "tableName"})\` decorator?`);
     return docSchemaName;
 }
 export function TableNameToGraphQLDocRetrieverKey(tableName) {
@@ -182,7 +182,7 @@ export const mglClasses = new Array();
 export function GetMGLClass(name) {
     return mglClasses.find(a => a.name == name);
 }
-export function MGLClass(opts, schemaExtrasOrGetter, initFunc_pre) {
+export function MGLClass(opts, schemaExtrasOrGetter) {
     return (constructor) => {
         var _a;
         Assert(!mglClasses.includes(constructor));
@@ -192,8 +192,6 @@ export function MGLClass(opts, schemaExtrasOrGetter, initFunc_pre) {
         if (opts === null || opts === void 0 ? void 0 : opts.table) {
             collection_docSchemaName.set(opts.table, typeName);
             constructor["_table"] = opts.table;
-            if (initFunc_pre)
-                constructor["_initFunc_pre"] = initFunc_pre;
         }
         AddSchema(typeName, schemaDeps, () => {
             var _a, _b, _c, _d;
@@ -244,21 +242,4 @@ export function Field(schemaOrGetter, extras) {
             constructor["_fieldExtras"][propertyKey] = extras;
         }
     };
-}
-/**
-Marks the given field to be a database column for the current class. (ie. in its generated table definition)
-Note that "notNullable()" is called for these fields automatically; if you want it to be optional/nullable within the db, add ".nullable()" to the chain.
-*/
-export function DB(initFunc) {
-    //return function(target: Function, propertyKey: string, descriptor: PropertyDescriptor) {
-    return function (target, propertyKey) {
-        var _a;
-        const constructor = target.constructor;
-        constructor["_fieldDBInits"] = (_a = constructor["_fieldDBInits"]) !== null && _a !== void 0 ? _a : {};
-        constructor["_fieldDBInits"][propertyKey] = initFunc;
-    };
-}
-export function GetFieldDBInit(constructor, fieldName) {
-    var _a;
-    return ((_a = constructor["_fieldDBInits"]) !== null && _a !== void 0 ? _a : {})[fieldName];
 }

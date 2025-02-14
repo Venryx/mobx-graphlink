@@ -1,5 +1,4 @@
 /// <reference types="react" />
-import type { Knex } from "knex";
 import { BailError } from "../Utils/General/BailManager.js";
 import { n } from "../Utils/@Internal/Types.js";
 export declare function TableNameToDocSchemaName(tableName: string, errorIfMissing?: boolean): string;
@@ -49,7 +48,7 @@ export declare function MGLClass(opts?: {
     name?: string;
     table?: string;
     schemaDeps?: string[];
-}, schemaExtrasOrGetter?: Object | (() => Object), initFunc_pre?: (t: Knex.TableBuilder) => any): (constructor: Function) => void;
+}, schemaExtrasOrGetter?: Object | (() => Object)): (constructor: Function) => void;
 export type Field_Extras = {
     /** If true, two changes are made:
     1) Field is removed from the list of required properties. (fields are required by default)
@@ -62,20 +61,3 @@ Note that the "requiredness" of properties should be based on what's valid for a
     this is different than the TS "?" marker, which should match with the requiredness of the property when already in the db. (for new entries, the TS constructors already make all props optional)
 */
 export declare function Field(schemaOrGetter: Object | (() => Object), extras?: Field_Extras): (target: any, propertyKey: string) => void;
-export type DeferRef_Options = {
-    enforceAtTransactionEnd?: boolean;
-};
-declare module "knex" {
-    namespace Knex {
-        interface ColumnBuilder {
-            DeferRef: (this: Knex.ColumnBuilder, opts?: DeferRef_Options) => Knex.ColumnBuilder;
-        }
-    }
-}
-export type DBInitFunc = (t: Knex.TableBuilder, n: string) => any;
-/**
-Marks the given field to be a database column for the current class. (ie. in its generated table definition)
-Note that "notNullable()" is called for these fields automatically; if you want it to be optional/nullable within the db, add ".nullable()" to the chain.
-*/
-export declare function DB(initFunc: DBInitFunc): (target: any, propertyKey: string) => void;
-export declare function GetFieldDBInit(constructor: Function, fieldName: string): DBInitFunc | undefined;

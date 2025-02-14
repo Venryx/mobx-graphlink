@@ -1,4 +1,3 @@
-import type {Knex} from "knex";
 import {Assert, CE, E} from "js-vextensions";
 import {AddSchema, collection_docSchemaName, WaitTillSchemaAdded} from "./JSONSchemaHelpers.js";
 import {BailError} from "../Utils/General/BailManager.js";
@@ -10,7 +9,7 @@ import {n} from "../Utils/@Internal/Types.js";
 export function TableNameToDocSchemaName(tableName: string, errorIfMissing = true) {
 	//if (ObjectCE(this.treeNode.type).IsOneOf(TreeNodeType.Collection, TreeNodeType.CollectionQuery)) {
 	const docSchemaName = collection_docSchemaName.get(tableName);
-	if (errorIfMissing) Assert(docSchemaName, `No schema has been associated with collection "${tableName}". Did you forget the \`@Table("DOC_SCHEMA_NAME")\` decorator?`);
+	if (errorIfMissing) Assert(docSchemaName, `No schema has been associated with collection "${tableName}". Did you forget the \`@MGLClass({table: "tableName"})\` decorator?`);
 	return docSchemaName!;
 }
 export function TableNameToGraphQLDocRetrieverKey(tableName: string) {
@@ -211,7 +210,6 @@ export function GetMGLClass(name: string) {
 export function MGLClass(
 	opts?: {name?: string, table?: string, schemaDeps?: string[]},
 	schemaExtrasOrGetter?: Object | (()=>Object),
-	initFunc_pre?: (t: Knex.TableBuilder)=>any,
 ) {
 	return (constructor: Function)=>{
 		Assert(!mglClasses.includes(constructor));
@@ -222,7 +220,6 @@ export function MGLClass(
 		if (opts?.table) {
 			collection_docSchemaName.set(opts.table, typeName);
 			constructor["_table"] = opts.table;
-			if (initFunc_pre) constructor["_initFunc_pre"] = initFunc_pre;
 		}
 
 		AddSchema(typeName, schemaDeps, ()=>{
@@ -280,31 +277,4 @@ export function Field(schemaOrGetter: Object | (()=>Object), extras?: Field_Extr
 			constructor["_fieldExtras"][propertyKey] = extras;
 		}
 	};
-}
-
-// this is needed so DeferRef() can be called in the "@DB(...)" decorators, in user-project code, without TS complaining
-export type DeferRef_Options = {enforceAtTransactionEnd?: boolean};
-declare module "knex" {
-	namespace Knex {
-		interface ColumnBuilder {
-			DeferRef: (this: Knex.ColumnBuilder, opts?: DeferRef_Options)=>Knex.ColumnBuilder;
-		}
-	}
-}
-
-export type DBInitFunc = (t: Knex.TableBuilder, n: string)=>any;
-/**
-Marks the given field to be a database column for the current class. (ie. in its generated table definition)
-Note that "notNullable()" is called for these fields automatically; if you want it to be optional/nullable within the db, add ".nullable()" to the chain.
-*/
-export function DB(initFunc: DBInitFunc) {
-	//return function(target: Function, propertyKey: string, descriptor: PropertyDescriptor) {
-	return function(target: any, propertyKey: string) {
-		const constructor = target.constructor;
-		constructor["_fieldDBInits"] = constructor["_fieldDBInits"] ?? {};
-		constructor["_fieldDBInits"][propertyKey] = initFunc;
-	};
-}
-export function GetFieldDBInit(constructor: Function, fieldName: string): DBInitFunc|undefined {
-	return (constructor["_fieldDBInits"] ?? {})[fieldName];
 }

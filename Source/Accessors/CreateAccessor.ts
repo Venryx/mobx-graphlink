@@ -133,11 +133,13 @@ export const CreateAccessor: CreateAccessor_Shape = (...args)=>{
 					return "??";
 				}).join("/");
 
-				if (ex.message == "[generic bail error]") {
+				const hasCallPlanAssociated = ex.message.includes("@callPlan:");
+				//if (ex.message == "[generic bail error]") {
+				if (!hasCallPlanAssociated) {
 					ex.message += `\n@callPlan:${callPlan.toString()}`;
 					ex.message += `\n@accessorChain:${newAccessorChainStr}`;
 					//ex.message += ` @accessorChain:${graph.callPlan_callStack.map(a=>a.accessorMeta.name).join("/")}`;
-				} else if (ex.message.startsWith("[generic bail error]\n@callPlan:")) {
+				} else { //if (ex.message.startsWith("[generic bail error]\n@callPlan:")) {
 					//ex.message = ex.message.replace(/@accessorChain:(.|\n)+/, `@accessorChain:${newAccessorChainStr}`);
 					ex.message = `${ex.message.split("@accessorChain:")[0]}@accessorChain:${newAccessorChainStr}`;
 				}

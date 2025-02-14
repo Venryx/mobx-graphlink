@@ -1,5 +1,5 @@
 import { gql } from "@apollo/client";
-import { ArrayCE, Assert, CE, Clone, ConvertPathGetterFuncToPropChain, E } from "js-vextensions";
+import { Assert, CE, Clone, ConvertPathGetterFuncToPropChain, E } from "js-vextensions";
 import { GetAsync } from "../Accessors/Helpers.js";
 import { AssertValidate } from "../Extensions/JSONSchemaHelpers.js";
 import { GenerateUUID } from "../Extensions/KeyGenerator.js";
@@ -7,23 +7,8 @@ import { defaultGraphRefs } from "../Graphlink.js";
 import { CleanDBData } from "../index.js";
 import { WithBrackets } from "../Tree/QueryParams.js";
 import { DBUpdate, DBUpdateType } from "../Utils/DB/DBUpdate.js";
-import { ApplyDBUpdates, ApplyDBUpdates_Local } from "../Utils/DB/DBUpdateApplier.js";
 import { MaybeLog_Base } from "../Utils/General/General.js";
 import { GetCommandClassMetadata } from "./CommandMetadata.js";
-export const commandsWaitingToComplete_new = [];
-let currentCommandRun_listeners = [];
-async function WaitTillCurrentCommandFinishes() {
-    return new Promise((resolve, reject) => {
-        currentCommandRun_listeners.push({ resolve, reject });
-    });
-}
-function NotifyListenersThatCurrentCommandFinished() {
-    const currentCommandRun_listeners_copy = currentCommandRun_listeners;
-    currentCommandRun_listeners = [];
-    for (const listener of currentCommandRun_listeners_copy) {
-        listener.resolve();
-    }
-}
 // require command return-value to always be an object; this provides more schema stability (eg. lets you change the return-data of a mutation, without breaking the contents of "legacy" keys)
 export class Command {
     constructor(...args) {
@@ -31,6 +16,31 @@ export class Command {
         //runStartTime: number;
         //returnData = {} as any;
         this.returnData = {};
+        // standard validation of common paths/object-types; perhaps disable in production
+        /*async Validate_LateHeavy(dbUpdates: any) {
+            // validate "nodes/X"
+            /*let nodesBeingUpdated = (dbUpdates.VKeys() as string[]).map(a=> {
+                let match = a.match(/^nodes\/([0-9]+).*#/);
+                return match ? match[1].ToInt() : null;
+            }).filter(a=>a).Distinct();
+            for (let nodeID of nodesBeingUpdated) {
+                let oldNodeData = await GetAsync_Raw(()=>GetNode(nodeID));
+                let updatesForNode = dbUpdates.Props().filter(a=>a.name.match(`^nodes/${nodeID}($|/)`));
+    
+                let newNodeData = oldNodeData;
+                for (let update of updatesForNode) {
+                    newNodeData = u.updateIn(update.name.replace(new RegExp(`^nodes/${nodeID}($|/)`), "").replace(/\//g, "."), u.constant(update.value), newNodeData);
+                }
+                if (newNodeData != null) { // (if null, means we're deleting it, which is fine)
+                    AssertValidate("MapNode", newNodeData, `New node-data is invalid.`);
+                }
+            }*#/
+    
+            // locally-apply db-updates, then validate the result (for now, only works for already-loaded data paths)
+            const oldData = Clone(this.options.graph.tree.AsRawData());
+            const newData = ApplyDBUpdates_Local(oldData, dbUpdates);
+            this.options.graph.ValidateDBData!(newData);
+        }*/
         // helper-methods to be called within user-supplied Validate() function
         /*generatedUUIDs = new DeepMap<string>();
         GenerateUUID_Once(obj: any, propName: string) {
@@ -165,44 +175,7 @@ export class Command {
         //RemoveHelpers(this.payload);
         await this.Validate_Async();
     }
-    /** [async] Validates the data, prepares it, and executes it -- thus applying it into the database. */
-    async RunLocally() {
-        if (commandsWaitingToComplete_new.length > 0) {
-            MaybeLog_Base(a => a.commands, l => l(`Queing command, since ${commandsWaitingToComplete_new.length} ${commandsWaitingToComplete_new.length == 1 ? "is" : "are"} already waiting for completion.${""}@type:`, this.constructor.name, " @payload(", this.payload, ")"));
-        }
-        commandsWaitingToComplete_new.push(this);
-        while (commandsWaitingToComplete_new[0] != this) {
-            await WaitTillCurrentCommandFinishes();
-        }
-        currentCommandRun_listeners = [];
-        MaybeLog_Base(a => a.commands, l => l("Running command. @type:", this.constructor.name, " @payload(", this.payload, ")"));
-        let dbUpdates;
-        try {
-            //this.runStartTime = Date.now();
-            await this.PreRun();
-            const helper = new DBHelper(undefined);
-            dbUpdates = this.GetDBUpdates(helper);
-            if (this.options.graph.ValidateDBData) {
-                await this.Validate_LateHeavy(dbUpdates);
-            }
-            // FixDBUpdates(dbUpdates);
-            // await store.firebase.helpers.DBRef().update(dbUpdates);
-            await ApplyDBUpdates(dbUpdates, true, helper.DeferConstraints);
-            // todo: make sure the db-changes we just made are reflected in our mobx store, *before* current command is marked as "completed" (else next command may start operating on not-yet-refreshed data)
-            // MaybeLog(a=>a.commands, ()=>`Finishing command. @type:${this.constructor.name} @payload(${ToJSON(this.payload)}) @dbUpdates(${ToJSON(dbUpdates)})`);
-            MaybeLog_Base(a => a.commands, l => l("Finishing command (locally). @type:", this.constructor.name, " @command(", this, ") @dbUpdates(", dbUpdates, ")"));
-        } /*catch (ex) {
-            console.error(`Hit error while executing command of type "${this.constructor.name}". @error:`, ex, "@payload:", this.payload);
-        }*/
-        finally {
-            //const areOtherCommandsBuffered = currentCommandRun_listeners.length > 0;
-            ArrayCE(commandsWaitingToComplete_new).Remove(this);
-            NotifyListenersThatCurrentCommandFinished();
-        }
-        // later on (once set up on server), this will send the data back to the client, rather than return it
-        return { returnData: this.returnData, dbUpdates };
-    }
-    /** Same as Run(), except with the server executing the command rather than the current context. */
+    /** Creates a graphql request, and sends it, causing the commander to be executed on the server. */
     async RunOnServer() {
         const meta = GetCommandClassMetadata(this.constructor.name);
         const returnDataSchema = meta.returnSchema;
@@ -222,30 +195,6 @@ export class Command {
         AssertValidate(returnDataSchema, returnData, `Return-data for command did not match the expected shape. ReturnData: ${JSON.stringify(returnData, null, 2)}`);
         MaybeLog_Base(a => a.commands, l => l("Command completed (on server). @type:", this.constructor.name, " @command(", this, ") @fetchResult(", fetchResult, ")"));
         return returnData;
-    }
-    // standard validation of common paths/object-types; perhaps disable in production
-    async Validate_LateHeavy(dbUpdates) {
-        // validate "nodes/X"
-        /*let nodesBeingUpdated = (dbUpdates.VKeys() as string[]).map(a=> {
-            let match = a.match(/^nodes\/([0-9]+).*#/);
-            return match ? match[1].ToInt() : null;
-        }).filter(a=>a).Distinct();
-        for (let nodeID of nodesBeingUpdated) {
-            let oldNodeData = await GetAsync_Raw(()=>GetNode(nodeID));
-            let updatesForNode = dbUpdates.Props().filter(a=>a.name.match(`^nodes/${nodeID}($|/)`));
-
-            let newNodeData = oldNodeData;
-            for (let update of updatesForNode) {
-                newNodeData = u.updateIn(update.name.replace(new RegExp(`^nodes/${nodeID}($|/)`), "").replace(/\//g, "."), u.constant(update.value), newNodeData);
-            }
-            if (newNodeData != null) { // (if null, means we're deleting it, which is fine)
-                AssertValidate("MapNode", newNodeData, `New node-data is invalid.`);
-            }
-        }*/
-        // locally-apply db-updates, then validate the result (for now, only works for already-loaded data paths)
-        const oldData = Clone(this.options.graph.tree.AsRawData());
-        const newData = ApplyDBUpdates_Local(oldData, dbUpdates);
-        this.options.graph.ValidateDBData(newData);
     }
     CallX_Once(callTypeIdentifier, func) {
         if (!this.callXResults.has(callTypeIdentifier)) {

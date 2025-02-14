@@ -57,6 +57,8 @@ export class QueryParams_Linked extends QueryParams {
     }
     constructor(initialData) {
         super();
+        // derivatives
+        this.derivatives_state_introspectionCompleted = false;
         CE(this).Extend(initialData);
         this.Clean(); // our data is probably already cleaned (ie. if called from "TreeNode.Get(...)"), but clean it again (in case user called this constructor directly)
         this.CalculateDerivatives();
@@ -67,10 +69,24 @@ export class QueryParams_Linked extends QueryParams {
     get DocSchemaName() {
         return TableNameToDocSchemaName(this.CollectionName);
     }
-    get QueryStr() { return this.queryStr; }
-    get GraphQLQuery() { return this.graphQLQuery; }
+    StateChangedForDerivatives() {
+        return this.treeNode.graph.introspector.introspectionComplete != this.derivatives_state_introspectionCompleted;
+    }
+    QueryStr(recalcDerivatesIfStateChanged = true) {
+        if (recalcDerivatesIfStateChanged && this.StateChangedForDerivatives()) {
+            this.CalculateDerivatives();
+        }
+        return this.queryStr;
+    }
+    GraphQLQuery(recalcDerivatesIfStateChanged = true) {
+        if (recalcDerivatesIfStateChanged && this.StateChangedForDerivatives()) {
+            this.CalculateDerivatives();
+        }
+        return this.graphQLQuery;
+    }
     CalculateDerivatives() {
         if (this.treeNode.type != TreeNodeType.Root) {
+            this.derivatives_state_introspectionCompleted = this.treeNode.graph.introspector.introspectionComplete;
             this.queryStr = this.ToQueryStr();
             this.graphQLQuery = gql(this.queryStr);
         }
@@ -113,7 +129,7 @@ export class QueryParams_Linked extends QueryParams {
             return `
 				subscription DocInCollection_${this.CollectionName}${WithBrackets(this.varsDefine)} {
 					${TableNameToGraphQLDocRetrieverKey(this.CollectionName)}${WithBrackets(argsStr)} {
-						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName)}
+						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName, this.treeNode.graph.introspector)}
 					}
 				}
 			`;
@@ -122,7 +138,7 @@ export class QueryParams_Linked extends QueryParams {
 			subscription Collection_${this.CollectionName}${WithBrackets(this.varsDefine)} {
 				${this.CollectionName}${WithBrackets(argsStr)} {
 					nodes {
-						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName)}
+						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName, this.treeNode.graph.introspector)}
 					}
 				}
 			}
@@ -141,12 +157,19 @@ export const gqlScalarTypes = [
     // for postgresql
     "JSON",
 ];
-export function JSONSchemaToGQLFieldsStr(schema, schemaName) {
+export function JSONSchemaToGQLFieldsStr(schema, schemaName, introspector) {
     //const fields = CE(schema.properties!).Pairs();
     const fields = Object.entries(schema.properties);
     Assert(fields.length > 0, `Cannot create GraphQL query-string for schema "${schemaName}", since it has 0 fields.`);
+    const serverTypeForSchema = introspector.typeShapes[schemaName];
+    const fields_final = fields.filter(([fieldKey, fieldValue]) => {
+        // if server doesn't have this field as an "actual field" in its declared graphql schema, then skip it (ie. leave its data as part of the "extras" field)
+        if ((serverTypeForSchema === null || serverTypeForSchema === void 0 ? void 0 : serverTypeForSchema.fields) && !serverTypeForSchema.fields.some(a => a.name == fieldKey))
+            return false;
+        return true;
+    });
     //return fields.map(field=>{
-    return fields.map(([fieldKey, fieldValue_raw]) => {
+    return fields_final.map(([fieldKey, fieldValue_raw]) => {
         var _a, _b, _c;
         let fieldValue = fieldValue_raw;
         // for fields with {opt: true}, mobx-graphlink (on client) sometimes has to use the `{anyOf: [{...}, {type: "null"}]` pattern to represent the nullability, so handle that case
@@ -168,7 +191,7 @@ export function JSONSchemaToGQLFieldsStr(schema, schemaName) {
             const fieldTypeName = (_b = fieldValue["$ref"]) !== null && _b !== void 0 ? _b : (_c = fieldValue["items"]) === null || _c === void 0 ? void 0 : _c["$ref"];
             const fieldTypeSchema = GetSchemaJSON(fieldTypeName);
             return `${fieldKey} {
-				${JSONSchemaToGQLFieldsStr(fieldTypeSchema, fieldTypeName)}
+				${JSONSchemaToGQLFieldsStr(fieldTypeSchema, fieldTypeName, introspector)}
 			}`;
         }
         return fieldKey;

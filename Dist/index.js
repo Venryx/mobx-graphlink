@@ -17,6 +17,7 @@ export * from "./Accessors/CreateAsyncAccessor.js";
 export * from "./Accessors/DBAccessors.js";
 export * from "./Accessors/Helpers.js";
 export * from "./DBShape/Constructs.js";
+export * from "./DBShape/GQLIntrospector.js";
 // these "extensions" are separable from mobx-graphlink, but are included for convenience, since I use them everywhere I use mobx-graphlink
 export * from "./Extensions/KeyGenerator.js";
 export * from "./Extensions/Decorators.js";
@@ -24,8 +25,9 @@ export * from "./Extensions/GQLSchemaHelpers.js";
 export * from "./Extensions/JSONSchemaHelpers.js";
 export * from "./Server/Command.js";
 export * from "./Server/CommandMetadata.js";
-export * from "./Server/CommandsPlugin.js";
+export * from "./Tree/DocShapeNormalizer.js";
 export * from "./Tree/TreeNode.js";
+export * from "./Tree/TreeNodeData.js";
 export * from "./Tree/TreeRequestWatcher.js";
 export * from "./Tree/QueryParams.js";
 //export * from "./UserTypes.js"; // for testing

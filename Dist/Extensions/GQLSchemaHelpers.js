@@ -1,8 +1,7 @@
 import { Assert, CE, Clone, FancyFormat } from "js-vextensions";
+import { getGraphqlSchemaFromJsonSchema } from "@vforks/get-graphql-from-jsonschema";
 import { JSONStringify_NoQuotesForKeys } from "../Utils/General/General.js";
 import { GetSchemaJSON, IsJSONSchemaOfTypeScalar, JSONSchemaScalarTypeToGraphQLScalarType } from "./JSONSchemaHelpers.js";
-import { getGraphqlSchemaFromJsonSchema } from "@vforks/get-graphql-from-jsonschema";
-import { CommandsPlugin_opts } from "../Server/CommandsPlugin.js";
 //const convert = convert_["default"] as typeof convert_;
 export function FinalizeSchemaForConversionToGraphQL(schema, refPath = []) {
     var _a, _b, _c, _d;
@@ -71,7 +70,6 @@ export function NormalizeGQLTypeName(typeName) {
     return typeName;
 }
 export function GetGQLSchemaInfoFromJSONSchema(opts) {
-    var _a;
     const { rootName, jsonSchema, direction } = opts;
     // only used by "graphql2jsonschema"
     /*let placeholdersForExistingSchemas = [...schemaEntryJSONs.entries()].map(([name, oldSchema])=>{
@@ -79,7 +77,7 @@ export function GetGQLSchemaInfoFromJSONSchema(opts) {
     });
     // if there's an existing schema with exactly the name of one we're passing in, don't include that existing-schema as a placeholder/"dependency"
     placeholdersForExistingSchemas = placeholdersForExistingSchemas.filter(a=>NormalizeGQLTypeName(a.$id) != NormalizeGQLTypeName(opts.rootName));*/
-    let jsonSchema_final = Clone(jsonSchema);
+    const jsonSchema_final = Clone(jsonSchema);
     //jsonSchema_final.$id = opts.rootName; // only used by "graphql2jsonschema"
     FinalizeSchemaForConversionToGraphQL(jsonSchema_final);
     try {
@@ -101,9 +99,6 @@ export function GetGQLSchemaInfoFromJSONSchema(opts) {
         const typeDefs_new = typeDefs_indexForLastDep != -1 ? typeDefs.slice(typeDefs_indexForLastDep + 1) : [];*/
         Assert(typeDefs.length, `Could not find/generate type-def for "${rootName}". @typeDefs:${"" /*JSON.stringify(typeDefs, null, 2)*/}`);
         //console.log("TypeDefs_New:", typeDefs_new);
-        if ((_a = CommandsPlugin_opts === null || CommandsPlugin_opts === void 0 ? void 0 : CommandsPlugin_opts.logTypeDefs_detailed) === null || _a === void 0 ? void 0 : _a.includes(rootName)) {
-            console.log("Type-definition details info:\n----------\n", "schema:", jsonSchema_final, "gqlSchemaStr:", gqlSchemaStr_temp);
-        }
         return new GraphQLSchemaInfo({
             //typeName: opts.rootName,
             typeName: typeDefs[0].name,
@@ -111,7 +106,7 @@ export function GetGQLSchemaInfoFromJSONSchema(opts) {
             //schemaAsStr: printSchema(gqlSchema),
             //schemaAsStr: gqlSchemaStr_newPart,
             //schemaAsStr: gqlSchemaStr,
-            typeDefs: typeDefs,
+            typeDefs,
         });
     }
     catch (ex) {

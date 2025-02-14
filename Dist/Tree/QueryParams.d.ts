@@ -1,6 +1,7 @@
 import { DocumentNode } from "@apollo/client";
 import { JSONSchema7 } from "json-schema";
 import { TreeNode } from "./TreeNode.js";
+import { GQLIntrospector } from "../DBShape/GQLIntrospector.js";
 export declare class QueryParams {
     static ParseString(dataStr: string): QueryParams;
     static ParseData(data: any): QueryParams;
@@ -30,14 +31,16 @@ export declare class QueryParams_Linked extends QueryParams {
     treeNode: TreeNode<any>;
     get CollectionName(): string;
     get DocSchemaName(): string;
+    derivatives_state_introspectionCompleted: boolean;
+    StateChangedForDerivatives(): boolean;
     private queryStr;
-    get QueryStr(): string;
+    QueryStr(recalcDerivatesIfStateChanged?: boolean): string;
     private graphQLQuery;
-    get GraphQLQuery(): DocumentNode;
+    GraphQLQuery(recalcDerivatesIfStateChanged?: boolean): DocumentNode;
     CalculateDerivatives(): void;
     ToQueryStr(): string;
 }
 /** Adds round-brackets around the passed string, eg. "(...)", if it's non-empty. */
 export declare function WithBrackets(str: string | null | undefined): string;
 export declare const gqlScalarTypes: string[];
-export declare function JSONSchemaToGQLFieldsStr(schema: JSONSchema7, schemaName: string): any;
+export declare function JSONSchemaToGQLFieldsStr(schema: JSONSchema7, schemaName: string, introspector: GQLIntrospector): any;

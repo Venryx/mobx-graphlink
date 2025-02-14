@@ -1,9 +1,9 @@
 import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
-import type Knex from "knex";
 import { AccessorCallPlan } from "./Accessors/@AccessorCallPlan.js";
 import { DataCommitScheduler } from "./Components/DataCommitScheduler.js";
 import { TreeNode } from "./Tree/TreeNode.js";
 import { TreeRequestWatcher } from "./Tree/TreeRequestWatcher.js";
+import { GQLIntrospector } from "./DBShape/GQLIntrospector.js";
 export declare class GraphlinkInitOptions<StoreShape> {
     rootStore: StoreShape;
     apollo: ApolloClient<NormalizedCacheObject>;
@@ -13,11 +13,11 @@ export declare class GraphlinkInitOptions<StoreShape> {
      * Special values: 5000 (default), -1 (never auto-unsubscribe)
      * */
     unsubscribeTreeNodesAfter?: number;
-    knexModule?: typeof Knex;
     pgPool?: any;
 }
 export declare class GraphlinkOptions {
     constructor(data?: Partial<GraphlinkOptions>);
+    useIntrospection: boolean;
     unsubscribeTreeNodesAfter: number;
     /** After each data-update, how long to wait for another data-update; if another occurs during this period, the timer is reset, and another wait occurs. (until max-wait is reached) */
     dataUpdateBuffering_minWait: number;
@@ -28,9 +28,10 @@ export declare class GraphlinkOptions {
 }
 export declare class Graphlink<StoreShape, DBShape> {
     static instances: Graphlink<any, any>[];
-    constructor(initOptions?: GraphlinkInitOptions<StoreShape>, options?: GraphlinkOptions);
+    /** You must call graphlink.Initialize(...) after constructing the Graphlink instance. */
+    constructor();
     initialized: boolean;
-    Initialize(initOptions: GraphlinkInitOptions<StoreShape>, options?: GraphlinkOptions): void;
+    Initialize(initOptions: GraphlinkInitOptions<StoreShape>, options?: GraphlinkOptions): Promise<void>;
     rootStore: StoreShape;
     storeOverridesStack: StoreShape[];
     /** Set this to false if you need to make sure all relevant database-requests within an accessor tree are being activated. */
@@ -40,7 +41,6 @@ export declare class Graphlink<StoreShape, DBShape> {
     onServer: boolean;
     subs: {
         apollo: ApolloClient<NormalizedCacheObject>;
-        knexModule?: typeof Knex | null | undefined;
         pgPool?: any | null;
     };
     options: GraphlinkOptions;
@@ -48,6 +48,7 @@ export declare class Graphlink<StoreShape, DBShape> {
     /** Can be called prior to Graphlink.Initialize(). */
     SetUserInfo(userInfo: UserInfo | null, clearCaches?: boolean, resubscribeAfter?: boolean): Promise<Set<TreeNode<any>> | undefined>;
     ClearCaches(): Promise<Set<TreeNode<any>>>;
+    introspector: GQLIntrospector;
     commitScheduler: DataCommitScheduler;
     /**
      * This is set to true whenever a call-chain is running which was triggered by data being committed to the Graphlink tree. (ie. on data being received from server)

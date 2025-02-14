@@ -5,6 +5,7 @@ import { MaybeLog_Base } from "../Utils/General/General.js";
 import { makeObservable_safe, MobX_AllowStateChanges, RunInAction } from "../Utils/General/MobX.js";
 import { QueryParams, QueryParams_Linked } from "./QueryParams.js";
 import { GetPreferenceLevelOfDataStatus, TreeNodeData } from "./TreeNodeData.js";
+import { NormalizeDocumentShape } from "./DocShapeNormalizer.js";
 export var TreeNodeType;
 (function (TreeNodeType) {
     TreeNodeType["Root"] = "Root";
@@ -177,7 +178,7 @@ export class TreeNode {
         MaybeLog_Base(a => a.subscriptions, l => l(`Subscribing to: ${this.path}`));
         if (this.type == TreeNodeType.Document) {
             this.self_apolloObservable = this.graph.subs.apollo.subscribe({
-                query: this.query.GraphQLQuery,
+                query: this.query.GraphQLQuery(),
                 variables: this.query.vars,
             });
             this.self_subscription = this.self_apolloObservable.subscribe({
@@ -186,6 +187,7 @@ export class TreeNode {
                     //const returnedDocument = returnedData[Object.keys(this.query.vars!)[0]]; // so unwrap it here
                     Assert(Object.values(returnedData).length == 1);
                     const returnedDocument = Object.values(returnedData)[0]; // so unwrap it here
+                    NormalizeDocumentShape(returnedDocument, this.query.DocSchemaName, this.graph.introspector);
                     MaybeLog_Base(a => a.subscriptions, l => l(`Got doc snapshot. @path(${this.path}) @snapshot:`, returnedDocument));
                     this.graph.commitScheduler.ScheduleDataUpdateCommit(() => {
                         this.data_fromSelf.SetData(returnedDocument, false);
@@ -198,7 +200,7 @@ export class TreeNode {
         }
         else {
             this.self_apolloObservable = this.graph.subs.apollo.subscribe({
-                query: this.query.GraphQLQuery,
+                query: this.query.GraphQLQuery(),
                 variables: this.query.vars,
             });
             let lastSubscriptionResult_docIDs = [];
@@ -216,6 +218,7 @@ export class TreeNode {
                             if (!this.docNodes.has(doc.id)) {
                                 this.docNodes.set(doc.id, new TreeNode(this.graph, this.pathSegments.concat([doc.id])));
                             }
+                            NormalizeDocumentShape(doc, this.query.DocSchemaName, this.graph.introspector);
                             //dataChanged = this.docNodes.get(doc.id)!.SetData(doc.data(), fromCache) || dataChanged;
                             dataChanged = this.docNodes.get(doc.id).data_fromParent.SetData(doc, fromCache) || dataChanged;
                         }

@@ -4,7 +4,6 @@ import { UserInfo } from "../index.js";
 import { n } from "../Utils/@Internal/Types.js";
 import { DBPPath } from "../Utils/DB/DBPaths.js";
 import { DBUpdate } from "../Utils/DB/DBUpdate.js";
-export declare const commandsWaitingToComplete_new: Command<any, any>[];
 export type PayloadOf<T> = T extends Command<infer Payload> ? Payload : never;
 export type ReturnDataOf<T> = T extends Command<infer Payload, infer ReturnData> ? ReturnData : never;
 export declare abstract class Command<Payload, ReturnData extends {
@@ -46,14 +45,8 @@ export declare abstract class Command<Payload, ReturnData extends {
     GetDBUpdates(parentHelper: DBHelper): DBUpdate[];
     abstract DeclareDBUpdates(helper: DBHelper): any;
     PreRun(): Promise<void>;
-    /** [async] Validates the data, prepares it, and executes it -- thus applying it into the database. */
-    RunLocally(): Promise<{
-        returnData: ReturnData;
-        dbUpdates: DBUpdate[];
-    }>;
-    /** Same as Run(), except with the server executing the command rather than the current context. */
+    /** Creates a graphql request, and sends it, causing the commander to be executed on the server. */
     RunOnServer(): Promise<ReturnData>;
-    Validate_LateHeavy(dbUpdates: any): Promise<void>;
     callXResults: Map<string, any>;
     CallX_Once<T>(callTypeIdentifier: string, func: () => T): T;
     GenerateUUID_Once(path: string): string;

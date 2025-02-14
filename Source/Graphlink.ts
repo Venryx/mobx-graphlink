@@ -1,18 +1,19 @@
 import {ApolloClient, NormalizedCacheObject} from "@apollo/client";
 import {Assert} from "js-vextensions";
-import type Knex from "knex";
 import {observable} from "mobx";
 import {AccessorCallPlan} from "./Accessors/@AccessorCallPlan.js";
 import {DataCommitScheduler} from "./Components/DataCommitScheduler.js";
 import {nodesByPath, SubscriptionStatus, TreeNode} from "./Tree/TreeNode.js";
 import {TreeRequestWatcher} from "./Tree/TreeRequestWatcher.js";
 import {makeObservable_safe, RunInAction} from "./Utils/General/MobX.js";
+import {GQLIntrospector} from "./DBShape/GQLIntrospector.js";
 
 export class GraphlinkInitOptions<StoreShape> {
 	rootStore: StoreShape;
 	apollo: ApolloClient<NormalizedCacheObject>;
 	onServer: boolean;
 	//initSubs = true;
+
 	/**
 	 * After X milliseconds of being unobserved, a TreeNode will unsubscribe its GraphQL subscription, by sending "stop" over the websocket.
 	 * Special values: 5000 (default), -1 (never auto-unsubscribe)
@@ -20,7 +21,6 @@ export class GraphlinkInitOptions<StoreShape> {
 	unsubscribeTreeNodesAfter?: number;
 
 	// server-specific
-	knexModule?: typeof Knex;
 	pgPool?: any; //Pool;
 }
 
@@ -28,6 +28,9 @@ export class GraphlinkOptions {
 	constructor(data?: Partial<GraphlinkOptions>) {
 		Object.assign(this, data);
 	}
+
+	useIntrospection = false;
+
 	unsubscribeTreeNodesAfter = 5000;
 	/** After each data-update, how long to wait for another data-update; if another occurs during this period, the timer is reset, and another wait occurs. (until max-wait is reached) */
 	dataUpdateBuffering_minWait = 10;
@@ -40,20 +43,22 @@ export class GraphlinkOptions {
 export class Graphlink<StoreShape, DBShape> {
 	static instances = [] as Graphlink<any, any>[];
 
-	constructor(initOptions?: GraphlinkInitOptions<StoreShape>, options?: GraphlinkOptions) {
+	/** You must call graphlink.Initialize(...) after constructing the Graphlink instance. */
+	constructor(/*initOptions?: GraphlinkInitOptions<StoreShape>, options?: GraphlinkOptions*/) {
 		makeObservable_safe(this, {
+			initialized: observable,
 			userInfo: observable,
 		});
-		if (initOptions) {
+		/*if (initOptions) {
 			this.Initialize(initOptions, options);
 		} else {
 			Assert(options == null);
-		}
+		}*/
 	}
 
-	initialized = false;
-	Initialize(initOptions: GraphlinkInitOptions<StoreShape>, options?: GraphlinkOptions) {
-		const {rootStore, apollo, onServer, knexModule, pgPool} = initOptions;
+	initialized = false; // [@O]
+	async Initialize(initOptions: GraphlinkInitOptions<StoreShape>, options?: GraphlinkOptions) {
+		const {rootStore, apollo, onServer, pgPool} = initOptions;
 
 		Graphlink.instances.push(this);
 		this.rootStore = rootStore;
@@ -61,14 +66,17 @@ export class Graphlink<StoreShape, DBShape> {
 		//this.InitSubs();
 		this.onServer = onServer;
 		this.subs.apollo = apollo;
-		this.subs.knexModule = knexModule;
 		this.subs.pgPool = pgPool;
 		this.options = options ?? new GraphlinkOptions();
+
+		if (this.options.useIntrospection) {
+			await this.introspector.RetrieveTypeShapes(apollo);
+		}
 
 		this.commitScheduler = new DataCommitScheduler(this);
 		this.tree = new TreeNode(this, []);
 
-		this.initialized = true;
+		RunInAction("Graphlink.Initialize", ()=>this.initialized = true);
 	}
 
 	rootStore: StoreShape;
@@ -92,7 +100,6 @@ export class Graphlink<StoreShape, DBShape> {
 	onServer: boolean;
 	subs = {} as {
 		apollo: ApolloClient<NormalizedCacheObject>;
-		knexModule?: typeof Knex|null; // only used if on db-server
 		//pgPool?: Pool|null; // only used if on db-server
 		pgPool?: any|null; // only used if on db-server
 	};
@@ -150,6 +157,8 @@ export class Graphlink<StoreShape, DBShape> {
 	async LogOut() {
 		// todo
 	}*/
+
+	introspector = new GQLIntrospector();
 
 	commitScheduler: DataCommitScheduler;
 	/**

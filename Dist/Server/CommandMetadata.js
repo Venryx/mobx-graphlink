@@ -1,6 +1,7 @@
 import { Assert, CE, WaitXThenRun } from "js-vextensions";
 import { GetGQLSchemaInfoFromJSONSchema, NormalizeGQLTypeName } from "../Extensions/GQLSchemaHelpers.js";
 import { GetSchemaJSON, IsJSONSchemaOfTypeScalar, IsJSONSchemaScalar, JSONSchemaScalarTypeToGraphQLScalarType } from "../Extensions/JSONSchemaHelpers.js";
+// I don't think this class/file is really needed anymore; however, I'm keeping it here for the moment, since it's still called from some files in project 1. (called to register metadata that isn't necessary anymore)
 export function CommandMeta(opts) {
     return (constructor) => {
         Assert(!commandClasses.includes(constructor), `This exact command-class was already registered. @name:${constructor.name}`);

@@ -9,12 +9,11 @@ import {WithBrackets} from "../Tree/QueryParams.js";
 import {n} from "../Utils/@Internal/Types.js";
 import {DBPPath, PathOrPathGetterToPathSegments} from "../Utils/DB/DBPaths.js";
 import {DBUpdate, DBUpdateType} from "../Utils/DB/DBUpdate.js";
-import {ApplyDBUpdates, ApplyDBUpdates_Local} from "../Utils/DB/DBUpdateApplier.js";
 import {DeepMap} from "../Utils/General/DeepMap.js";
 import {MaybeLog_Base} from "../Utils/General/General.js";
 import {GetCommandClassMetadata, GetCommandClassMetadatas} from "./CommandMetadata.js";
 
-export const commandsWaitingToComplete_new = [] as Command<any, any>[];
+/*export const commandsWaitingToComplete_new = [] as Command<any, any>[];
 
 let currentCommandRun_listeners = [] as {resolve, reject}[];
 async function WaitTillCurrentCommandFinishes() {
@@ -28,7 +27,7 @@ function NotifyListenersThatCurrentCommandFinished() {
 	for (const listener of currentCommandRun_listeners_copy) {
 		listener.resolve();
 	}
-}
+}*/
 
 // type helpers
 export type PayloadOf<T> = T extends Command<infer Payload> ? Payload : never;
@@ -196,50 +195,7 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		await this.Validate_Async();
 	}
 
-	/** [async] Validates the data, prepares it, and executes it -- thus applying it into the database. */
-	async RunLocally(): Promise<{returnData: ReturnData, dbUpdates: DBUpdate[]}> {
-		if (commandsWaitingToComplete_new.length > 0) {
-			MaybeLog_Base(a=>a.commands, l=>l(`Queing command, since ${commandsWaitingToComplete_new.length} ${commandsWaitingToComplete_new.length == 1 ? "is" : "are"} already waiting for completion.${""
-				}@type:`, this.constructor.name, " @payload(", this.payload, ")"));
-		}
-		commandsWaitingToComplete_new.push(this);
-		while (commandsWaitingToComplete_new[0] != this) {
-			await WaitTillCurrentCommandFinishes();
-		}
-		currentCommandRun_listeners = [];
-
-		MaybeLog_Base(a=>a.commands, l=>l("Running command. @type:", this.constructor.name, " @payload(", this.payload, ")"));
-
-		let dbUpdates: DBUpdate[]|n;
-		try {
-			//this.runStartTime = Date.now();
-			await this.PreRun();
-
-			const helper = new DBHelper(undefined);
-			dbUpdates = this.GetDBUpdates(helper);
-			if (this.options.graph.ValidateDBData) {
-				await this.Validate_LateHeavy(dbUpdates);
-			}
-			// FixDBUpdates(dbUpdates);
-			// await store.firebase.helpers.DBRef().update(dbUpdates);
-			await ApplyDBUpdates(dbUpdates, true, helper.DeferConstraints);
-
-			// todo: make sure the db-changes we just made are reflected in our mobx store, *before* current command is marked as "completed" (else next command may start operating on not-yet-refreshed data)
-
-			// MaybeLog(a=>a.commands, ()=>`Finishing command. @type:${this.constructor.name} @payload(${ToJSON(this.payload)}) @dbUpdates(${ToJSON(dbUpdates)})`);
-			MaybeLog_Base(a=>a.commands, l=>l("Finishing command (locally). @type:", this.constructor.name, " @command(", this, ") @dbUpdates(", dbUpdates, ")"));
-		} /*catch (ex) {
-			console.error(`Hit error while executing command of type "${this.constructor.name}". @error:`, ex, "@payload:", this.payload);
-		}*/ finally {
-			//const areOtherCommandsBuffered = currentCommandRun_listeners.length > 0;
-			ArrayCE(commandsWaitingToComplete_new).Remove(this);
-			NotifyListenersThatCurrentCommandFinished();
-		}
-
-		// later on (once set up on server), this will send the data back to the client, rather than return it
-		return {returnData: this.returnData, dbUpdates};
-	}
-	/** Same as Run(), except with the server executing the command rather than the current context. */
+	/** Creates a graphql request, and sends it, causing the commander to be executed on the server. */
 	async RunOnServer(): Promise<ReturnData> {
 		const meta = GetCommandClassMetadata(this.constructor.name);
 		const returnDataSchema = meta.returnSchema;
@@ -266,7 +222,7 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	}
 
 	// standard validation of common paths/object-types; perhaps disable in production
-	async Validate_LateHeavy(dbUpdates: any) {
+	/*async Validate_LateHeavy(dbUpdates: any) {
 		// validate "nodes/X"
 		/*let nodesBeingUpdated = (dbUpdates.VKeys() as string[]).map(a=> {
 			let match = a.match(/^nodes\/([0-9]+).*#/);
@@ -283,13 +239,13 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 			if (newNodeData != null) { // (if null, means we're deleting it, which is fine)
 				AssertValidate("MapNode", newNodeData, `New node-data is invalid.`);
 			}
-		}*/
+		}*#/
 
 		// locally-apply db-updates, then validate the result (for now, only works for already-loaded data paths)
 		const oldData = Clone(this.options.graph.tree.AsRawData());
 		const newData = ApplyDBUpdates_Local(oldData, dbUpdates);
 		this.options.graph.ValidateDBData!(newData);
-	}
+	}*/
 
 	// helper-methods to be called within user-supplied Validate() function
 	/*generatedUUIDs = new DeepMap<string>();
