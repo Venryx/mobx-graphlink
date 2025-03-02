@@ -9,11 +9,13 @@ export function NormalizeDocumentShape(doc, docTypeName, introspector) {
     var _a, _b;
     if (!introspector.introspectionComplete)
         return;
+    if (doc == null)
+        return;
     const docExtras = doc["extras"];
     if (docExtras == null)
         return;
     const rootFields_client = Object.keys(GetSchemaJSON(docTypeName).properties);
-    const rootFields_server_base = (_a = introspector.typeShapes[docTypeName]) === null || _a === void 0 ? void 0 : _a.fields;
+    const rootFields_server_base = (_a = introspector.TypeShape(docTypeName)) === null || _a === void 0 ? void 0 : _a.fields;
     if (rootFields_server_base == null)
         return;
     const rootFields_server = (_b = rootFields_server_base.map(a => a.name)) !== null && _b !== void 0 ? _b : [];

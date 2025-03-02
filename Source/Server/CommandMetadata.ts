@@ -1,15 +1,13 @@
-import {Assert, CE, SleepAsync, string, WaitXThenRun} from "js-vextensions";
+import {Assert, CE, ModifyString, SleepAsync, string, WaitXThenRun} from "js-vextensions";
 import {JSONSchema7, JSONSchema7Definition, JSONSchema7Type} from "json-schema";
 import {Command, DBHelper} from "./Command.js";
 import {GetGQLSchemaInfoFromJSONSchema, GraphQLSchemaInfo, NormalizeGQLTypeName} from "../Extensions/GQLSchemaHelpers.js";
 import {GetSchemaJSON, IsJSONSchemaOfTypeScalar, IsJSONSchemaScalar, JSONSchemaScalarTypeToGraphQLScalarType, schemaEntryJSONs} from "../Extensions/JSONSchemaHelpers.js";
 
-// I don't think this class/file is really needed anymore; however, I'm keeping it here for the moment, since it's still called from some files in project 1. (called to register metadata that isn't necessary anymore)
-
 export function CommandMeta(opts: {
-	payloadSchema: ()=>JSONSchema7,
-	returnSchema?: ()=>JSONSchema7,
-	defaultPayload?: any,
+	inputSchema: ()=>JSONSchema7,
+	responseSchema?: ()=>JSONSchema7,
+	defaultInput?: any,
 	//extraDBUpdates?: (helper: DBHelper)=>any,
 	exposeToGraphQL?: boolean,
 }) {
@@ -19,9 +17,9 @@ export function CommandMeta(opts: {
 		Assert(!commandClassMetadata.has(constructor.name), `A command-class was already registered with this name (${constructor.name}), but a different instance.`);
 		const metadata = new CommandClassMetadata({
 			commandClass: constructor,
-			payloadSchemaGetter: opts.payloadSchema,
-			returnSchemaGetter: opts.returnSchema,
-			defaultPayload: opts.defaultPayload,
+			inputSchemaGetter: opts.inputSchema,
+			responseSchemaGetter: opts.responseSchema,
+			defaultInput: opts.defaultInput,
 			//extraDBUpdates: opts.extraDBUpdates,
 			exposeToGraphQL: opts.exposeToGraphQL,
 		});
@@ -65,21 +63,21 @@ export class CommandClassMetadata {
 	}
 
 	commandClass: typeof Command;
-	payloadSchemaGetter: (()=>JSONSchema7)|null|undefined; // set by @CommandMeta
-	returnSchemaGetter: (()=>JSONSchema7)|null|undefined; // set by @CommandMeta
-	defaultPayload = {};
+	inputSchemaGetter: (()=>JSONSchema7)|null|undefined; // set by @CommandMeta
+	responseSchemaGetter: (()=>JSONSchema7)|null|undefined; // set by @CommandMeta
+	defaultInput = {};
 	//extraDBUpdates?: (helper: DBHelper)=>any;
 	exposeToGraphQL = true;
 
 	// derivatives
-	payloadSchema: JSONSchema7;
-	returnSchema: JSONSchema7;
-	payload_graphqlInfo: GraphQLSchemaInfo;
-	return_graphqlInfo: GraphQLSchemaInfo;
+	inputSchema: JSONSchema7;
+	responseSchema: JSONSchema7;
+	/*input_graphqlInfo: GraphQLSchemaInfo;
+	response_graphqlInfo: GraphQLSchemaInfo;*/
 
 	CalculateDerivatives() {
-		this.payloadSchema = this.payloadSchemaGetter?.() ?? {};
-		this.returnSchema = this.returnSchemaGetter?.() ?? {};
+		this.inputSchema = this.inputSchemaGetter?.() ?? {};
+		this.responseSchema = this.responseSchemaGetter?.() ?? {};
 		//console.log("CommandClass:", this.commandClass.name, "@payloadInfo:", JSON.stringify(this.payloadSchema, null, 2), "@returnInfo:", JSON.stringify(this.returnSchema, null, 2));
 
 		/*const argsObj = {};
@@ -92,25 +90,25 @@ export class CommandClassMetadata {
 			argsObj[propName] = 
 		}*/
 
-		this.payload_graphqlInfo = GetGQLSchemaInfoFromJSONSchema({
-			rootName: `${this.commandClass.name}_Payload`,
-			jsonSchema: this.payloadSchema as any,
+		/*this.input_graphqlInfo = GetGQLSchemaInfoFromJSONSchema({
+			rootName: `${this.commandClass.name}Input`,
+			jsonSchema: this.inputSchema as any,
 			direction: "input",
 		});
-		this.return_graphqlInfo = GetGQLSchemaInfoFromJSONSchema({
-			rootName: `${this.commandClass.name}_ReturnData`,
-			jsonSchema: this.returnSchema as any,
-		});
+		this.response_graphqlInfo = GetGQLSchemaInfoFromJSONSchema({
+			rootName: `${this.commandClass.name}Response`,
+			jsonSchema: this.responseSchema as any,
+		});*/
 	}
 
 	// eslint-disable-next-line no-loop-func
-	FindGQLTypeName(opts: {group: "payload" | "return", typeName?: string, propName?: string, propSchema?: JSONSchema7}) {
+	FindGQLTypeName(opts: {group: "input" | "response", typeName?: string, propName?: string, propSchema?: JSONSchema7}) {
 		if (opts.propName) {
 			if (opts.propSchema) {
 				const result = this.FindGQLTypeNameForFieldSchema(opts.group, opts.propSchema);
 				if (result != null) return result;
 			}
-			const groupInfo = opts.group == "payload" ? this.payloadSchema : this.returnSchema;
+			const groupInfo = opts.group == "input" ? this.inputSchema : this.responseSchema;
 			const fieldSchema = groupInfo.properties?.[opts.propName] as JSONSchema7;
 			if (fieldSchema) {
 				const result = this.FindGQLTypeNameForFieldSchema(opts.group, fieldSchema);
@@ -118,12 +116,16 @@ export class CommandClassMetadata {
 			}
 		}
 
-		const typeName = opts.typeName
-			? opts.typeName // eg. UpdateTerm_ReturnData
-			: `${this.commandClass.name}_Payload.${opts.propName}`; // eg. UpdateTerm_Payload.id
+		let typeName: string;
+		if (opts.typeName) {
+			typeName = opts.typeName; // eg. UpdateTermResponse
+		} else {
+			Assert(opts.group == "input", "Cannot calculate the gql type-name, in groups other than \"input\".");
+			typeName = `${this.commandClass.name}${ModifyString(opts.group, m=>[m.startLower_to_upper])}.${opts.propName}`; // eg. UpdateTermInput.id
+		}
 		const typeName_normalized = NormalizeGQLTypeName(typeName);
 
-		const schemaInfo = opts.group == "payload" ? this.payload_graphqlInfo : this.return_graphqlInfo;
+		/*const schemaInfo = opts.group == "input" ? this.input_graphqlInfo : this.response_graphqlInfo;
 		const typeDefNames_normalized = schemaInfo.typeDefs.map(typeDef=>{
 			//return typeDef.name?.replace(/(T0)+/g, ".").toLowerCase().slice(0, -1); // UpdateTermT0UpdatesT0 -> updateterm.updates
 			//return typeDef.name?.toLowerCase(); // UpdateTermUpdates -> updatetermupdates
@@ -136,9 +138,11 @@ export class CommandClassMetadata {
 			}\n\t@typeDefNames_normalized:${typeDefNames_normalized.join(",")
 			}\n\t@typeDefStrings:${schemaInfo.typeDefs.map(a=>a.str)
 			}\n\t@group:${opts.group}`);
-		return result.name;
+		return result.name;*/
+
+		return typeName_normalized;
 	}
-	FindGQLTypeNameForFieldSchema(group: "payload" | "return", fieldSchema: JSONSchema7) {
+	FindGQLTypeNameForFieldSchema(group: "input" | "response", fieldSchema: JSONSchema7) {
 		if (fieldSchema.$ref != null) {
 			const schemaName = fieldSchema.$ref;
 			const schema = GetSchemaJSON(schemaName);
@@ -170,8 +174,8 @@ export class CommandClassMetadata {
 	GetArgTypes() {
 		const meta = GetCommandClassMetadata(this.commandClass.name);
 		const argGQLTypeNames = [] as {name: string, type: string}[];
-		for (const [propName, propSchema] of Object.entries(meta.payloadSchema.properties ?? {})) {
-			argGQLTypeNames.push({name: propName, type: this.FindGQLTypeName({group: "payload", propName, propSchema: propSchema as JSONSchema7})});
+		for (const [propName, propSchema] of Object.entries(meta.inputSchema.properties ?? {})) {
+			argGQLTypeNames.push({name: propName, type: this.FindGQLTypeName({group: "input", propName, propSchema: propSchema as JSONSchema7})});
 		}
 		return argGQLTypeNames;
 	}
@@ -191,17 +195,27 @@ export class CommandClassMetadata {
 		return this.GetArgTypes().map(a=>`${a.name}: $${a.name}`).join(", ");
 	}
 
-	Return_GetFieldTypes() {
+	// new generation
+	// for mutation calls
+	Args_GetVarDefsStr_New() {
+		return `$input: ${this.commandClass.name}Input`;
+	}
+	Args_GetArgsUsageStr_New() {
+		return `input: $input`;
+	}
+
+	Response_GetFieldTypes() {
 		const meta = GetCommandClassMetadata(this.commandClass.name);
 		const fieldTypes = [] as {name: string, type: string}[];
-		for (const [fieldName, fieldSchema] of Object.entries(meta.returnSchema.properties ?? {})) {
-			fieldTypes.push({name: fieldName, type: this.FindGQLTypeName({group: "return", propName: fieldName, propSchema: fieldSchema as JSONSchema7})});
+		for (const [fieldName, fieldSchema] of Object.entries(meta.responseSchema.properties ?? {})) {
+			fieldTypes.push({name: fieldName, type: this.FindGQLTypeName({group: "response", propName: fieldName, propSchema: fieldSchema as JSONSchema7})});
 		}
 		return fieldTypes;
 	}
-	Return_GetFieldsStr() {
-		const return_fieldTypes = this.Return_GetFieldTypes();
-		if (return_fieldTypes.length == 0) return "_"; // results in "{_}", matching the placeholder given in the mutation-declaration
+	Response_GetFieldsStr() {
+		const return_fieldTypes = this.Response_GetFieldTypes();
+		//if (return_fieldTypes.length == 0) return "_"; // results in "{_}", matching the placeholder given in the mutation-declaration
+		if (return_fieldTypes.length == 0) return "__typename"; // results in "{__typename}", matching the placeholder given in the mutation-declaration
 		return return_fieldTypes.map(a=>a.name).join("\n");
 	}
 }

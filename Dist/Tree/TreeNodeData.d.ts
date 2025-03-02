@@ -1,3 +1,4 @@
+import { Doc_Base } from "./TreeNode.js";
 export declare enum DataStatus {
     Initial = "Initial",
     /** Not sure if this actually gets utilized atm. (it relates to apollo's caching-layer) */
@@ -7,14 +8,14 @@ export declare enum DataStatus {
     Received_Live = "Received_Live"
 }
 export declare function GetPreferenceLevelOfDataStatus(status: DataStatus): 0 | 1 | 2 | 3 | 4;
-export declare class TreeNodeData<DataShape> {
+export declare class TreeNodeData<DataShape extends Doc_Base> {
     constructor();
     status: DataStatus;
-    data: DataShape;
+    data: DataShape | null;
     /** Whenever `data` is set, this field is updated to be a stringified version of the data. */
     dataJSON: string;
     NotifySubscriptionDropped(allowKeepDataCached?: boolean): void;
     IsDataAcceptableToConsume(): boolean;
-    SetData(data: DataShape, fromCache: boolean): boolean;
+    SetData(data: DataShape | null, fromCache: boolean): boolean;
     UpdateStatusAfterDataChange(dataChanged: boolean, fromCache: boolean): void;
 }

@@ -42,5 +42,16 @@ export declare class QueryParams_Linked extends QueryParams {
 }
 /** Adds round-brackets around the passed string, eg. "(...)", if it's non-empty. */
 export declare function WithBrackets(str: string | null | undefined): string;
+export declare class ListChange {
+    changeType: ListChangeType;
+    idOfRemoved: string;
+    data: any;
+}
+export declare enum ListChangeType {
+    FullList = "FullList",
+    EntryAdded = "EntryAdded",
+    EntryChanged = "EntryChanged",
+    EntryRemoved = "EntryRemoved"
+}
 export declare const gqlScalarTypes: string[];
 export declare function JSONSchemaToGQLFieldsStr(schema: JSONSchema7, schemaName: string, introspector: GQLIntrospector): any;

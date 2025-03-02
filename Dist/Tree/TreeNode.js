@@ -1,9 +1,9 @@
-import { Assert, AssertWarn, CE, E, Timer } from "js-vextensions";
+import { Assert, AssertWarn, CE, Clone, E, Timer } from "js-vextensions";
 import { computed, observable, onBecomeObserved, onBecomeUnobserved } from "mobx";
 import { PathOrPathGetterToPath, PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
 import { MaybeLog_Base } from "../Utils/General/General.js";
 import { makeObservable_safe, MobX_AllowStateChanges, RunInAction } from "../Utils/General/MobX.js";
-import { QueryParams, QueryParams_Linked } from "./QueryParams.js";
+import { ListChangeType, QueryParams, QueryParams_Linked } from "./QueryParams.js";
 import { GetPreferenceLevelOfDataStatus, TreeNodeData } from "./TreeNodeData.js";
 import { NormalizeDocumentShape } from "./DocShapeNormalizer.js";
 export var TreeNodeType;
@@ -186,8 +186,9 @@ export class TreeNode {
                     const returnedData = data.data; // if requested from top-level-query "map", data.data will have shape: {map: {...}}
                     //const returnedDocument = returnedData[Object.keys(this.query.vars!)[0]]; // so unwrap it here
                     Assert(Object.values(returnedData).length == 1);
-                    const returnedDocument = Object.values(returnedData)[0]; // so unwrap it here
-                    NormalizeDocumentShape(returnedDocument, this.query.DocSchemaName, this.graph.introspector);
+                    const returnedDocument_raw = Object.values(returnedData)[0]; // so unwrap it here
+                    NormalizeDocumentShape(returnedDocument_raw, this.query.DocSchemaName, this.graph.introspector);
+                    const returnedDocument = returnedDocument_raw;
                     MaybeLog_Base(a => a.subscriptions, l => l(`Got doc snapshot. @path(${this.path}) @snapshot:`, returnedDocument));
                     this.graph.commitScheduler.ScheduleDataUpdateCommit(() => {
                         this.data_fromSelf.SetData(returnedDocument, false);
@@ -206,25 +207,40 @@ export class TreeNode {
             let lastSubscriptionResult_docIDs = [];
             this.self_subscription = this.self_apolloObservable.subscribe({
                 next: data => {
-                    const docs = data.data[CE(this.pathSegments_noQuery).Last()].nodes;
-                    Assert(docs != null && docs instanceof Array);
+                    //const prevDocs = this.DocDatas;
+                    //const nextDocs = prevDocs.slice();
+                    let addedOrChangedDocs = [];
+                    let removedDocIDs = [];
+                    const listChange = data.data[CE(this.pathSegments_noQuery).Last()];
+                    Assert(listChange != null && listChange.data instanceof Array);
+                    if (listChange.changeType == ListChangeType.FullList) {
+                        // if full-list, just set the new docs
+                        addedOrChangedDocs = listChange.data;
+                        removedDocIDs = CE(lastSubscriptionResult_docIDs).Exclude(...listChange.data.map(a => a.id));
+                    }
+                    else if (listChange.changeType == ListChangeType.EntryAdded || listChange.changeType == ListChangeType.EntryChanged) {
+                        for (const addedOrChangedDoc of listChange.data) {
+                            addedOrChangedDocs.push(addedOrChangedDoc);
+                        }
+                    }
+                    else if (listChange.changeType == ListChangeType.EntryRemoved) {
+                        removedDocIDs.push(listChange.idOfRemoved);
+                    }
                     const fromCache = false;
-                    MaybeLog_Base(a => a.subscriptions, l => l(`Got collection snapshot. @path(${this.path}) @docs:`, docs));
+                    MaybeLog_Base(a => a.subscriptions, l => l(`Got collection snapshot. @path(${this.path}) @addedOrChanged:`, addedOrChangedDocs.length, "@removed:", removedDocIDs.length));
                     this.graph.commitScheduler.ScheduleDataUpdateCommit(() => {
-                        const docIDs = docs.map(a => a.id);
                         let dataChanged = false;
                         // for each doc in the new result-set, ensure a node exists for it, and set/update its "from parent" data
-                        for (const doc of docs) {
+                        for (const doc of addedOrChangedDocs) {
                             if (!this.docNodes.has(doc.id)) {
                                 this.docNodes.set(doc.id, new TreeNode(this.graph, this.pathSegments.concat([doc.id])));
                             }
                             NormalizeDocumentShape(doc, this.query.DocSchemaName, this.graph.introspector);
                             //dataChanged = this.docNodes.get(doc.id)!.SetData(doc.data(), fromCache) || dataChanged;
-                            dataChanged = this.docNodes.get(doc.id).data_fromParent.SetData(doc, fromCache) || dataChanged;
+                            dataChanged = this.docNodes.get(doc.id).data_fromParent.SetData(Clone(doc), fromCache) || dataChanged;
                         }
                         // if docs are leaving the result set, remove those nodes from the tree
-                        const docIDsLeavingResultSet = CE(lastSubscriptionResult_docIDs).Exclude(...docIDs);
-                        for (const docID of docIDsLeavingResultSet) {
+                        for (const docID of removedDocIDs) {
                             const docNode = this.docNodes.get(docID);
                             dataChanged = (docNode === null || docNode === void 0 ? void 0 : docNode.data_fromParent.SetData(null, fromCache)) || dataChanged;
                             // if this collection-subscription was the only reason the leaving-result-set doc's node was attached, remove that node from the tree (we don't want to detach nodes with active subscriptions)
@@ -234,7 +250,7 @@ export class TreeNode {
                         }
                         this.data_fromSelf.UpdateStatusAfterDataChange(dataChanged, fromCache);
                         this.self_subscriptionStatus = SubscriptionStatus.ReadyAndLive;
-                        lastSubscriptionResult_docIDs = docIDs;
+                        lastSubscriptionResult_docIDs = this.DocDatas.map(a => a.id);
                     });
                 },
                 error: err => console.error("SubscriptionError:", err), // Does an error here mean the subscription is no longer valid? If so, we should probably unsubscribe->resubscribe.

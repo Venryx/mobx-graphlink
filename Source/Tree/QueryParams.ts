@@ -187,7 +187,9 @@ export class QueryParams_Linked extends QueryParams {
 		return `
 			subscription Collection_${this.CollectionName}${WithBrackets(this.varsDefine)} {
 				${this.CollectionName}${WithBrackets(argsStr)} {
-					nodes {
+					changeType
+					idOfRemoved
+					data {
 						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName, this.treeNode.graph.introspector)}
 					}
 				}
@@ -201,6 +203,18 @@ export function WithBrackets(str: string|null|undefined) {
 	return `(${str})`;
 }
 
+export class ListChange {
+	changeType: ListChangeType;
+	idOfRemoved: string;
+	data: any;
+}
+export enum ListChangeType {
+	FullList = "FullList",
+	EntryAdded = "EntryAdded",
+	EntryChanged = "EntryChanged",
+	EntryRemoved = "EntryRemoved",
+}
+
 export const gqlScalarTypes = [
 	// standard
 	"Boolean", "Int", "Float", "String", "ID",
@@ -212,12 +226,17 @@ export function JSONSchemaToGQLFieldsStr(schema: JSONSchema7, schemaName: string
 	const fields = Object.entries(schema.properties!);
 	Assert(fields.length > 0, `Cannot create GraphQL query-string for schema "${schemaName}", since it has 0 fields.`);
 
-	const serverTypeForSchema = introspector.typeShapes[schemaName];
+	const serverTypeForSchema = introspector.TypeShape(schemaName);
 	const fields_final = fields.filter(([fieldKey, fieldValue])=>{
 		// if server doesn't have this field as an "actual field" in its declared graphql schema, then skip it (ie. leave its data as part of the "extras" field)
 		if (serverTypeForSchema?.fields && !serverTypeForSchema.fields.some(a=>a.name == fieldKey)) return false;
 		return true;
 	});
+
+	// maybe temp/needs-rework: for now, just always make sure we request the "extras" field (even if project doesn't need data beyond the TS struct's defined fields, mobx-graphlink needs the "extras" field in-case server gql doesn't know-of/declare those fields)
+	if (!fields_final.some(([fieldKey])=>fieldKey == "extras")) {
+		fields_final.push(["extras", {type: "object"}]);
+	}
 
 	//return fields.map(field=>{
 	return fields_final.map(([fieldKey, fieldValue_raw])=>{

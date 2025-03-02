@@ -56,7 +56,7 @@ export declare class Graphlink<StoreShape, DBShape> {
      * Related/alternative: `graph.callPlan_callStack.length > 1`
      * */
     inDataCommitChain: boolean;
-    tree: TreeNode<DBShape>;
+    tree: TreeNode<any>;
     treeRequestWatchers: Set<TreeRequestWatcher>;
     UnsubscribeAll(): void;
     ValidateDBData?: (dbData: DBShape) => void;

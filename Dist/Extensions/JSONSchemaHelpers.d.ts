@@ -20,6 +20,7 @@ export declare function GetSchemaJSON(name: string, errorOnMissing?: boolean): J
 export declare function GetSchemaJSON_Cloned(name: string, errorOnMissing?: boolean): JSONSchema7;
 export type SchemaModifiers<T> = {
     includeOnly?: Array<keyof T>;
+    excludeKeys?: Array<keyof T>;
     makeOptional?: Array<keyof T>;
     /** This is applied prior to makeRequired[_all] -- so they can be combined to make X required, and all else optional. */
     makeOptional_all?: boolean;

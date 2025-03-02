@@ -1,7 +1,6 @@
-import { Assert, CE, WaitXThenRun } from "js-vextensions";
-import { GetGQLSchemaInfoFromJSONSchema, NormalizeGQLTypeName } from "../Extensions/GQLSchemaHelpers.js";
+import { Assert, CE, ModifyString, WaitXThenRun } from "js-vextensions";
+import { NormalizeGQLTypeName } from "../Extensions/GQLSchemaHelpers.js";
 import { GetSchemaJSON, IsJSONSchemaOfTypeScalar, IsJSONSchemaScalar, JSONSchemaScalarTypeToGraphQLScalarType } from "../Extensions/JSONSchemaHelpers.js";
-// I don't think this class/file is really needed anymore; however, I'm keeping it here for the moment, since it's still called from some files in project 1. (called to register metadata that isn't necessary anymore)
 export function CommandMeta(opts) {
     return (constructor) => {
         Assert(!commandClasses.includes(constructor), `This exact command-class was already registered. @name:${constructor.name}`);
@@ -9,9 +8,9 @@ export function CommandMeta(opts) {
         Assert(!commandClassMetadata.has(constructor.name), `A command-class was already registered with this name (${constructor.name}), but a different instance.`);
         const metadata = new CommandClassMetadata({
             commandClass: constructor,
-            payloadSchemaGetter: opts.payloadSchema,
-            returnSchemaGetter: opts.returnSchema,
-            defaultPayload: opts.defaultPayload,
+            inputSchemaGetter: opts.inputSchema,
+            responseSchemaGetter: opts.responseSchema,
+            defaultInput: opts.defaultInput,
             //extraDBUpdates: opts.extraDBUpdates,
             exposeToGraphQL: opts.exposeToGraphQL,
         });
@@ -47,16 +46,18 @@ export function GetCommandClassMetadatas() {
 }
 export class CommandClassMetadata {
     constructor(data) {
-        this.defaultPayload = {};
+        this.defaultInput = {};
         //extraDBUpdates?: (helper: DBHelper)=>any;
         this.exposeToGraphQL = true;
         Object.assign(this, CE(data !== null && data !== void 0 ? data : {}).OmitUndefined());
         //this.CalculateDerivatives();
     }
+    /*input_graphqlInfo: GraphQLSchemaInfo;
+    response_graphqlInfo: GraphQLSchemaInfo;*/
     CalculateDerivatives() {
         var _a, _b, _c, _d;
-        this.payloadSchema = (_b = (_a = this.payloadSchemaGetter) === null || _a === void 0 ? void 0 : _a.call(this)) !== null && _b !== void 0 ? _b : {};
-        this.returnSchema = (_d = (_c = this.returnSchemaGetter) === null || _c === void 0 ? void 0 : _c.call(this)) !== null && _d !== void 0 ? _d : {};
+        this.inputSchema = (_b = (_a = this.inputSchemaGetter) === null || _a === void 0 ? void 0 : _a.call(this)) !== null && _b !== void 0 ? _b : {};
+        this.responseSchema = (_d = (_c = this.responseSchemaGetter) === null || _c === void 0 ? void 0 : _c.call(this)) !== null && _d !== void 0 ? _d : {};
         //console.log("CommandClass:", this.commandClass.name, "@payloadInfo:", JSON.stringify(this.payloadSchema, null, 2), "@returnInfo:", JSON.stringify(this.returnSchema, null, 2));
         /*const argsObj = {};
         for (const [propName, propSchema] of Object.entries(payloadInfo.properties ?? {}) as [string, Object][]) {
@@ -67,26 +68,26 @@ export class CommandClassMetadata {
             }
             argsObj[propName] =
         }*/
-        this.payload_graphqlInfo = GetGQLSchemaInfoFromJSONSchema({
-            rootName: `${this.commandClass.name}_Payload`,
-            jsonSchema: this.payloadSchema,
+        /*this.input_graphqlInfo = GetGQLSchemaInfoFromJSONSchema({
+            rootName: `${this.commandClass.name}Input`,
+            jsonSchema: this.inputSchema as any,
             direction: "input",
         });
-        this.return_graphqlInfo = GetGQLSchemaInfoFromJSONSchema({
-            rootName: `${this.commandClass.name}_ReturnData`,
-            jsonSchema: this.returnSchema,
-        });
+        this.response_graphqlInfo = GetGQLSchemaInfoFromJSONSchema({
+            rootName: `${this.commandClass.name}Response`,
+            jsonSchema: this.responseSchema as any,
+        });*/
     }
     // eslint-disable-next-line no-loop-func
     FindGQLTypeName(opts) {
-        var _a, _b;
+        var _a;
         if (opts.propName) {
             if (opts.propSchema) {
                 const result = this.FindGQLTypeNameForFieldSchema(opts.group, opts.propSchema);
                 if (result != null)
                     return result;
             }
-            const groupInfo = opts.group == "payload" ? this.payloadSchema : this.returnSchema;
+            const groupInfo = opts.group == "input" ? this.inputSchema : this.responseSchema;
             const fieldSchema = (_a = groupInfo.properties) === null || _a === void 0 ? void 0 : _a[opts.propName];
             if (fieldSchema) {
                 const result = this.FindGQLTypeNameForFieldSchema(opts.group, fieldSchema);
@@ -94,19 +95,30 @@ export class CommandClassMetadata {
                     return result;
             }
         }
-        const typeName = opts.typeName
-            ? opts.typeName // eg. UpdateTerm_ReturnData
-            : `${this.commandClass.name}_Payload.${opts.propName}`; // eg. UpdateTerm_Payload.id
+        let typeName;
+        if (opts.typeName) {
+            typeName = opts.typeName; // eg. UpdateTermResponse
+        }
+        else {
+            Assert(opts.group == "input", "Cannot calculate the gql type-name, in groups other than \"input\".");
+            typeName = `${this.commandClass.name}${ModifyString(opts.group, m => [m.startLower_to_upper])}.${opts.propName}`; // eg. UpdateTermInput.id
+        }
         const typeName_normalized = NormalizeGQLTypeName(typeName);
-        const schemaInfo = opts.group == "payload" ? this.payload_graphqlInfo : this.return_graphqlInfo;
-        const typeDefNames_normalized = schemaInfo.typeDefs.map(typeDef => {
+        /*const schemaInfo = opts.group == "input" ? this.input_graphqlInfo : this.response_graphqlInfo;
+        const typeDefNames_normalized = schemaInfo.typeDefs.map(typeDef=>{
             //return typeDef.name?.replace(/(T0)+/g, ".").toLowerCase().slice(0, -1); // UpdateTermT0UpdatesT0 -> updateterm.updates
             //return typeDef.name?.toLowerCase(); // UpdateTermUpdates -> updatetermupdates
             return NormalizeGQLTypeName(typeDef.name);
         });
-        const result = schemaInfo.typeDefs[typeDefNames_normalized.findIndex(a => a == typeName_normalized)];
-        Assert(result, `Could not find type-def for type/prop name "${(_b = opts.typeName) !== null && _b !== void 0 ? _b : opts.propName}". Did you forget to add a schema dependency?${""}\n\t@typeName_normalized:${typeName_normalized}\n\t@typeDefNames_normalized:${typeDefNames_normalized.join(",")}\n\t@typeDefStrings:${schemaInfo.typeDefs.map(a => a.str)}\n\t@group:${opts.group}`);
-        return result.name;
+
+        const result = schemaInfo.typeDefs[typeDefNames_normalized.findIndex(a=>a == typeName_normalized)];
+        Assert(result, `Could not find type-def for type/prop name "${opts.typeName ?? opts.propName}". Did you forget to add a schema dependency?${""
+            }\n\t@typeName_normalized:${typeName_normalized
+            }\n\t@typeDefNames_normalized:${typeDefNames_normalized.join(",")
+            }\n\t@typeDefStrings:${schemaInfo.typeDefs.map(a=>a.str)
+            }\n\t@group:${opts.group}`);
+        return result.name;*/
+        return typeName_normalized;
     }
     FindGQLTypeNameForFieldSchema(group, fieldSchema) {
         if (fieldSchema.$ref != null) {
@@ -142,8 +154,8 @@ export class CommandClassMetadata {
         var _a;
         const meta = GetCommandClassMetadata(this.commandClass.name);
         const argGQLTypeNames = [];
-        for (const [propName, propSchema] of Object.entries((_a = meta.payloadSchema.properties) !== null && _a !== void 0 ? _a : {})) {
-            argGQLTypeNames.push({ name: propName, type: this.FindGQLTypeName({ group: "payload", propName, propSchema: propSchema }) });
+        for (const [propName, propSchema] of Object.entries((_a = meta.inputSchema.properties) !== null && _a !== void 0 ? _a : {})) {
+            argGQLTypeNames.push({ name: propName, type: this.FindGQLTypeName({ group: "input", propName, propSchema: propSchema }) });
         }
         return argGQLTypeNames;
     }
@@ -162,19 +174,28 @@ export class CommandClassMetadata {
     Args_GetArgsUsageStr() {
         return this.GetArgTypes().map(a => `${a.name}: $${a.name}`).join(", ");
     }
-    Return_GetFieldTypes() {
+    // new generation
+    // for mutation calls
+    Args_GetVarDefsStr_New() {
+        return `$input: ${this.commandClass.name}Input`;
+    }
+    Args_GetArgsUsageStr_New() {
+        return `input: $input`;
+    }
+    Response_GetFieldTypes() {
         var _a;
         const meta = GetCommandClassMetadata(this.commandClass.name);
         const fieldTypes = [];
-        for (const [fieldName, fieldSchema] of Object.entries((_a = meta.returnSchema.properties) !== null && _a !== void 0 ? _a : {})) {
-            fieldTypes.push({ name: fieldName, type: this.FindGQLTypeName({ group: "return", propName: fieldName, propSchema: fieldSchema }) });
+        for (const [fieldName, fieldSchema] of Object.entries((_a = meta.responseSchema.properties) !== null && _a !== void 0 ? _a : {})) {
+            fieldTypes.push({ name: fieldName, type: this.FindGQLTypeName({ group: "response", propName: fieldName, propSchema: fieldSchema }) });
         }
         return fieldTypes;
     }
-    Return_GetFieldsStr() {
-        const return_fieldTypes = this.Return_GetFieldTypes();
+    Response_GetFieldsStr() {
+        const return_fieldTypes = this.Response_GetFieldTypes();
+        //if (return_fieldTypes.length == 0) return "_"; // results in "{_}", matching the placeholder given in the mutation-declaration
         if (return_fieldTypes.length == 0)
-            return "_"; // results in "{_}", matching the placeholder given in the mutation-declaration
+            return "__typename"; // results in "{__typename}", matching the placeholder given in the mutation-declaration
         return return_fieldTypes.map(a => a.name).join("\n");
     }
 }

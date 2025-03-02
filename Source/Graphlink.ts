@@ -167,7 +167,7 @@ export class Graphlink<StoreShape, DBShape> {
 	 * Related/alternative: `graph.callPlan_callStack.length > 1`
 	 * */
 	inDataCommitChain = false;
-	tree: TreeNode<DBShape>;
+	tree: TreeNode<any>; // this is just a tree-node holder, so its data-shape is-any/doesn't-matter
 	treeRequestWatchers = new Set<TreeRequestWatcher>();
 	//pathSubscriptions: Map<string, PathSubscription>;
 	UnsubscribeAll() {

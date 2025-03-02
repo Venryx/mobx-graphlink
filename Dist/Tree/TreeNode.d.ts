@@ -25,11 +25,15 @@ export declare class String_NotWrappedInGraphQL {
 }
 export declare const nodesByPath: Map<String, TreeNode<any>[]>;
 export declare function PathSegmentsAreValid(pathSegments: string[]): boolean;
-export declare class TreeNode<DataShape> {
+export type Doc_Base = {
+    id: string;
+    extras: object;
+};
+export declare class TreeNode<DataShape extends Doc_Base> {
     constructor(graph: Graphlink<any, any>, pathOrSegments: string | string[]);
     observedDataFields: Set<String>;
     countSecondsWithoutObserver_timer: Timer;
-    get Data_ForDirectSubscriber(): DataShape;
+    get Data_ForDirectSubscriber(): DataShape | null;
     get DocDatas_ForDirectSubscriber(): any[];
     graph: Graphlink<any, any>;
     pathSegments: string[];
@@ -53,7 +57,7 @@ export declare class TreeNode<DataShape> {
     data_fromParent: TreeNodeData<DataShape>;
     data_fromSelf: TreeNodeData<DataShape>;
     get PreferredDataContainer(): TreeNodeData<DataShape>;
-    get PreferredData(): DataShape;
+    get PreferredData(): DataShape | null;
     get DocDatas(): any[];
     collectionNodes: ObservableMap<string, TreeNode<any>>;
     queryNodes: ObservableMap<string, TreeNode<any>>;
@@ -67,4 +71,4 @@ export declare class TreeNode<DataShape> {
     UploadRawData(rawData: DataShape): void;
 }
 export declare function GetTreeNodeTypeForPath(pathOrSegments: string | string[]): TreeNodeType;
-export declare function TreeNodeToRawData<DataShape>(treeNode: TreeNode<DataShape>, addTreeLink?: boolean): DataShape;
+export declare function TreeNodeToRawData<DataShape extends Doc_Base>(treeNode: TreeNode<DataShape>, addTreeLink?: boolean): DataShape;

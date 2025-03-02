@@ -98,7 +98,7 @@ export function AddSchema(...args: any[]) {
 		schema = NewSchema(schema);
 		// by freezing the schema, we can return the schema (in GetSchemaJSON) without worrying about the data being mutated
 		Object.freeze(schema);
-		
+
 		schemaEntryJSONs.set(name, schema);
 		ajv.removeSchema(name); // for hot-reloading
 		ajvResult = ajv.addSchema(schema, name);
@@ -109,7 +109,7 @@ export function AddSchema(...args: any[]) {
 			}
 			schemaAddListeners.delete(name);
 		}
-	}
+	};
 
 	// if schema cannot be added just yet (due to a schema-dependency not yet being added)
 	if (!schemaDeps.every(dep=>schemaEntryJSONs.has(dep))) {
@@ -138,6 +138,7 @@ export function GetSchemaJSON_Cloned(name: string, errorOnMissing = true): JSONS
 
 export type SchemaModifiers<T> = {
 	includeOnly?: Array<keyof T>;
+	excludeKeys?: Array<keyof T>;
 	makeOptional?: Array<keyof T>;
 	/** This is applied prior to makeRequired[_all] -- so they can be combined to make X required, and all else optional. */
 	makeOptional_all?: boolean;
@@ -154,6 +155,12 @@ export function DeriveJSONSchema<T extends {[key: string]: any}>(typeClass: new(
 			}
 		}
 		if (result.required) result.required = ArrayCE(result.required).Include(...modifiers.includeOnly);
+	}
+	if (modifiers.excludeKeys) {
+		for (const key of modifiers.excludeKeys) {
+			delete result.properties[key];
+		}
+		if (result.required) result.required = ArrayCE(result.required).Exclude(...modifiers.excludeKeys);
 	}
 	if (modifiers.makeOptional) {
 		if (result.required) result.required = ArrayCE(result.required).Exclude(...modifiers.makeOptional);
@@ -307,7 +314,7 @@ export function AssertValidate(schemaNameOrJSON: string | JSONSchema7, data, fai
 export function AssertValidate_Full(schemaObject: JSONSchema7, schemaName: string|null, data, failureMessageOrGetter: string | ((errorsText: string|undefined)=>string), opt?: Partial<AssertValidateOptions>) {
 	opt = E(new AssertValidateOptions(), opt);
 	const assertFunc: typeof AssertV = opt.useAssertV ? AssertV : Assert;
-	
+
 	assertFunc(schemaObject != null, "schemaObject cannot be null.");
 	schemaObject = NewSchema(schemaObject); // make sure we apply schema-object defaults
 	if (opt.allowOptionalPropsToBeNull) {
@@ -339,7 +346,7 @@ export function Schema_WithOptionalPropsAllowedNull(schema: JSONSchema7) {
 	const result = Clone(schema) as JSONSchema7;
 	for (const [propName, propSchema] of Object.entries(result.properties ?? {})) {
 		const propOptional = !result.required?.includes(propName);
-		let type = propSchema["type"];
+		const type = propSchema["type"];
 		if (propOptional && type) {
 			propSchema["type"] = CE(IsString(type) ? ["null", type] : ["null"].concat(type)).Distinct();
 		}

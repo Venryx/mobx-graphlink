@@ -6,20 +6,20 @@ import { DBPPath } from "../Utils/DB/DBPaths.js";
 import { DBUpdate } from "../Utils/DB/DBUpdate.js";
 export type PayloadOf<T> = T extends Command<infer Payload> ? Payload : never;
 export type ReturnDataOf<T> = T extends Command<infer Payload, infer ReturnData> ? ReturnData : never;
-export declare abstract class Command<Payload, ReturnData extends {
+export declare abstract class Command<Input, Response extends {
     [key: string]: any;
 } = {}> {
     static augmentValidate?: (command: Command<any>) => any;
     static augmentDBUpdates?: (command: Command<any>, db: DBHelper) => any;
-    constructor(payload: Payload);
-    constructor(options: Partial<GraphRefs>, payload: Payload);
+    constructor(payload: Input);
+    constructor(options: Partial<GraphRefs>, payload: Input);
     _userInfo_override: UserInfo | null | undefined;
     get userInfo(): UserInfo;
     type: string;
     options: GraphRefs;
-    payload_orig: Payload;
-    payload: Payload;
-    returnData: ReturnData;
+    input_orig: Input;
+    input: Input;
+    response: Response;
     /** The parent command, ie. the prior command that constructed this command. */
     parentCommand: Command<any, any>;
     /** Alias for the parent command, ie. the prior command that constructed this command. */
@@ -32,7 +32,7 @@ export declare abstract class Command<Payload, ReturnData extends {
     /** If a command is passed, the field is set every time (to the passed command); if a function is passed, the field is only set once (to the result of the function's first invokation). */
     subcommandOrCreator: T | (() => T), preValidate?: (subcommand: T) => any): void;
     /** Transforms the payload data (eg. combining it with existing db-data) in preparation for constructing the db-updates-map, while also validating user permissions and such along the way. */
-    protected abstract Validate(): void;
+    protected Validate(): void;
     /** Last validation error, from passing "catchAndStoreError=true" to Validate_Full() or Validate_Async(). */
     validateError?: Error | string | undefined;
     get ValidateErrorStr(): string | undefined;
@@ -43,10 +43,10 @@ export declare abstract class Command<Payload, ReturnData extends {
     Validate_Async_Safe(options?: Partial<GraphRefs> & GetAsync_Options): Promise<string | undefined>;
     /** Retrieves the actual database updates that are to be made. (so we can do it in one atomic call) */
     GetDBUpdates(parentHelper: DBHelper): DBUpdate[];
-    abstract DeclareDBUpdates(helper: DBHelper): any;
+    DeclareDBUpdates(helper: DBHelper): void;
     PreRun(): Promise<void>;
     /** Creates a graphql request, and sends it, causing the commander to be executed on the server. */
-    RunOnServer(): Promise<ReturnData>;
+    RunOnServer(): Promise<Response>;
     callXResults: Map<string, any>;
     CallX_Once<T>(callTypeIdentifier: string, func: () => T): T;
     GenerateUUID_Once(path: string): string;

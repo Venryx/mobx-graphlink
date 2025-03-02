@@ -1,10 +1,9 @@
 import { JSONSchema7 } from "json-schema";
 import { Command } from "./Command.js";
-import { GraphQLSchemaInfo } from "../Extensions/GQLSchemaHelpers.js";
 export declare function CommandMeta(opts: {
-    payloadSchema: () => JSONSchema7;
-    returnSchema?: () => JSONSchema7;
-    defaultPayload?: any;
+    inputSchema: () => JSONSchema7;
+    responseSchema?: () => JSONSchema7;
+    defaultInput?: any;
     exposeToGraphQL?: boolean;
 }): (constructor: typeof Command) => void;
 export declare const commandClasses: (typeof Command)[];
@@ -15,22 +14,20 @@ export declare function GetCommandClassMetadatas(): CommandClassMetadata[];
 export declare class CommandClassMetadata {
     constructor(data?: Partial<CommandClassMetadata>);
     commandClass: typeof Command;
-    payloadSchemaGetter: (() => JSONSchema7) | null | undefined;
-    returnSchemaGetter: (() => JSONSchema7) | null | undefined;
-    defaultPayload: {};
+    inputSchemaGetter: (() => JSONSchema7) | null | undefined;
+    responseSchemaGetter: (() => JSONSchema7) | null | undefined;
+    defaultInput: {};
     exposeToGraphQL: boolean;
-    payloadSchema: JSONSchema7;
-    returnSchema: JSONSchema7;
-    payload_graphqlInfo: GraphQLSchemaInfo;
-    return_graphqlInfo: GraphQLSchemaInfo;
+    inputSchema: JSONSchema7;
+    responseSchema: JSONSchema7;
     CalculateDerivatives(): void;
     FindGQLTypeName(opts: {
-        group: "payload" | "return";
+        group: "input" | "response";
         typeName?: string;
         propName?: string;
         propSchema?: JSONSchema7;
     }): any;
-    FindGQLTypeNameForFieldSchema(group: "payload" | "return", fieldSchema: JSONSchema7): any;
+    FindGQLTypeNameForFieldSchema(group: "input" | "response", fieldSchema: JSONSchema7): any;
     GetArgTypes(): {
         name: string;
         type: string;
@@ -38,9 +35,11 @@ export declare class CommandClassMetadata {
     Args_GetArgDefsStr(): string;
     Args_GetVarDefsStr(): string;
     Args_GetArgsUsageStr(): string;
-    Return_GetFieldTypes(): {
+    Args_GetVarDefsStr_New(): string;
+    Args_GetArgsUsageStr_New(): string;
+    Response_GetFieldTypes(): {
         name: string;
         type: string;
     }[];
-    Return_GetFieldsStr(): string;
+    Response_GetFieldsStr(): string;
 }

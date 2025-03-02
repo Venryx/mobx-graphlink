@@ -1,5 +1,6 @@
-import { runInAction, _getGlobalState, makeObservable } from "mobx";
+import { runInAction, _getGlobalState, makeObservable, autorun } from "mobx";
 import { WaitXThenRun } from "js-vextensions";
+import { CatchBail } from "../../index.js";
 export let _reactModule;
 export function ProvideReactModule(reactModule) {
     _reactModule = reactModule;
@@ -90,4 +91,7 @@ export function RunInNextTick_BundledInOneAction(func, afterActionFunc) {
             }, afterActionFunc);
         });
     }
+}
+export function AutoRun_HandleBail(view, opts) {
+    return autorun(() => CatchBail(null, view), opts);
 }

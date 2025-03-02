@@ -1,10 +1,10 @@
 import {gql} from "@apollo/client";
-import {ArrayCE, Assert, CE, Clone, ConvertPathGetterFuncToPropChain, E, ObjectCE} from "js-vextensions";
+import {ArrayCE, Assert, CE, Clone, ConvertPathGetterFuncToPropChain, E, ModifyString, ObjectCE} from "js-vextensions";
 import {GetAsync, GetAsync_Options} from "../Accessors/Helpers.js";
 import {AssertValidate} from "../Extensions/JSONSchemaHelpers.js";
 import {GenerateUUID} from "../Extensions/KeyGenerator.js";
 import {defaultGraphRefs, GraphRefs} from "../Graphlink.js";
-import {CleanDBData, UserInfo} from "../index.js";
+import {CleanDBData, GQLTypeShape, Graphlink, UserInfo} from "../index.js";
 import {WithBrackets} from "../Tree/QueryParams.js";
 import {n} from "../Utils/@Internal/Types.js";
 import {DBPPath, PathOrPathGetterToPathSegments} from "../Utils/DB/DBPaths.js";
@@ -34,14 +34,14 @@ export type PayloadOf<T> = T extends Command<infer Payload> ? Payload : never;
 export type ReturnDataOf<T> = T extends Command<infer Payload, infer ReturnData> ? ReturnData : never;
 
 // require command return-value to always be an object; this provides more schema stability (eg. lets you change the return-data of a mutation, without breaking the contents of "legacy" keys)
-export abstract class Command<Payload, ReturnData extends {[key: string]: any} = {}> {
+export abstract class Command<Input, Response extends {[key: string]: any} = {}> {
 	static augmentValidate?: (command: Command<any>)=>any;
 	static augmentDBUpdates?: (command: Command<any>, db: DBHelper)=>any;
 
-	constructor(payload: Payload);
-	constructor(options: Partial<GraphRefs>, payload: Payload);
+	constructor(payload: Input);
+	constructor(options: Partial<GraphRefs>, payload: Input);
 	constructor(...args) {
-		let options: Partial<GraphRefs>, payload: Payload;
+		let options: Partial<GraphRefs>, payload: Input;
 		if (args.length == 1) [payload] = args;
 		else [options, payload] = args;
 		const opt = E(defaultGraphRefs, options!) as GraphRefs;
@@ -51,8 +51,8 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		//this.payload = E(this.constructor["defaultPayload"], payload);
 		// use Clone on the payload, so that behavior is consistent whether called locally or over the network
 		const meta = GetCommandClassMetadata(this.constructor.name);
-		this.payload_orig = Clone(payload); // needed for safe inclusion in CommandRun entries (ie. in-db command-run recording)
-		this.payload = E(Clone(meta.defaultPayload), Clone(payload));
+		this.input_orig = Clone(payload); // needed for safe inclusion in CommandRun entries (ie. in-db command-run recording)
+		this.input = E(Clone(meta.defaultInput), Clone(payload));
 	}
 	//userInfo: FireUserInfo;
 	_userInfo_override: UserInfo|null|undefined; // for use on server (so permissions are checked against the calling user's id rather than the server's )
@@ -66,13 +66,13 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	}
 	type: string;
 	options: GraphRefs;
-	payload_orig: Payload;
-	payload: Payload;
+	input_orig: Input;
+	input: Input;
 
 	//prepareStartTime: number;
 	//runStartTime: number;
 	//returnData = {} as any;
-	returnData = {} as ReturnData;
+	response = {} as Response;
 
 	// these methods are executed on the server (well, will be later)
 	// ==========
@@ -126,7 +126,7 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	}*/
 
 	/** Transforms the payload data (eg. combining it with existing db-data) in preparation for constructing the db-updates-map, while also validating user permissions and such along the way. */
-	protected abstract Validate(): void;
+	protected Validate(): void {}
 
 	/** Last validation error, from passing "catchAndStoreError=true" to Validate_Full() or Validate_Async(). */
 	validateError?: Error|string|undefined;
@@ -138,12 +138,12 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	/** Same as the command-provided Validate() function, except also validating the payload and return-data against their schemas. */
 	Validate_Full() {
 		const meta = GetCommandClassMetadata(this.constructor.name);
-		AssertValidate(meta.payloadSchema, this.payload, "Payload is invalid.", {addSchemaObject: true});
+		AssertValidate(meta.inputSchema, this.input, "Payload is invalid.", {addSchemaObject: true});
 		this.Validate();
 		if (Command.augmentValidate) {
 			Command.augmentValidate(this);
 		}
-		AssertValidate(meta.returnSchema, this.returnData, "Return-data is invalid.", {addSchemaObject: true});
+		AssertValidate(meta.responseSchema, this.response, "Return-data is invalid.", {addSchemaObject: true});
 	}
 	Validate_Safe(): string|undefined {
 		try {
@@ -188,7 +188,7 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 		const dbUpdates = helper.dbUpdates;
 		return dbUpdates;
 	}
-	abstract DeclareDBUpdates(helper: DBHelper);
+	DeclareDBUpdates(helper: DBHelper) {}
 
 	async PreRun() {
 		//RemoveHelpers(this.payload);
@@ -196,29 +196,66 @@ export abstract class Command<Payload, ReturnData extends {[key: string]: any} =
 	}
 
 	/** Creates a graphql request, and sends it, causing the commander to be executed on the server. */
-	async RunOnServer(): Promise<ReturnData> {
+	async RunOnServer(): Promise<Response> {
 		const meta = GetCommandClassMetadata(this.constructor.name);
-		const returnDataSchema = meta.returnSchema;
+		const returnDataSchema = meta.responseSchema;
 		//const returnData_propPairs = ObjectCE(returnDataSchema.properties).Pairs();
 
-		MaybeLog_Base(a=>a.commands, l=>l("Running command (on server). @type:", this.constructor.name, " @payload(", this.payload, ")"));
+		MaybeLog_Base(a=>a.commands, l=>l("Running command (on server). @type:", this.constructor.name, " @payload(", this.input, ")"));
 
+		Assert(Graphlink.instances.length == 1, "Command class currently only works if there is one Graphlink instance created in your program.");
+		const inputType_server = Graphlink.instances[0].introspector.TypeShape(`${this.constructor.name}Input`);
+		const input_final = Clone(this.input);
+
+		// TEMP; hard-code special handling for an "entry" field atm
+		if (input_final.entry) {
+			const entry_final = input_final.entry;
+			entry_final.extras ??= {};
+			const extras_final = entry_final.extras;
+
+			const inputType_server_entry = GQLTypeShape.GetInputFields(inputType_server).find(a=>a.name == "entry")!.type;
+			for (const [key, value] of Object.entries(entry_final)) {
+				// if server does not recognize the given field as a direct field, move it to the "extras" sub-map
+				if (GQLTypeShape.GetInputFields(inputType_server_entry).find(a=>a.name == key) == null) {
+					delete entry_final[key];
+					extras_final[key] = value;
+				}
+			}
+		}
+
+		// TEMP; hard-code special handling for an "updates" field atm
+		if (input_final.updates) {
+			const updates_final = input_final.updates;
+			updates_final.extras ??= {};
+			const extras_final = updates_final.extras;
+
+			const inputType_server_updates = GQLTypeShape.GetInputFields(inputType_server).find(a=>a.name == "updates")!.type;
+			for (const [key, value] of Object.entries(updates_final)) {
+				// if server does not recognize the given field as a direct field, move it to the "extras" sub-map
+				if (GQLTypeShape.GetInputFields(inputType_server_updates).find(a=>a.name == key) == null) {
+					delete updates_final[key];
+					extras_final[key] = value;
+				}
+			}
+		}
+
+		const commandName_gql = ModifyString(this.constructor.name, m=>[m.startUpper_to_lower]);
 		const fetchResult = await this.options.graph.subs.apollo.mutate({
 			mutation: gql`
-				mutation ${this.constructor.name}${WithBrackets(meta.Args_GetVarDefsStr())} {
-					${this.constructor.name}${WithBrackets(meta.Args_GetArgsUsageStr())} {
-						${meta.Return_GetFieldsStr()}
+				mutation Command_${commandName_gql}${WithBrackets(meta.Args_GetVarDefsStr_New())} {
+					${commandName_gql}${WithBrackets(meta.Args_GetArgsUsageStr_New())} {
+						${meta.Response_GetFieldsStr()}
 					}
 				}
 			`,
-			variables: this.payload as any,
+			variables: {input: input_final},
 		});
-		const returnData = CleanDBData(fetchResult.data[this.constructor.name]);
+		const returnData = CleanDBData(fetchResult.data[commandName_gql]);
 		AssertValidate(returnDataSchema, returnData, `Return-data for command did not match the expected shape. ReturnData: ${JSON.stringify(returnData, null, 2)}`);
 
 		MaybeLog_Base(a=>a.commands, l=>l("Command completed (on server). @type:", this.constructor.name, " @command(", this, ") @fetchResult(", fetchResult, ")"));
 
-		return returnData as ReturnData;
+		return returnData as Response;
 	}
 
 	// standard validation of common paths/object-types; perhaps disable in production

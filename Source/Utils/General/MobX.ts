@@ -1,7 +1,7 @@
-import {runInAction, _getGlobalState, AnnotationsMap, CreateObservableOptions, makeObservable} from "mobx";
+import {runInAction, _getGlobalState, AnnotationsMap, CreateObservableOptions, makeObservable, autorun} from "mobx";
 import {WaitXThenRun} from "js-vextensions";
-import type {globalState} from "mobx/dist/internal.js";
-import {Graphlink} from "../../index.js";
+import type {IAutorunOptions, IReactionDisposer, IReactionPublic, globalState} from "mobx/dist/internal.js";
+import {CatchBail, Graphlink} from "../../index.js";
 
 export let _reactModule;
 export function ProvideReactModule(reactModule: any) {
@@ -102,4 +102,8 @@ export function RunInNextTick_BundledInOneAction(func: Function, afterActionFunc
 			}, afterActionFunc);
 		});
 	}
+}
+
+export function AutoRun_HandleBail(view: (r: IReactionPublic)=>any, opts?: IAutorunOptions): IReactionDisposer {
+	return autorun(()=>CatchBail(null, view), opts);
 }

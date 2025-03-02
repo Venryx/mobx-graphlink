@@ -137,7 +137,9 @@ export class QueryParams_Linked extends QueryParams {
         return `
 			subscription Collection_${this.CollectionName}${WithBrackets(this.varsDefine)} {
 				${this.CollectionName}${WithBrackets(argsStr)} {
-					nodes {
+					changeType
+					idOfRemoved
+					data {
 						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName, this.treeNode.graph.introspector)}
 					}
 				}
@@ -151,6 +153,15 @@ export function WithBrackets(str) {
         return "";
     return `(${str})`;
 }
+export class ListChange {
+}
+export var ListChangeType;
+(function (ListChangeType) {
+    ListChangeType["FullList"] = "FullList";
+    ListChangeType["EntryAdded"] = "EntryAdded";
+    ListChangeType["EntryChanged"] = "EntryChanged";
+    ListChangeType["EntryRemoved"] = "EntryRemoved";
+})(ListChangeType || (ListChangeType = {}));
 export const gqlScalarTypes = [
     // standard
     "Boolean", "Int", "Float", "String", "ID",
@@ -161,13 +172,17 @@ export function JSONSchemaToGQLFieldsStr(schema, schemaName, introspector) {
     //const fields = CE(schema.properties!).Pairs();
     const fields = Object.entries(schema.properties);
     Assert(fields.length > 0, `Cannot create GraphQL query-string for schema "${schemaName}", since it has 0 fields.`);
-    const serverTypeForSchema = introspector.typeShapes[schemaName];
+    const serverTypeForSchema = introspector.TypeShape(schemaName);
     const fields_final = fields.filter(([fieldKey, fieldValue]) => {
         // if server doesn't have this field as an "actual field" in its declared graphql schema, then skip it (ie. leave its data as part of the "extras" field)
         if ((serverTypeForSchema === null || serverTypeForSchema === void 0 ? void 0 : serverTypeForSchema.fields) && !serverTypeForSchema.fields.some(a => a.name == fieldKey))
             return false;
         return true;
     });
+    // maybe temp/needs-rework: for now, just always make sure we request the "extras" field (even if project doesn't need data beyond the TS struct's defined fields, mobx-graphlink needs the "extras" field in-case server gql doesn't know-of/declare those fields)
+    if (!fields_final.some(([fieldKey]) => fieldKey == "extras")) {
+        fields_final.push(["extras", { type: "object" }]);
+    }
     //return fields.map(field=>{
     return fields_final.map(([fieldKey, fieldValue_raw]) => {
         var _a, _b, _c;

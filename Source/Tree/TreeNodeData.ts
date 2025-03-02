@@ -2,6 +2,7 @@ import {CE, ObjectCE, ToJSON} from "js-vextensions";
 import {observable} from "mobx";
 import {CleanDBData} from "../Utils/DB/DBDataHelpers.js";
 import {makeObservable_safe, RunInAction} from "../Utils/General/MobX.js";
+import {Doc_Base} from "./TreeNode.js";
 
 export enum DataStatus {
 	Initial = "Initial",
@@ -21,7 +22,7 @@ export function GetPreferenceLevelOfDataStatus(status: DataStatus) {
 	return 0;
 }
 
-export class TreeNodeData<DataShape> {
+export class TreeNodeData<DataShape extends Doc_Base> {
 	constructor() {
 		makeObservable_safe(this, {
 			status: observable,
@@ -30,7 +31,7 @@ export class TreeNodeData<DataShape> {
 	}
 
 	status = DataStatus.Initial; // [@O]
-	data: DataShape; // [@O.ref]
+	data: DataShape|null; // [@O.ref]
 	/** Whenever `data` is set, this field is updated to be a stringified version of the data. */
 	dataJSON: string;
 
@@ -49,7 +50,7 @@ export class TreeNodeData<DataShape> {
 		return ObjectCE(this.status).IsOneOf(DataStatus.Received_Live, DataStatus.Received_CachedByMGL);
 	}
 
-	SetData(data: DataShape, fromCache: boolean) {
+	SetData(data: DataShape|null, fromCache: boolean) {
 		// this.data being "undefined" is used to signify that it's still loading; so if firebase-given value is "undefined", change it to "null"
 		if (data === undefined) {
 			data = null as any;

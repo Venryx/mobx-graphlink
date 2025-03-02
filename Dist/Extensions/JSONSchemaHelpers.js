@@ -128,6 +128,13 @@ export function DeriveJSONSchema(typeClass, modifiers) {
         if (result.required)
             result.required = ArrayCE(result.required).Include(...modifiers.includeOnly);
     }
+    if (modifiers.excludeKeys) {
+        for (const key of modifiers.excludeKeys) {
+            delete result.properties[key];
+        }
+        if (result.required)
+            result.required = ArrayCE(result.required).Exclude(...modifiers.excludeKeys);
+    }
     if (modifiers.makeOptional) {
         if (result.required)
             result.required = ArrayCE(result.required).Exclude(...modifiers.makeOptional);
@@ -275,7 +282,7 @@ export function Schema_WithOptionalPropsAllowedNull(schema) {
     const result = Clone(schema);
     for (const [propName, propSchema] of Object.entries((_a = result.properties) !== null && _a !== void 0 ? _a : {})) {
         const propOptional = !((_b = result.required) === null || _b === void 0 ? void 0 : _b.includes(propName));
-        let type = propSchema["type"];
+        const type = propSchema["type"];
         if (propOptional && type) {
             propSchema["type"] = CE(IsString(type) ? ["null", type] : ["null"].concat(type)).Distinct();
         }

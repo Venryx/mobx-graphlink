@@ -1,4 +1,5 @@
 import { AnnotationsMap, CreateObservableOptions } from "mobx";
+import type { IAutorunOptions, IReactionDisposer, IReactionPublic } from "mobx/dist/internal.js";
 export declare let _reactModule: any;
 export declare function ProvideReactModule(reactModule: any): void;
 declare type NoInfer<T> = [T][T extends any ? 0 : never];
@@ -13,4 +14,5 @@ export declare function MobX_AllowStateChanges(): boolean;
 export declare function RunInAction_WhenAble(actionName: string, funcThatChangesObservables: () => any, afterActionFunc?: () => any): boolean;
 export declare const RunInNextTick_BundledInOneAction_funcs: Function[];
 export declare function RunInNextTick_BundledInOneAction(func: Function, afterActionFunc?: () => any): void;
+export declare function AutoRun_HandleBail(view: (r: IReactionPublic) => any, opts?: IAutorunOptions): IReactionDisposer;
 export {};

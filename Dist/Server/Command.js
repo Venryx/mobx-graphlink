@@ -1,10 +1,10 @@
 import { gql } from "@apollo/client";
-import { Assert, CE, Clone, ConvertPathGetterFuncToPropChain, E } from "js-vextensions";
+import { Assert, CE, Clone, ConvertPathGetterFuncToPropChain, E, ModifyString } from "js-vextensions";
 import { GetAsync } from "../Accessors/Helpers.js";
 import { AssertValidate } from "../Extensions/JSONSchemaHelpers.js";
 import { GenerateUUID } from "../Extensions/KeyGenerator.js";
 import { defaultGraphRefs } from "../Graphlink.js";
-import { CleanDBData } from "../index.js";
+import { CleanDBData, GQLTypeShape, Graphlink } from "../index.js";
 import { WithBrackets } from "../Tree/QueryParams.js";
 import { DBUpdate, DBUpdateType } from "../Utils/DB/DBUpdate.js";
 import { MaybeLog_Base } from "../Utils/General/General.js";
@@ -15,7 +15,7 @@ export class Command {
         //prepareStartTime: number;
         //runStartTime: number;
         //returnData = {} as any;
-        this.returnData = {};
+        this.response = {};
         // standard validation of common paths/object-types; perhaps disable in production
         /*async Validate_LateHeavy(dbUpdates: any) {
             // validate "nodes/X"
@@ -62,8 +62,8 @@ export class Command {
         //this.payload = E(this.constructor["defaultPayload"], payload);
         // use Clone on the payload, so that behavior is consistent whether called locally or over the network
         const meta = GetCommandClassMetadata(this.constructor.name);
-        this.payload_orig = Clone(payload); // needed for safe inclusion in CommandRun entries (ie. in-db command-run recording)
-        this.payload = E(Clone(meta.defaultPayload), Clone(payload));
+        this.input_orig = Clone(payload); // needed for safe inclusion in CommandRun entries (ie. in-db command-run recording)
+        this.input = E(Clone(meta.defaultInput), Clone(payload));
     }
     //_userInfo_override_set = false;
     get userInfo() {
@@ -112,6 +112,11 @@ export class Command {
         //subcommand.Validate();
         subcommand.Validate_Full();
     }
+    /*Up(type?: new(..._)=>Command<any>) {
+        return CE(this.parentCommand).As(type);
+    }*/
+    /** Transforms the payload data (eg. combining it with existing db-data) in preparation for constructing the db-updates-map, while also validating user permissions and such along the way. */
+    Validate() { }
     get ValidateErrorStr() {
         var _a;
         const err = this.validateError;
@@ -120,12 +125,12 @@ export class Command {
     /** Same as the command-provided Validate() function, except also validating the payload and return-data against their schemas. */
     Validate_Full() {
         const meta = GetCommandClassMetadata(this.constructor.name);
-        AssertValidate(meta.payloadSchema, this.payload, "Payload is invalid.", { addSchemaObject: true });
+        AssertValidate(meta.inputSchema, this.input, "Payload is invalid.", { addSchemaObject: true });
         this.Validate();
         if (Command.augmentValidate) {
             Command.augmentValidate(this);
         }
-        AssertValidate(meta.returnSchema, this.returnData, "Return-data is invalid.", { addSchemaObject: true });
+        AssertValidate(meta.responseSchema, this.response, "Return-data is invalid.", { addSchemaObject: true });
     }
     Validate_Safe() {
         var _a;
@@ -171,27 +176,61 @@ export class Command {
         const dbUpdates = helper.dbUpdates;
         return dbUpdates;
     }
+    DeclareDBUpdates(helper) { }
     async PreRun() {
         //RemoveHelpers(this.payload);
         await this.Validate_Async();
     }
     /** Creates a graphql request, and sends it, causing the commander to be executed on the server. */
     async RunOnServer() {
+        var _a, _b;
         const meta = GetCommandClassMetadata(this.constructor.name);
-        const returnDataSchema = meta.returnSchema;
+        const returnDataSchema = meta.responseSchema;
         //const returnData_propPairs = ObjectCE(returnDataSchema.properties).Pairs();
-        MaybeLog_Base(a => a.commands, l => l("Running command (on server). @type:", this.constructor.name, " @payload(", this.payload, ")"));
+        MaybeLog_Base(a => a.commands, l => l("Running command (on server). @type:", this.constructor.name, " @payload(", this.input, ")"));
+        Assert(Graphlink.instances.length == 1, "Command class currently only works if there is one Graphlink instance created in your program.");
+        const inputType_server = Graphlink.instances[0].introspector.TypeShape(`${this.constructor.name}Input`);
+        const input_final = Clone(this.input);
+        // TEMP; hard-code special handling for an "entry" field atm
+        if (input_final.entry) {
+            const entry_final = input_final.entry;
+            (_a = entry_final.extras) !== null && _a !== void 0 ? _a : (entry_final.extras = {});
+            const extras_final = entry_final.extras;
+            const inputType_server_entry = GQLTypeShape.GetInputFields(inputType_server).find(a => a.name == "entry").type;
+            for (const [key, value] of Object.entries(entry_final)) {
+                // if server does not recognize the given field as a direct field, move it to the "extras" sub-map
+                if (GQLTypeShape.GetInputFields(inputType_server_entry).find(a => a.name == key) == null) {
+                    delete entry_final[key];
+                    extras_final[key] = value;
+                }
+            }
+        }
+        // TEMP; hard-code special handling for an "updates" field atm
+        if (input_final.updates) {
+            const updates_final = input_final.updates;
+            (_b = updates_final.extras) !== null && _b !== void 0 ? _b : (updates_final.extras = {});
+            const extras_final = updates_final.extras;
+            const inputType_server_updates = GQLTypeShape.GetInputFields(inputType_server).find(a => a.name == "updates").type;
+            for (const [key, value] of Object.entries(updates_final)) {
+                // if server does not recognize the given field as a direct field, move it to the "extras" sub-map
+                if (GQLTypeShape.GetInputFields(inputType_server_updates).find(a => a.name == key) == null) {
+                    delete updates_final[key];
+                    extras_final[key] = value;
+                }
+            }
+        }
+        const commandName_gql = ModifyString(this.constructor.name, m => [m.startUpper_to_lower]);
         const fetchResult = await this.options.graph.subs.apollo.mutate({
             mutation: gql `
-				mutation ${this.constructor.name}${WithBrackets(meta.Args_GetVarDefsStr())} {
-					${this.constructor.name}${WithBrackets(meta.Args_GetArgsUsageStr())} {
-						${meta.Return_GetFieldsStr()}
+				mutation Command_${commandName_gql}${WithBrackets(meta.Args_GetVarDefsStr_New())} {
+					${commandName_gql}${WithBrackets(meta.Args_GetArgsUsageStr_New())} {
+						${meta.Response_GetFieldsStr()}
 					}
 				}
 			`,
-            variables: this.payload,
+            variables: { input: input_final },
         });
-        const returnData = CleanDBData(fetchResult.data[this.constructor.name]);
+        const returnData = CleanDBData(fetchResult.data[commandName_gql]);
         AssertValidate(returnDataSchema, returnData, `Return-data for command did not match the expected shape. ReturnData: ${JSON.stringify(returnData, null, 2)}`);
         MaybeLog_Base(a => a.commands, l => l("Command completed (on server). @type:", this.constructor.name, " @command(", this, ") @fetchResult(", fetchResult, ")"));
         return returnData;

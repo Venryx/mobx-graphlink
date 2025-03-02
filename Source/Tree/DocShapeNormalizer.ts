@@ -1,5 +1,6 @@
 import {GQLIntrospector} from "../DBShape/GQLIntrospector.js";
 import {GetSchemaJSON} from "../Extensions/JSONSchemaHelpers.js";
+import {Doc_Base} from "./TreeNode.js";
 
 /**
  * This function:
@@ -7,13 +8,14 @@ import {GetSchemaJSON} from "../Extensions/JSONSchemaHelpers.js";
  * 2) Checks if the gql-introspector has (server graphql schema) type-data for this object; if so, gets the list of "root fields" declared for this type, there on the server-side.
  * 3) For each root-field declared client-side that is missing server-side, reshape this document (as returned from the server) so that those fields are on the root of the object instead. (to match the client-side expected shape)
  */
-export function NormalizeDocumentShape(doc: object, docTypeName: string, introspector: GQLIntrospector) {
+export function NormalizeDocumentShape(doc: Doc_Base|null, docTypeName: string, introspector: GQLIntrospector) {
 	if (!introspector.introspectionComplete) return;
+	if (doc == null) return;
 	const docExtras = doc["extras"] as {[key: string]: any};
 	if (docExtras == null) return;
 
 	const rootFields_client = Object.keys(GetSchemaJSON(docTypeName).properties!);
-	const rootFields_server_base = introspector.typeShapes[docTypeName]?.fields;
+	const rootFields_server_base = introspector.TypeShape(docTypeName)?.fields;
 	if (rootFields_server_base == null) return;
 	const rootFields_server = rootFields_server_base.map(a=>a.name) ?? [];
 
