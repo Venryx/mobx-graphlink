@@ -1,4 +1,4 @@
-/// <reference types="react" />
+import React from "react";
 import { BailError } from "../Utils/General/BailManager.js";
 import { n } from "../Utils/@Internal/Types.js";
 export declare function TableNameToDocSchemaName(tableName: string, errorIfMissing?: boolean): string;
@@ -7,9 +7,9 @@ export declare let BailHandler_loadingUI_default: BailHandler;
 export declare function BailHandler_loadingUI_default_Set(value: BailHandler): void;
 export type BailInfo = {
     comp: any;
-    bailMessage: BailError;
+    bailMessage: BailError | n;
 };
-export type BailHandler = (info: BailInfo) => any;
+export type BailHandler = (info: BailInfo | n) => any;
 export declare class BailHandler_Options {
     loadingUI?: BailHandler;
     storeMetadata: boolean;
@@ -35,6 +35,7 @@ export declare class MGLCompMeta {
 export declare class ObserverMGL_Options {
     bailHandler: boolean;
     bailHandler_opts?: BailHandler_Options;
+    observer: boolean;
 }
 /** Variant of mobx-react's `observer` function (for comp-classes), which also adds bail-handling behavior. */
 export declare function ObserverMGL(targetClass: Function): any;

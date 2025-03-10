@@ -1,4 +1,5 @@
 import {Assert, CE, E} from "js-vextensions";
+import React, {Suspense} from "react";
 import {AddSchema, collection_docSchemaName, WaitTillSchemaAdded} from "./JSONSchemaHelpers.js";
 import {BailError} from "../Utils/General/BailManager.js";
 import {n} from "../Utils/@Internal/Types.js";
@@ -25,8 +26,8 @@ export function BailHandler_loadingUI_default_Set(value: BailHandler) {
 	BailHandler_loadingUI_default = value;
 }
 
-export type BailInfo = {comp: any, bailMessage: BailError};
-export type BailHandler = (info: BailInfo)=>any;
+export type BailInfo = {comp: any, bailMessage: BailError|n};
+export type BailHandler = (info: BailInfo|n)=>any;
 export class BailHandler_Options {
 	loadingUI?: BailHandler;
 	storeMetadata = true;
@@ -44,12 +45,14 @@ export function BailHandler(...args) {
 
 	function ApplyToClass(targetClass: Function) {
 		const render_old = targetClass.prototype.render;
-		targetClass.prototype.render = function(...args) {
+		targetClass.prototype.render = function(...args_inner) {
 			if (opts.storeMetadata && this["mgl"] == null) this["mgl"] = new MGLCompMeta();
 			const mgl = this["mgl"] as MGLCompMeta|undefined;
-			try {
+
+			// strategy 1: throw error (doesn't work in react 19 / with actual hooks in-use)
+			/*try {
 				if (mgl) mgl.NotifyRenderStart();
-				const result = render_old.apply(this, args);
+				const result = render_old.apply(this, args_inner);
 
 				if (mgl) mgl.NotifyRenderCompletion();
 				return result;
@@ -61,8 +64,37 @@ export function BailHandler(...args) {
 					return loadingUI.call(this, {comp: this, bailMessage: ex}); // current v-pref is to have loading-uis not care about the "this" passed, but kept same for now (doesn't hurt anything)
 				}
 				throw ex;
+			}*/
 
-			}
+			// strategy 2: throw error, but make it look like a promise rejection (while also wrapping render func's return in a Suspense)
+			const loadingUI_final = opts.loadingUI ?? BailHandler_loadingUI_default;
+			let stashedBailError: BailError|n;
+			const loadingUI_final_asFuncComp = ()=>loadingUI_final({comp: this, bailMessage: stashedBailError});
+			const func_withBailConvertedToThrownPromise = ()=>{
+				try {
+					if (mgl) mgl.NotifyRenderStart();
+					const result = render_old.apply(this, args_inner);
+
+					if (mgl) mgl.NotifyRenderCompletion();
+					return result;
+				} catch (ex) {
+					if (ex instanceof BailError) {
+						if (mgl) mgl.NotifyBailError(ex);
+
+						stashedBailError = ex;
+						ex["then"] = ()=>{}; // make react think this is a react suspense-error
+						throw ex;
+					} else {
+						stashedBailError = null;
+					}
+					throw ex;
+				}
+			};
+			return React.createElement(
+				Suspense,
+				{fallback: React.createElement(loadingUI_final_asFuncComp)},
+				func_withBailConvertedToThrownPromise(),
+			);
 		};
 	}
 }
@@ -140,6 +172,7 @@ function EnsureImported_MobXReact() {
 export class ObserverMGL_Options {
 	bailHandler = true;
 	bailHandler_opts?: BailHandler_Options;
+	observer = true;
 }
 /** Variant of mobx-react's `observer` function (for comp-classes), which also adds bail-handling behavior. */
 export function ObserverMGL(targetClass: Function);
@@ -157,7 +190,7 @@ export function ObserverMGL(...args) {
 
 	function ApplyToClass(targetClass: Function) {
 		if (opts.bailHandler) BailHandler(opts.bailHandler_opts)(targetClass);
-		observer(targetClass as any);
+		if (opts.observer) observer(targetClass as any);
 	}
 }
 
@@ -177,7 +210,8 @@ export function observer_mgl(...args) {
 	}
 
 	if (opts.bailHandler) {
-		return observer(props=>{
+		// strategy 1: throw error (doesn't work in react 19 / with actual hooks in-use)
+		/*return observer(props=>{
 			try {
 				return func(props);
 			} catch (ex) {
@@ -187,7 +221,65 @@ export function observer_mgl(...args) {
 				}
 				throw ex;
 			}
+		});*/
+
+		// strategy 2: throw error, but make it look like a promise rejection (while also wrapping render func's return in a Suspense)
+		return observer(props=>{
+			const loadingUI_final = opts.bailHandler_opts?.loadingUI ?? BailHandler_loadingUI_default;
+			let stashedBailError: BailError|n;
+			const loadingUI_final_asFuncComp = ()=>loadingUI_final({comp: {name: "unknown", props}, bailMessage: stashedBailError});
+
+			const func_withBailConvertedToThrownPromise = ()=>{
+				try {
+					return func(props);
+				} catch (ex) {
+					if (ex instanceof BailError) {
+						stashedBailError = ex;
+						ex["then"] = ()=>{}; // make react think this is a react suspense-error
+						throw ex;
+					} else {
+						stashedBailError = null;
+					}
+					throw ex;
+				}
+			};
+
+			return React.createElement(
+				Suspense,
+				{fallback: React.createElement(loadingUI_final_asFuncComp)},
+				func_withBailConvertedToThrownPromise(),
+			);
 		});
+
+		// strategy 3: catch error and replace by throwing a promise instead (still stash the error so the loading-ui knows what the error was though)
+		/*return observer(props=>{
+			const loadingUI_final = opts.bailHandler_opts?.loadingUI ?? BailHandler_loadingUI_default;
+			let stashedBailError: BailError|n;
+			const loadingUI_final_asFuncComp = ()=>loadingUI_final({comp: {name: "unknown", props}, bailMessage: stashedBailError});
+
+			const func_withBailConvertedToThrownPromise = ()=>{
+				try {
+					return func(props);
+				} catch (ex) {
+					if (ex instanceof BailError) {
+						stashedBailError = ex;
+						throw new Promise((resolve, reject)=>{
+							reject(ex);
+						});
+					}
+					throw ex;
+				}
+			};
+
+			/*<Suspense fallback={()=>loadingUI_final({comp: {name: "unknown", props}, bailMessage: null})}>
+				{func()}
+			</Suspense>*#/
+			return React.createElement(
+				Suspense,
+				{fallback: React.createElement(loadingUI_final_asFuncComp)},
+				func_withBailConvertedToThrownPromise(),
+			);
+		});*/
 	}
 	return observer(func);
 }
@@ -202,7 +294,7 @@ export function observer_mgl(...args) {
 	}
 }*/
 
-export const mglClasses = new Array<Function>();
+export const mglClasses = [] as Function[];
 export function GetMGLClass(name: string) {
 	return mglClasses.find(a=>a.name == name);
 }
