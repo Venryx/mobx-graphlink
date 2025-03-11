@@ -9,7 +9,7 @@ export type BailInfo = {
     comp: any;
     bailMessage: BailError | n;
 };
-export type BailHandler = (info: BailInfo | n) => any;
+export type BailHandler = (info: BailInfo) => any;
 export declare class BailHandler_Options {
     loadingUI?: BailHandler;
     storeMetadata: boolean;

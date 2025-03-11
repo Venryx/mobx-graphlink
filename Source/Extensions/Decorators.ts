@@ -27,7 +27,7 @@ export function BailHandler_loadingUI_default_Set(value: BailHandler) {
 }
 
 export type BailInfo = {comp: any, bailMessage: BailError|n};
-export type BailHandler = (info: BailInfo|n)=>any;
+export type BailHandler = (info: BailInfo)=>any;
 export class BailHandler_Options {
 	loadingUI?: BailHandler;
 	storeMetadata = true;
@@ -69,7 +69,9 @@ export function BailHandler(...args) {
 			// strategy 2: throw error, but make it look like a promise rejection (while also wrapping render func's return in a Suspense)
 			const loadingUI_final = opts.loadingUI ?? BailHandler_loadingUI_default;
 			let stashedBailError: BailError|n;
-			const loadingUI_final_asFuncComp = ()=>loadingUI_final({comp: this, bailMessage: stashedBailError});
+			const loadingUI_final_asFuncComp = ()=>{
+				return loadingUI_final({comp: this, bailMessage: stashedBailError});
+			};
 			const func_withBailConvertedToThrownPromise = ()=>{
 				try {
 					if (mgl) mgl.NotifyRenderStart();
@@ -95,6 +97,11 @@ export function BailHandler(...args) {
 				{fallback: React.createElement(loadingUI_final_asFuncComp)},
 				func_withBailConvertedToThrownPromise(),
 			);
+
+			// TODO: Maybe update this class-based version to also have the <func_withBailConvertedToThrownPromise> as a child-comp, rather than a func we just call directly (so our new Suspense can wrap it).
+			// (The complication is that doing so would make the original render-func have to be called with an unclear "this" object; using the wrapper-instance would be conceptually confusing, and constructing a fake instance would also be confusing.)
+			// (The other complication is that it would sorta require BailHandler to be merged with ObserverMGL, since the observer would need to be applied to the new child-comp, rather than the original render-func.)
+			// EDIT: For now, I'm just going to leave this as-is; while it doesn't catch bail-errors at the ideal granularity, it at least doesn't error out on react 19. (which is good enough since I'll be moving to func-comps everywhere anyway)
 		};
 	}
 }
@@ -224,14 +231,16 @@ export function observer_mgl(...args) {
 		});*/
 
 		// strategy 2: throw error, but make it look like a promise rejection (while also wrapping render func's return in a Suspense)
-		return observer(props=>{
+		return props=>{
 			const loadingUI_final = opts.bailHandler_opts?.loadingUI ?? BailHandler_loadingUI_default;
 			let stashedBailError: BailError|n;
-			const loadingUI_final_asFuncComp = ()=>loadingUI_final({comp: {name: "unknown", props}, bailMessage: stashedBailError});
+			const loadingUI_final_asFuncComp = ()=>{
+				return loadingUI_final({comp: {name: "unknown", props}, bailMessage: stashedBailError});
+			};
 
-			const func_withBailConvertedToThrownPromise = ()=>{
+			const func_withBailConvertedToThrownPromise = observer(props_inner=>{
 				try {
-					return func(props);
+					return func(props_inner);
 				} catch (ex) {
 					if (ex instanceof BailError) {
 						stashedBailError = ex;
@@ -242,14 +251,14 @@ export function observer_mgl(...args) {
 					}
 					throw ex;
 				}
-			};
+			});
 
 			return React.createElement(
 				Suspense,
 				{fallback: React.createElement(loadingUI_final_asFuncComp)},
-				func_withBailConvertedToThrownPromise(),
+				React.createElement(func_withBailConvertedToThrownPromise, props),
 			);
-		});
+		};
 
 		// strategy 3: catch error and replace by throwing a promise instead (still stash the error so the loading-ui knows what the error was though)
 		/*return observer(props=>{
