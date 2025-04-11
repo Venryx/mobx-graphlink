@@ -1,5 +1,6 @@
 import { Assert, CE, E } from "js-vextensions";
-import React, { Suspense, useMemo, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
+import { reaction } from "mobx";
 import { observer } from "mobx-react";
 import { AddSchema, collection_docSchemaName } from "./JSONSchemaHelpers.js";
 import { BailError } from "../Utils/General/BailManager.js";
@@ -190,23 +191,22 @@ export function observer_mgl(...args) {
             var _a, _b;
             const [suspenseKickBacks, setSuspenseKickBacks] = useState(0);
             const loadingUI_final = (_b = (_a = opts.bailHandler_opts) === null || _a === void 0 ? void 0 : _a.loadingUI) !== null && _b !== void 0 ? _b : BailHandler_loadingUI_default;
-            let stashedBailError;
+            //let stashedBailError: BailError|n;
             const func_withBailConvertedToThrownPromise = observer(props_inner => {
                 try {
                     return func(props_inner);
                 }
                 catch (ex) {
                     if (ex instanceof BailError) {
-                        stashedBailError = ex;
+                        //stashedBailError = ex;
                         ex["then"] = () => { }; // make react think this is a react suspense-error (no need to call this callback; rerender will happen when mobx-reactive fallback comp calls kickBack())
                         /*ex["then"] = reactThenListener=>{
                             thenListeners.push(reactThenListener);
                         };*/
                         throw ex;
-                    }
-                    else {
+                    } /*else {
                         stashedBailError = null;
-                    }
+                    }*/
                     throw ex;
                 }
             });
@@ -252,17 +252,33 @@ export function observer_mgl(...args) {
     }
     return observer(func);
 }
-const LoadingUIProxy = observer((props) => {
+const LoadingUIProxy = (props) => {
+    var _a;
     const { normalComp, normalCompProps, loadingUI, kickBack } = props;
-    const isFirstRender = useIsFirstRender();
     const self = useMemo(() => ({
+        reactionTrackerTriggers: 0,
         stashedBailError: null,
+        reactionDisposer: null,
+        kickBackDone: false,
+        kickBack_oneTime: () => {
+            if (self.kickBackDone)
+                return;
+            self.kickBackDone = true;
+            self.reactionDisposer();
+            kickBack();
+        },
     }), []);
-    // during first render, call the original func (so this func-comp subscribes to the same mobx accesses), but gobble any bail-errors
-    if (isFirstRender) {
+    (_a = self.reactionDisposer) !== null && _a !== void 0 ? _a : (self.reactionDisposer = reaction(() => {
+        if (self.reactionTrackerTriggers > 0)
+            return {}; // return new object, so reaction-half triggers any time this tracker-half reruns
+        self.reactionTrackerTriggers++;
         let hitError = false;
         try {
             normalComp(normalCompProps);
+            // if we didn't hit a bail-error, we can just immediately kick back to regular rendering!
+            if (!hitError) {
+                setTimeout(() => self.kickBack_oneTime());
+            }
         }
         catch (ex) {
             hitError = true;
@@ -274,24 +290,28 @@ const LoadingUIProxy = observer((props) => {
                 throw ex;
             }
         }
-        // if we didn't hit a bail-error even on this first suspense-render, we can just immediately kick back to regular rendering!
-        if (!hitError) {
-            setTimeout(() => kickBack());
-        }
-        return loadingUI({ comp: { name: "unknown", normalComp, normalCompProps }, bailMessage: self.stashedBailError });
-    }
+        return {}; // return new object, so reaction-half triggers any time this tracker-half reruns
+    }, 
+    // whenever the mobx data accessed by normal-comp render-func (called independently above) changes, kick-back to normal-comp for react-rendering
+    () => {
+        self.kickBack_oneTime();
+    }));
+    useEffect(() => {
+        return () => void (self.reactionDisposer());
+    }, []);
+    return loadingUI({ comp: { name: "unknown", normalComp, normalCompProps }, bailMessage: self.stashedBailError });
     // during second render (ie. after one of the mobx-accesses changed), "kick back" to the original func (so it can try to re-render; we can't retry here, or it may trigger react's "hook order changed" warning, due to short-circuiting)
-    setTimeout(() => kickBack());
-    throw new Promise(() => { }); // throw a promise that never resolves; we don't care because the parent-comp (the root one returned by `observer_mgl`) will unmount this suspense func-comp in a moment anyway
-});
-function useIsFirstRender() {
+    /*setTimeout(()=>kickBack());
+    throw new Promise(()=>{}); // throw a promise that never resolves; we don't care because the parent-comp (the root one returned by `observer_mgl`) will unmount this suspense func-comp in a moment anyway*/
+};
+/*function useIsFirstRender() {
     const isFirstRender = useRef(true);
     if (isFirstRender.current) {
         isFirstRender.current = false;
         return true;
     }
     return false;
-}
+}*/
 // db stuff
 // ==========
 /*export function Table(docSchemaName: string) {
