@@ -171,45 +171,12 @@ export function observer_mgl(...args) {
         opts = E(opts, args[0]);
         func = args[1];
     }
+    let wrapperFunc;
     if (opts.bailHandler) {
-        // strategy 1: throw error (doesn't work in react 19 / with actual hooks in-use)
-        /*return observer(props=>{
-            try {
-                return func(props);
-            } catch (ex) {
-                if (ex instanceof BailError) {
-                    const loadingUI_final = opts.bailHandler_opts?.loadingUI ?? BailHandler_loadingUI_default;
-                    return loadingUI_final({comp: {name: "unknown", props}, bailMessage: ex});
-                }
-                throw ex;
-            }
-        });*/
-        // strategy 2: throw error, but make it look like a promise rejection (while also wrapping render func's return in a Suspense)
-        return props => {
-            /*const thenListeners = [] as (()=>any)[];
-            const notifyOrigRenderTreeThatBailErrorIsSolved = ()=>thenListeners.forEach(a=>a());*/
+        wrapperFunc = props => {
             var _a, _b;
-            const [suspenseKickBacks, setSuspenseKickBacks] = useState(0);
             const loadingUI_final = (_b = (_a = opts.bailHandler_opts) === null || _a === void 0 ? void 0 : _a.loadingUI) !== null && _b !== void 0 ? _b : BailHandler_loadingUI_default;
-            //let stashedBailError: BailError|n;
-            const func_withBailConvertedToThrownPromise = observer(props_inner => {
-                try {
-                    return func(props_inner);
-                }
-                catch (ex) {
-                    if (ex instanceof BailError) {
-                        //stashedBailError = ex;
-                        ex["then"] = () => { }; // make react think this is a react suspense-error (no need to call this callback; rerender will happen when mobx-reactive fallback comp calls kickBack())
-                        /*ex["then"] = reactThenListener=>{
-                            thenListeners.push(reactThenListener);
-                        };*/
-                        throw ex;
-                    } /*else {
-                        stashedBailError = null;
-                    }*/
-                    throw ex;
-                }
-            });
+            const [suspenseKickBacks, setSuspenseKickBacks] = useState(0);
             return React.createElement(Suspense, {
                 fallback: React.createElement(LoadingUIProxy, {
                     key: `suspense_${suspenseKickBacks}`, // change key each time; this is how we avoid the react "hook order changed" warning
@@ -218,43 +185,44 @@ export function observer_mgl(...args) {
                     loadingUI: loadingUI_final,
                     kickBack: () => setSuspenseKickBacks(suspenseKickBacks + 1),
                 }),
-            }, React.createElement(func_withBailConvertedToThrownPromise, { ...props, key: `normalComp_${suspenseKickBacks}` }));
+            }, React.createElement(NormalCompProxy, {
+                key: `normalComp_${suspenseKickBacks}`,
+                normalComp: func,
+                normalCompProps: props,
+            }));
         };
-        // strategy 3: catch error and replace by throwing a promise instead (still stash the error so the loading-ui knows what the error was though)
-        /*return observer(props=>{
-            const loadingUI_final = opts.bailHandler_opts?.loadingUI ?? BailHandler_loadingUI_default;
-            let stashedBailError: BailError|n;
-            const loadingUI_final_asFuncComp = ()=>loadingUI_final({comp: {name: "unknown", props}, bailMessage: stashedBailError});
-
-            const func_withBailConvertedToThrownPromise = ()=>{
-                try {
-                    return func(props);
-                } catch (ex) {
-                    if (ex instanceof BailError) {
-                        stashedBailError = ex;
-                        throw new Promise((resolve, reject)=>{
-                            reject(ex);
-                        });
-                    }
-                    throw ex;
-                }
-            };
-
-            /*<Suspense fallback={()=>loadingUI_final({comp: {name: "unknown", props}, bailMessage: null})}>
-                {func()}
-            </Suspense>*#/
-            return React.createElement(
-                Suspense,
-                {fallback: React.createElement(loadingUI_final_asFuncComp)},
-                func_withBailConvertedToThrownPromise(),
-            );
-        });*/
     }
-    return observer(func);
+    else {
+        wrapperFunc = observer(func);
+    }
+    wrapperFunc["innerRenderFunc"] = func;
+    return wrapperFunc;
 }
+export function GetInnermostRenderFunc(renderFunc) {
+    let result = renderFunc;
+    while (result["innerRenderFunc"]) {
+        result = result["innerRenderFunc"];
+    }
+    return result;
+}
+const NormalCompProxy = observer((props) => {
+    const { normalComp, normalCompProps } = props;
+    const normalComp_innermostRenderFunc = GetInnermostRenderFunc(normalComp);
+    try {
+        return normalComp_innermostRenderFunc(normalCompProps);
+    }
+    catch (ex) {
+        if (ex instanceof BailError) {
+            ex["then"] = () => { }; // make react think this is a react suspense-error (no need to call this callback; rerender will happen when mobx-reactive fallback comp calls kickBack())
+            throw ex;
+        }
+        throw ex;
+    }
+});
 const LoadingUIProxy = (props) => {
     var _a;
     const { normalComp, normalCompProps, loadingUI, kickBack } = props;
+    const normalComp_innermostRenderFunc = GetInnermostRenderFunc(normalComp);
     const self = useMemo(() => ({
         reactionTrackerTriggers: 0,
         stashedBailError: null,
@@ -274,7 +242,7 @@ const LoadingUIProxy = (props) => {
         self.reactionTrackerTriggers++;
         let hitError = false;
         try {
-            normalComp(normalCompProps);
+            normalComp_innermostRenderFunc(normalCompProps);
             // if we didn't hit a bail-error, we can just immediately kick back to regular rendering!
             if (!hitError) {
                 setTimeout(() => self.kickBack_oneTime());
@@ -300,9 +268,6 @@ const LoadingUIProxy = (props) => {
         return () => void (self.reactionDisposer());
     }, []);
     return loadingUI({ comp: { name: "unknown", normalComp, normalCompProps }, bailMessage: self.stashedBailError });
-    // during second render (ie. after one of the mobx-accesses changed), "kick back" to the original func (so it can try to re-render; we can't retry here, or it may trigger react's "hook order changed" warning, due to short-circuiting)
-    /*setTimeout(()=>kickBack());
-    throw new Promise(()=>{}); // throw a promise that never resolves; we don't care because the parent-comp (the root one returned by `observer_mgl`) will unmount this suspense func-comp in a moment anyway*/
 };
 /*function useIsFirstRender() {
     const isFirstRender = useRef(true);

@@ -45,6 +45,7 @@ export declare function ObserverMGL(options: Partial<ObserverMGL_Options> | n): 
 /** Variant of mobx-react's `observer` function (for render-funcs), which also adds bail-handling behavior. */
 export declare function observer_mgl<T>(func: React.FC<T>): React.FC<T>;
 export declare function observer_mgl<T>(options: Partial<ObserverMGL_Options> | n, func: React.FC<T>): React.FC<T>;
+export declare function GetInnermostRenderFunc(renderFunc: React.FunctionComponent): React.FunctionComponent;
 export declare const mglClasses: Function[];
 export declare function GetMGLClass(name: string): Function | undefined;
 export declare function MGLClass(opts?: {
