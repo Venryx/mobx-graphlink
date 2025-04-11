@@ -70,7 +70,7 @@ export class TreeNode<DataShape extends Doc_Base> {
 		this.graph = graph;
 		this.pathSegments = PathOrPathGetterToPathSegments(pathOrSegments);
 		this.path = PathOrPathGetterToPath(pathOrSegments)!;
-		const queryStr = this.pathSegments.slice(-1)[0]?.startsWith("@query:") ? this.pathSegments.slice(-1)[0].substr("@query:".length) : null;
+		const queryStr = this.pathSegments.slice(-1)[0]?.startsWith("@query:") ? this.pathSegments.slice(-1)[0].slice("@query:".length) : null;
 		this.pathSegments_noQuery = this.pathSegments.filter(a=>!a.startsWith("@query:"));
 		this.path_noQuery = this.pathSegments_noQuery.join("/");
 		Assert(PathSegmentsAreValid(this.pathSegments), `Path segments cannot be null/empty. @pathSegments(${this.pathSegments})`);
@@ -161,7 +161,7 @@ export class TreeNode<DataShape extends Doc_Base> {
 	type: TreeNodeType;
 
 	get ParentNode() {
-		return this.graph.tree.Get(this.pathSegments.slice(0, -1));
+		return this.graph.tree.Get(this.pathSegments.slice(0, -1), false);
 	}
 
 	MarkRequested() {
@@ -279,14 +279,16 @@ export class TreeNode<DataShape extends Doc_Base> {
 	}
 	Unsubscribe(allowKeepDataCached = true) {
 		if (this.self_apolloObservable == null || this.self_subscription == null) return null;
-		const {self_apolloObservable: observable, self_subscription: subscription} = this;
+		const {self_apolloObservable: self_apolloObservable_old, self_subscription: self_subscription_old} = this;
+
 		this.self_apolloObservable = null;
 		MaybeLog_Base(a=>a.subscriptions, l=>l(`Unsubscribing from: ${this.path}`));
 		this.self_subscription.unsubscribe();
 		this.self_subscription = null;
 		RunInAction("TreeNode.Unsubscribe", ()=>this.self_subscriptionStatus = SubscriptionStatus.Initial);
 		this.data_fromSelf.NotifySubscriptionDropped(allowKeepDataCached);
-		return {observable, subscription};
+
+		return {observable: self_apolloObservable_old, subscription: self_subscription_old};
 	}
 	UnsubscribeAll(allowKeepDataCached = true, nodesThatHadActiveSubscription: Set<TreeNode<any>> = new Set()) {
 		if (this.self_subscription != null) {
@@ -368,7 +370,7 @@ export class TreeNode<DataShape extends Doc_Base> {
 	}
 
 	// default createTreeNodesIfMissing to false, so that it's safe to call this from a computation (which includes store-accessors)
-	Get(subpathOrGetterFunc: string | string[] | ((data: DataShape)=>any), query?: QueryParams, createTreeNodesIfMissing = false): TreeNode<any>|null {
+	Get(subpathOrGetterFunc: string | string[] | ((data: DataShape)=>any), createTreeNodesIfMissing: boolean): TreeNode<any>|null {
 		const subpathSegments = PathOrPathGetterToPathSegments(subpathOrGetterFunc);
 
 		const proceed_inAction = ()=>RunInAction(`TreeNode.Get @path(${this.path})`, ()=>proceed(true)); // cannot use DoX_ComputationSafe, since we need the return value
@@ -377,35 +379,23 @@ export class TreeNode<DataShape extends Doc_Base> {
 			let currentNode: TreeNode<any> = this;
 			for (const [index, segment] of subpathSegments.entries()) {
 				const subpathSegmentsToHere = subpathSegments.slice(0, index + 1);
-				const childNodesMap = currentNode[currentNode.type == TreeNodeType.Collection ? "docNodes" : "collectionNodes"] as ObservableMap<string, TreeNode<any>>;
+				const childNodesPropName =
+					segment.startsWith("@query:") ? "queryNodes" :
+					currentNode.type == TreeNodeType.Collection ? "docNodes" :
+					"collectionNodes";
+				const childNodesMap = currentNode[childNodesPropName] as ObservableMap<string, TreeNode<any>>;
+				const segmentAsMapKey = segment.startsWith("@query:") ? segment.slice("@query:".length) : segment;
 
 				// if tree-node is non-existent, we have to either create it (if permitted), or abort
-				if (!childNodesMap.has(segment)) {
+				if (!childNodesMap.has(segmentAsMapKey)) {
 					if (!createTreeNodesIfMissing) return null; // if not permitted to create, abort
 					if (!inAction) return proceed_inAction(); // if permitted to create, restart function in action (creation must be in action)
 					//let pathToSegment = subpathSegments.slice(0, index).join("/");
-					childNodesMap.set(segment, new TreeNode(this.graph, this.pathSegments.concat(subpathSegmentsToHere)));
+					childNodesMap.set(segmentAsMapKey, new TreeNode(this.graph, this.pathSegments.concat(subpathSegmentsToHere)));
 				}
 
-				currentNode = childNodesMap.get(segment)!;
+				currentNode = childNodesMap.get(segmentAsMapKey)!;
 			}
-
-			// if a query is specified, we need to add one additional tree-node (one level deeper) for it
-			if (query) {
-				// make sure query object is an "actual instance of" QueryParams (else query.toString() will return useless "[object Object]")
-				Object.setPrototypeOf(query, QueryParams.prototype);
-				query.Clean!(); // query must be cleaned now, before calling "toString()" (the keys need to be consistent)
-
-				// if tree-node is non-existent, we have to either create it (if permitted), or abort
-				if (!currentNode.queryNodes.has(query.toString())) {
-					if (!createTreeNodesIfMissing) return null; // if not permitted to create, abort
-					if (!inAction) return proceed_inAction(); // if permitted to create, restart function in action (creation must be in action)
-					currentNode.queryNodes.set(query.toString(), new TreeNode(this.graph, this.pathSegments.concat(subpathSegments).concat(`@query:${query}`)));
-				}
-
-				currentNode = currentNode.queryNodes.get(query.toString())!;
-			}
-
 			return currentNode;
 		};
 		// first, try proceeding without runInAction 

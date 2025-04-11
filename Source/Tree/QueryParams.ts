@@ -1,5 +1,5 @@
 import {DocumentNode, gql} from "@apollo/client";
-import {Assert, CE, Clone, FromJSON, ToJSON} from "js-vextensions";
+import {Assert, CE, Clone} from "js-vextensions";
 import {JSONSchema7, JSONSchema7Definition} from "json-schema";
 import {TableNameToDocSchemaName, TableNameToGraphQLDocRetrieverKey} from "../Extensions/Decorators.js";
 import {ConstructGQLArgsStr} from "../Extensions/GQLSchemaHelpers.js";
@@ -9,23 +9,28 @@ import {GQLIntrospector} from "../DBShape/GQLIntrospector.js";
 
 export class QueryParams {
 	static ParseString(dataStr: string) {
-		return QueryParams.ParseData(FromJSON(dataStr));
+		return QueryParams.ParseData(JSON.parse(dataStr));
 	}
 	static ParseData(data: any) {
 		return new QueryParams(data);
 	}
-	toString() {
-		//return ToJSON(CE(this).Including("variablesStr", "variables"));
-		//return ToJSON(this);
-		return ToJSON(this);
+	/** This implementation is ONLY here for easier debugging! Do NOT rely on this being present on a given QueryParams object. (instead call `QueryParams.ToJSON(params)`) */
+	toString() { //cleanFirst = true) {
+		//if (cleanFirst) QueryParams.Clean(this);
+		return JSON.stringify(this);
 	}
 
-	/** This function cleans the data-structure. (ie. requests with identical meanings but different json-strings, are made uniform) */
-	Clean?() {
-		if (this.filter) {
-			const filterObj_final = Clone(this.filter);
-			// iterate on entries in this.filter (not filterObj_final), because Clone(...) strips away fields with value of `undefined` (and we want to raise an error if such a thing exists)
-			for (const [key, value] of Object.entries(this.filter)) {
+	static ToJSON(self: QueryParams) { //, cleanFirst = true) {
+		//if (cleanFirst) QueryParams.Clean(this);
+		return JSON.stringify(self);
+	}
+	/** This function cleans the data-structure. (ie. for requests with identical meanings but different json-strings, this makes them uniform)
+	 * Note that this is ONLY automatically called if passed to this library through the `GetDocs_Options.params` property; for other paths, you must call this Clean() function manually. */
+	static Clean(self: QueryParams) {
+		if (self.filter) {
+			const filterObj_final = Clone(self.filter);
+			// iterate on entries in self.filter (not filterObj_final), because Clone(...) strips away fields with value of `undefined` (and we want to raise an error if such a thing exists)
+			for (const [key, value] of Object.entries(self.filter)) {
 				// check for these valid (but empty) filters: {myField: null} OR {myField: false && {...}}
 				const isShortCircuit = value == null || value == false;
 				if (isShortCircuit) {
@@ -46,13 +51,13 @@ export class QueryParams {
 					throw new Error(`${baseErrStr}: filter.${key}.${firstImproperOp} -> undefined (if filtering is undesired, remove the "${key}" entry entirely, or set "${key}" to null/false; if wanting to filter against null, set ${key}.${firstImproperOp} to null rather than undefined)`);
 				}
 			}
-			this.filter = filterObj_final;
+			self.filter = filterObj_final;
 		}
-		return this;
+		return self;
 	}
 
 	constructor(initialData?: Partial<QueryParams_Linked>) {
-		CE(this).Extend(initialData);
+		Object.assign(this, initialData);
 	}
 
 	/** Example: "$limit: Int!, $maxValue: Int!" */
@@ -90,13 +95,13 @@ export class QueryParams {
 // (comments based on usage with Postgraphile and https://github.com/graphile-contrib/postgraphile-plugin-connection-filter)
 export class QueryParams_Linked extends QueryParams {
 	toString() {
-		return ToJSON(this);
+		return JSON.stringify(this);
 	}
 
 	constructor(initialData?: {treeNode: TreeNode<any>} & Partial<QueryParams_Linked>) {
 		super();
 		CE(this).Extend(initialData);
-		this.Clean!(); // our data is probably already cleaned (ie. if called from "TreeNode.Get(...)"), but clean it again (in case user called this constructor directly)
+		QueryParams.Clean(this); // our data is probably already cleaned (ie. if called from "TreeNode.Get(...)"), but clean it again (in case user called this constructor directly)
 		this.CalculateDerivatives();
 	}
 

@@ -2,7 +2,7 @@ import { Timer } from "js-vextensions";
 import { ObservableMap } from "mobx";
 import { FetchResult, Observable, ObservableSubscription } from "@apollo/client";
 import { Graphlink } from "../Graphlink.js";
-import { QueryParams, QueryParams_Linked } from "./QueryParams.js";
+import { QueryParams_Linked } from "./QueryParams.js";
 import { TreeNodeData } from "./TreeNodeData.js";
 export declare enum TreeNodeType {
     Root = "Root",
@@ -65,7 +65,7 @@ export declare class TreeNode<DataShape extends Doc_Base> {
     docNodes: ObservableMap<string, TreeNode<any>>;
     get AllChildNodes(): TreeNode<any>[];
     get AllDescendantNodes(): TreeNode<any>[];
-    Get(subpathOrGetterFunc: string | string[] | ((data: DataShape) => any), query?: QueryParams, createTreeNodesIfMissing?: boolean): TreeNode<any> | null;
+    Get(subpathOrGetterFunc: string | string[] | ((data: DataShape) => any), createTreeNodesIfMissing: boolean): TreeNode<any> | null;
     get raw(): DataShape;
     AsRawData(addTreeLink?: boolean): DataShape;
     UploadRawData(rawData: DataShape): void;

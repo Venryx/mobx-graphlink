@@ -5,9 +5,12 @@ import { GQLIntrospector } from "../DBShape/GQLIntrospector.js";
 export declare class QueryParams {
     static ParseString(dataStr: string): QueryParams;
     static ParseData(data: any): QueryParams;
+    /** This implementation is ONLY here for easier debugging! Do NOT rely on this being present on a given QueryParams object. (instead call `QueryParams.ToJSON(params)`) */
     toString(): string;
-    /** This function cleans the data-structure. (ie. requests with identical meanings but different json-strings, are made uniform) */
-    Clean?(): this;
+    static ToJSON(self: QueryParams): string;
+    /** This function cleans the data-structure. (ie. for requests with identical meanings but different json-strings, this makes them uniform)
+     * Note that this is ONLY automatically called if passed to this library through the `GetDocs_Options.params` property; for other paths, you must call this Clean() function manually. */
+    static Clean(self: QueryParams): QueryParams;
     constructor(initialData?: Partial<QueryParams_Linked>);
     /** Example: "$limit: Int!, $maxValue: Int!" */
     varsDefine?: string;

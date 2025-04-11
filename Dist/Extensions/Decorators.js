@@ -1,7 +1,9 @@
 import { Assert, CE, E } from "js-vextensions";
 import React, { Suspense } from "react";
+import { reaction } from "mobx";
 import { AddSchema, collection_docSchemaName } from "./JSONSchemaHelpers.js";
 import { BailError } from "../Utils/General/BailManager.js";
+import { Graphlink, TreeRequestWatcher } from "../index.js";
 // metadata-retrieval helpers
 // ==========
 export function TableNameToDocSchemaName(tableName, errorIfMissing = true) {
@@ -205,25 +207,16 @@ export function observer_mgl(...args) {
         // strategy 2: throw error, but make it look like a promise rejection (while also wrapping render func's return in a Suspense)
         return props => {
             var _a, _b;
-            const thenListeners = [];
-            const notifyOrigRenderTreeThatBailErrorIsSolved = () => thenListeners.forEach(a => a());
             const loadingUI_final = (_b = (_a = opts.bailHandler_opts) === null || _a === void 0 ? void 0 : _a.loadingUI) !== null && _b !== void 0 ? _b : BailHandler_loadingUI_default;
             let stashedBailError;
-            const loadingUI_final_asFuncComp = observer(() => {
-                // call the regular comp-func here, *merely* so its mobx-accesses happen in this tree as well (so that when the watched data changes,)
-                let nowRenderingWithoutBailError = true;
-                try {
-                    func(props);
-                }
-                catch (ex) {
-                    nowRenderingWithoutBailError = false;
-                }
-                if (nowRenderingWithoutBailError) {
-                    notifyOrigRenderTreeThatBailErrorIsSolved();
-                }
+            const loadingUI_final_asFuncComp = () => {
                 return loadingUI_final({ comp: { name: "unknown", regularCompFunc: func, props }, bailMessage: stashedBailError });
-            });
+            };
             const func_withBailConvertedToThrownPromise = observer(props_inner => {
+                var _a;
+                const graphlink = (_a = opts.graphlink) !== null && _a !== void 0 ? _a : Graphlink.instances[0];
+                const watcher = new TreeRequestWatcher(graphlink);
+                watcher.Start();
                 try {
                     return func(props_inner);
                 }
@@ -231,8 +224,35 @@ export function observer_mgl(...args) {
                     if (ex instanceof BailError) {
                         stashedBailError = ex;
                         //ex["then"] = ()=>{}; // make react think this is a react suspense-error
-                        ex["then"] = reactThenListener => {
-                            thenListeners.push(reactThenListener);
+                        // attach a "then" function, making reaction think this is a promise (which it then calls to attach its "when data has changed" listener)
+                        ex["then"] = reactDataChangeListener => {
+                            const reactionDisposer = reaction(
+                            // First function tracks the observables and returns their values
+                            () => {
+                                let pathsNotReady = 0;
+                                for (const treeNodeOrPlaceholder of watcher.nodesRequested) {
+                                    const treeNode = graphlink.tree.Get(treeNodeOrPlaceholder.path, true);
+                                    // make access attempt in the same way that GetDoc/GetDocs does
+                                    const _data = treeNode.DocDatas_ForDirectSubscriber;
+                                    const _dataAcceptableToConsume = treeNode.PreferredDataContainer.IsDataAcceptableToConsume();
+                                    if (!_dataAcceptableToConsume)
+                                        pathsNotReady++;
+                                    // extra accesses
+                                    /*JSON.stringify(treeNode.data_fromParent);
+                                    JSON.stringify(treeNode.data_fromSelf);
+                                    CE(treeNode).IncludeKeys("Data_ForDirectSubscriber", "DocDatas_ForDirectSubscriber", "self_subscriptionStatus", "PreferredDataContainer", "PreferredData", "DocDatas", "collectionNodes", "queryNodes", "docNodes");*/
+                                }
+                                return pathsNotReady;
+                            }, 
+                            // Second function is called when any value changes
+                            pathsNotReady => {
+                                // call the react-data-change-listener; this will cause react to re-render (using the regular render-comp-func) in a moment
+                                reactDataChangeListener();
+                                if (pathsNotReady == 0) {
+                                    // so now we can stop our reaction/mgl-watcher (the regular render-comp-func will attach its owner watchers in a moment)
+                                    reactionDisposer();
+                                }
+                            });
                         };
                         throw ex;
                     }
@@ -240,6 +260,9 @@ export function observer_mgl(...args) {
                         stashedBailError = null;
                     }
                     throw ex;
+                }
+                finally {
+                    watcher.Stop();
                 }
             });
             return React.createElement(Suspense, { fallback: React.createElement(loadingUI_final_asFuncComp, { regularCompFunc: func }) }, // redundantly attached as prop here, just for easier discovery in react dev-tools 

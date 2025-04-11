@@ -1,6 +1,7 @@
 import { E, emptyArray, emptyArray_forLoading } from "js-vextensions";
 import { defaultGraphRefs } from "../Graphlink.js";
 import { PathSegmentsAreValid } from "../index.js";
+import { QueryParams } from "../Tree/QueryParams.js";
 import { TreeNodePlaceholder } from "../Tree/TreeRequestWatcher.js";
 import { PathOrPathGetterToPathSegments } from "../Utils/DB/DBPaths.js";
 import { Bail } from "../Utils/General/BailManager.js";
@@ -32,20 +33,22 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
     if (!opt.graph.initialized)
         return opt.ifLoading_returnVal;
     NotifyRawDBAccess(opt.graph);
-    const subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
-    //let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
-    const pathSegments = subpathSegments;
+    const pathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
+    if (opt.params != null && Object.getOwnPropertyNames(opt.params).length > 0) {
+        QueryParams.Clean(opt.params);
+        pathSegments.push(`@query:${QueryParams.ToJSON(opt.params)}`);
+    }
     if (!PathSegmentsAreValid(pathSegments))
         return emptyArray;
     // include a mobx-access of user-info; this way, the accessor-stack is refreshed when user-info changes (which we want, since RLS policies can cause results to change depending on user-info)
     //opt.graph.userInfo; // commented; not actually needed (the tree-nodes reset will trigger the accessor-stacks to refresh anyway)
     let treeNode = null;
     if (MobX_AllowStateChanges()) {
-        treeNode = opt.graph.tree.Get(pathSegments, opt.params, true);
+        treeNode = opt.graph.tree.Get(pathSegments, true);
         treeNode.Request();
     }
     else {
-        treeNode = opt.graph.tree.Get(pathSegments, opt.params);
+        treeNode = opt.graph.tree.Get(pathSegments, false);
         if (treeNode) {
             treeNode.MarkRequested();
         }
@@ -61,12 +64,13 @@ export function GetDocs(options, collectionPathOrGetterFunc) {
             inDataCommitChain_afterWait = opt.graph.inDataCommitChain;
             if (inDataCommitChain_preWait)
                 opt.graph.inDataCommitChain = inDataCommitChain_preWait;
-            opt.graph.tree.Get(pathSegments, opt.params, true).Request();
+            opt.graph.tree.Get(pathSegments, true).Request();
         }, () => opt.graph.inDataCommitChain = inDataCommitChain_afterWait);
     }
-    // always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
+    // always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself), and the status (through preferred data-container)
     const data = treeNode === null || treeNode === void 0 ? void 0 : treeNode.DocDatas_ForDirectSubscriber;
-    if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
+    const dataAcceptableToConsume = treeNode === null || treeNode === void 0 ? void 0 : treeNode.PreferredDataContainer.IsDataAcceptableToConsume();
+    if (!dataAcceptableToConsume) {
         if (opt.ifLoading_bail) {
             const bailMessage = (_a = opt.ifLoading_bail_message) !== null && _a !== void 0 ? _a : `Data not yet loaded at path "${pathSegments.join("/")}", and this call-path has no bail-handler.`; // no bail-handler IF message seen in ui
             Bail(bailMessage);
@@ -96,20 +100,18 @@ export function GetDoc(options, docPathOrGetterFunc) {
     if (!opt.graph.initialized)
         return opt.ifLoading_returnVal;
     NotifyRawDBAccess(opt.graph);
-    const subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
-    //let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
-    const pathSegments = subpathSegments;
+    const pathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
     if (!PathSegmentsAreValid(pathSegments))
         return null;
     // include a mobx-access of user-info; this way, the accessor-stack is refreshed when user-info changes (which we want, since RLS policies can cause results to change depending on user-info)
     //opt.graph.userInfo; // commented; not actually needed (the tree-nodes reset will trigger the accessor-stacks to refresh anyway)
     let treeNode = null;
     if (MobX_AllowStateChanges()) {
-        treeNode = opt.graph.tree.Get(pathSegments, undefined, true);
+        treeNode = opt.graph.tree.Get(pathSegments, true);
         treeNode.Request();
     }
     else {
-        treeNode = opt.graph.tree.Get(pathSegments, undefined);
+        treeNode = opt.graph.tree.Get(pathSegments, false);
         if (treeNode) {
             treeNode.MarkRequested();
         }
@@ -125,12 +127,13 @@ export function GetDoc(options, docPathOrGetterFunc) {
             inDataCommitChain_afterWait = opt.graph.inDataCommitChain;
             if (inDataCommitChain_preWait)
                 opt.graph.inDataCommitChain = inDataCommitChain_preWait;
-            opt.graph.tree.Get(pathSegments, undefined, true).Request();
+            opt.graph.tree.Get(pathSegments, true).Request();
         }, () => opt.graph.inDataCommitChain = inDataCommitChain_afterWait);
     }
-    // always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
+    // always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself), and the status (through preferred data-container)
     const data = treeNode === null || treeNode === void 0 ? void 0 : treeNode.Data_ForDirectSubscriber;
-    if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
+    const dataAcceptableToConsume = treeNode === null || treeNode === void 0 ? void 0 : treeNode.PreferredDataContainer.IsDataAcceptableToConsume();
+    if (!dataAcceptableToConsume) {
         if (opt.ifLoading_bail) {
             const bailMessage = (_a = opt.ifLoading_bail_message) !== null && _a !== void 0 ? _a : `Data not yet loaded at path "${pathSegments.join("/")}", and this call-path has no bail-handler.`; // no bail-handler IF message seen in ui
             Bail(bailMessage);

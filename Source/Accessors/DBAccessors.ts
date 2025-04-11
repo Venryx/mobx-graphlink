@@ -39,9 +39,11 @@ export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphRefs<
 	if (!opt.graph.initialized) return opt.ifLoading_returnVal as DocT[];
 
 	NotifyRawDBAccess(opt.graph);
-	const subpathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
-	//let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
-	const pathSegments = subpathSegments;
+	const pathSegments = PathOrPathGetterToPathSegments(collectionPathOrGetterFunc);
+	if (opt.params != null && Object.getOwnPropertyNames(opt.params).length > 0) {
+		QueryParams.Clean(opt.params);
+		pathSegments.push(`@query:${QueryParams.ToJSON(opt.params)}`);
+	}
 	if (!PathSegmentsAreValid(pathSegments)) return emptyArray;
 
 	// include a mobx-access of user-info; this way, the accessor-stack is refreshed when user-info changes (which we want, since RLS policies can cause results to change depending on user-info)
@@ -49,10 +51,10 @@ export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphRefs<
 
 	let treeNode: TreeNode<any>|null = null;
 	if (MobX_AllowStateChanges()) {
-		treeNode = opt.graph.tree.Get(pathSegments, opt.params, true)!;
+		treeNode = opt.graph.tree.Get(pathSegments, true)!;
 		treeNode.Request();
 	} else {
-		treeNode = opt.graph.tree.Get(pathSegments, opt.params);
+		treeNode = opt.graph.tree.Get(pathSegments, false);
 		if (treeNode) {
 			treeNode.MarkRequested();
 		} else {
@@ -67,14 +69,15 @@ export function GetDocs<DB = UT_DBShape, DocT = any>(options: Partial<GraphRefs<
 		RunInAction_WhenAble("GetDocs_Request", ()=>{
 			inDataCommitChain_afterWait = opt.graph.inDataCommitChain;
 			if (inDataCommitChain_preWait) opt.graph.inDataCommitChain = inDataCommitChain_preWait;
-			opt.graph.tree.Get(pathSegments, opt.params, true)!.Request();
+			opt.graph.tree.Get(pathSegments, true)!.Request();
 		}, ()=>opt.graph.inDataCommitChain = inDataCommitChain_afterWait);
 	}
 
-	// always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
+	// always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself), and the status (through preferred data-container)
 	const data = treeNode?.DocDatas_ForDirectSubscriber;
+	const dataAcceptableToConsume = treeNode?.PreferredDataContainer.IsDataAcceptableToConsume();
 
-	if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
+	if (!dataAcceptableToConsume) {
 		if (opt.ifLoading_bail) {
 			const bailMessage = opt.ifLoading_bail_message ?? `Data not yet loaded at path "${pathSegments.join("/")}", and this call-path has no bail-handler.`; // no bail-handler IF message seen in ui
 			Bail(bailMessage);
@@ -104,9 +107,7 @@ export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphRefs<a
 	if (!opt.graph.initialized) return opt.ifLoading_returnVal;
 
 	NotifyRawDBAccess(opt.graph);
-	const subpathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
-	//let pathSegments = opt.inLinkRoot ? opt.graph.rootPathSegments.concat(subpathSegments) : subpathSegments;
-	const pathSegments = subpathSegments;
+	const pathSegments = PathOrPathGetterToPathSegments(docPathOrGetterFunc);
 	if (!PathSegmentsAreValid(pathSegments)) return null;
 
 	// include a mobx-access of user-info; this way, the accessor-stack is refreshed when user-info changes (which we want, since RLS policies can cause results to change depending on user-info)
@@ -114,10 +115,10 @@ export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphRefs<a
 
 	let treeNode: TreeNode<any>|null = null;
 	if (MobX_AllowStateChanges()) {
-		treeNode = opt.graph.tree.Get(pathSegments, undefined, true)!;
+		treeNode = opt.graph.tree.Get(pathSegments, true)!;
 		treeNode.Request();
 	} else {
-		treeNode = opt.graph.tree.Get(pathSegments, undefined);
+		treeNode = opt.graph.tree.Get(pathSegments, false);
 		if (treeNode) {
 			treeNode.MarkRequested();
 		} else {
@@ -132,14 +133,15 @@ export function GetDoc<DB = UT_DBShape, DocT = any>(options: Partial<GraphRefs<a
 		RunInAction_WhenAble("GetDoc_Request", ()=>{
 			inDataCommitChain_afterWait = opt.graph.inDataCommitChain;
 			if (inDataCommitChain_preWait) opt.graph.inDataCommitChain = inDataCommitChain_preWait;
-			opt.graph.tree.Get(pathSegments, undefined, true)!.Request();
+			opt.graph.tree.Get(pathSegments, true)!.Request();
 		}, ()=>opt.graph.inDataCommitChain = inDataCommitChain_afterWait);
 	}
 
-	// always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself)
+	// always try to access the data (so that the tree-node knows it shouldn't unsubscribe itself), and the status (through preferred data-container)
 	const data = treeNode?.Data_ForDirectSubscriber;
+	const dataAcceptableToConsume = treeNode?.PreferredDataContainer.IsDataAcceptableToConsume();
 
-	if (treeNode == null || !treeNode.PreferredDataContainer.IsDataAcceptableToConsume()) {
+	if (!dataAcceptableToConsume) {
 		if (opt.ifLoading_bail) {
 			const bailMessage = opt.ifLoading_bail_message ?? `Data not yet loaded at path "${pathSegments.join("/")}", and this call-path has no bail-handler.`; // no bail-handler IF message seen in ui
 			Bail(bailMessage);
