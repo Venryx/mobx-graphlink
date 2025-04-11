@@ -21,9 +21,9 @@ export declare class GetAsync_Options {
     /** Just meant to alert us for infinite-loop-like calls/getter-funcs. Default: 100 [pretty arbitrary] */
     maxIterations?: number | undefined;
     /** How to handle errors that occur in accessor, when there are still db-requests in progress. (ie. when accessor is still progressing) */
-    errorHandling_during?: GetAsync_ErrorHandleType | undefined;
+    errorHandling_during?: GetAsync_ErrorHandleType;
     /** How to handle errors that occur in accessor, when no db-requests are still in progress. (ie. on final accessor call) */
-    errorHandling_final?: GetAsync_ErrorHandleType | undefined;
+    errorHandling_final?: GetAsync_ErrorHandleType;
 }
 export declare function GetAsync<T>(dataGetterFunc: () => T, options?: Partial<GetAsync_Options>): Promise<T>;
 export type EffectFunc = () => any;

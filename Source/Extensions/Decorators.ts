@@ -1,6 +1,7 @@
 import {Assert, CE, E} from "js-vextensions";
-import React, {Suspense} from "react";
+import React, {Suspense, useMemo, useRef, useState} from "react";
 import {reaction} from "mobx";
+import {observer} from "mobx-react";
 import {AddSchema, collection_docSchemaName, WaitTillSchemaAdded} from "./JSONSchemaHelpers.js";
 import {BailError} from "../Utils/General/BailManager.js";
 import {n} from "../Utils/@Internal/Types.js";
@@ -156,28 +157,6 @@ export class MGLCompMeta {
 	//BailDurations() {}
 }
 
-let observer: typeof import("mobx-react").observer;
-declare var __webpack_require__;
-function WP_ImportSync(name_ending: string) {
-	// Try to dynamically lazy import. Use import() to hint webpack we want to code split this module, but the "real" import needs to be synchronous.
-	//import(`@/data/posts/${this.props.matches.slug}`);
-
-	//require(...) doesn't work
-	//return __webpack_require__(require.resolve(name));
-	const moduleID = Object.keys(__webpack_require__.m).find(a=>a.endsWith(name_ending));
-	return __webpack_require__(moduleID);
-}
-function EnsureImported_MobXReact() {
-	// if in NodeJS, return an empty decorator (NodeJS doesn't provide __webpack_require__ func, and lib should be NodeJS-safe at parse-time; fine since NodeJS/server won't actually use these observers)
-	if (typeof window == "undefined" || typeof document == "undefined") {
-		observer = function PlaceholderForNodeJS() {} as any;
-	}
-
-	//observer = observer ?? (await import("mobx-react")).observer;
-	//observer = observer ?? WP_ImportSync("mobx-react").observer;
-	observer = observer ?? WP_ImportSync("/mobx-react/dist/mobxreact.esm.js").observer;
-}
-
 export class ObserverMGL_Options {
 	graphlink: Graphlink<any, any>|n;
 	bailHandler = true;
@@ -188,8 +167,6 @@ export class ObserverMGL_Options {
 export function ObserverMGL(targetClass: Function);
 export function ObserverMGL(options: Partial<ObserverMGL_Options>|n);
 export function ObserverMGL(...args) {
-	EnsureImported_MobXReact();
-
 	let opts = new ObserverMGL_Options();
 	if (typeof args[0] == "function") {
 		ApplyToClass(args[0]);
@@ -208,8 +185,6 @@ export function ObserverMGL(...args) {
 export function observer_mgl<T>(func: React.FC<T>): React.FC<T>;
 export function observer_mgl<T>(options: Partial<ObserverMGL_Options>|n, func: React.FC<T>): React.FC<T>;
 export function observer_mgl(...args) {
-	EnsureImported_MobXReact();
-
 	let opts = new ObserverMGL_Options();
 	let func: React.FC<any>;
 	if (args[1] == null) {
@@ -235,70 +210,46 @@ export function observer_mgl(...args) {
 
 		// strategy 2: throw error, but make it look like a promise rejection (while also wrapping render func's return in a Suspense)
 		return props=>{
+			/*const thenListeners = [] as (()=>any)[];
+			const notifyOrigRenderTreeThatBailErrorIsSolved = ()=>thenListeners.forEach(a=>a());*/
+
+			const [suspenseKickBacks, setSuspenseKickBacks] = useState(0);
+
 			const loadingUI_final = opts.bailHandler_opts?.loadingUI ?? BailHandler_loadingUI_default;
 			let stashedBailError: BailError|n;
-			const loadingUI_final_asFuncComp = ()=>{
-				return loadingUI_final({comp: {name: "unknown", regularCompFunc: func, props}, bailMessage: stashedBailError});
-			};
 
 			const func_withBailConvertedToThrownPromise = observer(props_inner=>{
-				const graphlink = opts.graphlink ?? Graphlink.instances[0];
-				const watcher = new TreeRequestWatcher(graphlink);
-
-				watcher.Start();
 				try {
 					return func(props_inner);
 				} catch (ex) {
 					if (ex instanceof BailError) {
 						stashedBailError = ex;
 
-						//ex["then"] = ()=>{}; // make react think this is a react suspense-error
-						// attach a "then" function, making reaction think this is a promise (which it then calls to attach its "when data has changed" listener)
-						ex["then"] = reactDataChangeListener=>{
-							const reactionDisposer = reaction(
-								// First function tracks the observables and returns their values
-								()=>{
-									let pathsNotReady = 0;
-									for (const treeNodeOrPlaceholder of watcher.nodesRequested) {
-										const treeNode = graphlink.tree.Get(treeNodeOrPlaceholder.path, true)!;
-										// make access attempt in the same way that GetDoc/GetDocs does
-										const _data = treeNode.DocDatas_ForDirectSubscriber;
-										const _dataAcceptableToConsume = treeNode.PreferredDataContainer.IsDataAcceptableToConsume();
-										if (!_dataAcceptableToConsume) pathsNotReady++;
-
-										// extra accesses
-										/*JSON.stringify(treeNode.data_fromParent);
-										JSON.stringify(treeNode.data_fromSelf);
-										CE(treeNode).IncludeKeys("Data_ForDirectSubscriber", "DocDatas_ForDirectSubscriber", "self_subscriptionStatus", "PreferredDataContainer", "PreferredData", "DocDatas", "collectionNodes", "queryNodes", "docNodes");*/
-									}
-									return pathsNotReady;
-								},
-								// Second function is called when any value changes
-								pathsNotReady=>{
-									// call the react-data-change-listener; this will cause react to re-render (using the regular render-comp-func) in a moment
-									reactDataChangeListener();
-									if (pathsNotReady == 0) {
-										// so now we can stop our reaction/mgl-watcher (the regular render-comp-func will attach its owner watchers in a moment)
-										reactionDisposer();
-									}
-								},
-							);
-						};
+						ex["then"] = ()=>{}; // make react think this is a react suspense-error (no need to call this callback; rerender will happen when mobx-reactive fallback comp calls kickBack())
+						/*ex["then"] = reactThenListener=>{
+							thenListeners.push(reactThenListener);
+						};*/
 
 						throw ex;
 					} else {
 						stashedBailError = null;
 					}
 					throw ex;
-				} finally {
-					watcher.Stop();
 				}
 			});
 
 			return React.createElement(
 				Suspense,
-				{fallback: React.createElement(loadingUI_final_asFuncComp, {regularCompFunc: func})}, // redundantly attached as prop here, just for easier discovery in react dev-tools 
-				React.createElement(func_withBailConvertedToThrownPromise, props),
+				{
+					fallback: React.createElement(LoadingUIProxy, {
+						key: `suspense_${suspenseKickBacks}`, // change key each time; this is how we avoid the react "hook order changed" warning
+						normalComp: func, // redundantly attached as prop here, just for easier discovery in react dev-tools
+						normalCompProps: props,
+						loadingUI: loadingUI_final,
+						kickBack: ()=>setSuspenseKickBacks(suspenseKickBacks + 1),
+					}),
+				},
+				React.createElement(func_withBailConvertedToThrownPromise, {...props, key: `normalComp_${suspenseKickBacks}`}),
 			);
 		};
 
@@ -333,6 +284,51 @@ export function observer_mgl(...args) {
 		});*/
 	}
 	return observer(func);
+}
+
+const LoadingUIProxy = observer((props: {normalComp: React.FunctionComponent, normalCompProps: any, loadingUI: BailHandler, kickBack: (/*error: any*/)=>any})=>{
+	const {normalComp, normalCompProps, loadingUI, kickBack} = props;
+	const isFirstRender = useIsFirstRender();
+
+	const self = useMemo(()=>({
+		stashedBailError: null as any,
+	}), []);
+
+	// during first render, call the original func (so this func-comp subscribes to the same mobx accesses), but gobble any bail-errors
+	if (isFirstRender) {
+		let hitError = false;
+		try {
+			normalComp(normalCompProps);
+		} catch (ex) {
+			hitError = true;
+			if (ex instanceof BailError) {
+				self.stashedBailError = ex; // ignore/simply-store bail-error during first render (we called `func` simply to subscribe to the same mobx accesses)
+			} else {
+				//self.stashedBailError = ex;
+				throw ex;
+			}
+		}
+
+		// if we didn't hit a bail-error even on this first suspense-render, we can just immediately kick back to regular rendering!
+		if (!hitError) {
+			setTimeout(()=>kickBack());
+		}
+
+		return loadingUI({comp: {name: "unknown", normalComp, normalCompProps}, bailMessage: self.stashedBailError});
+	}
+
+	// during second render (ie. after one of the mobx-accesses changed), "kick back" to the original func (so it can try to re-render; we can't retry here, or it may trigger react's "hook order changed" warning, due to short-circuiting)
+	setTimeout(()=>kickBack());
+	throw new Promise(()=>{}); // throw a promise that never resolves; we don't care because the parent-comp (the root one returned by `observer_mgl`) will unmount this suspense func-comp in a moment anyway
+});
+
+function useIsFirstRender() {
+	const isFirstRender = useRef(true);
+	if (isFirstRender.current) {
+		isFirstRender.current = false;
+		return true;
+	}
+	return false;
 }
 
 // db stuff

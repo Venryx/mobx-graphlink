@@ -338,7 +338,7 @@ export class TreeNode<DataShape extends Doc_Base> {
 		//let docNodes = Array.from(this.docNodes.values()).filter(a=>a.status_forDirectSubscription == DataStatus.Received_Full && a.data != null);
 		//let docNodes = Array.from(this.docNodes.values()).filter(a=>a.IsDataAcceptableToConsume(true));
 		// for collections, we need to filter out nodes that were found (or at least requested) at some point, but whose data is now null (collections should never have null items)
-		const docNodes = Array.from(this.docNodes.values()).filter(a=>a.data_fromParent.data != null);
+		const docNodes = Array.from<TreeNode<any>>(this.docNodes.values()).filter(a=>a.data_fromParent.data != null);
 		const docDatas = docNodes.map(docNode=>docNode.data_fromParent.data);
 		//let docDatas = observable.array(docNodes.map(docNode=>docNode.data));
 		return docDatas;
