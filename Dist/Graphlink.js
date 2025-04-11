@@ -86,7 +86,7 @@ export class Graphlink {
     }
     /** Can be called prior to Graphlink.Initialize(). */
     async SetUserInfo(userInfo, clearCaches = true, resubscribeAfter = true) {
-        this.userInfo = userInfo;
+        RunInAction("SetUserInfo", () => this.userInfo = userInfo);
         if (clearCaches && this.initialized) {
             console.log("Clearing mobx-graphlink and apollo cache, due to user-info change.");
             const nodesThatHadActiveSubscription = await this.ClearCaches();

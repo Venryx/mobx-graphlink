@@ -3,7 +3,7 @@ import { UT_StoreShape } from "../UserTypes.js";
 import { AccessorCallPlan } from "./@AccessorCallPlan.js";
 import { AccessorOptions } from "./@AccessorMetadata.js";
 export declare function WithStore<T>(graphRefs: Partial<GraphRefs>, store: any, accessorFunc: () => T): T;
-type FuncExtensions<Func> = {
+export type FuncExtensions<Func> = {
     /** Func.Async(...) is shortcut for GetAsync(()=>Func(...)) */
     Async: Func extends ((..._: infer Args) => infer ReturnTypeX) ? (..._: Args) => Promise<ReturnTypeX> : never;
     /** First tries to call the wrapper-accessor directly/without-await. If the result is non-null, returns that synchronously; else, calls Func.Async(...) and returns its promise. */
@@ -19,7 +19,7 @@ type Options_Ctx0<StoreShape> = Partial<AccessorOptions<StoreShape>> & {
 type Options_Ctx1<StoreShape> = Partial<AccessorOptions<StoreShape>> & {
     ctx: 1;
 };
-interface CreateAccessor_Shape<StoreShape_PreSet = UT_StoreShape> {
+export interface CreateAccessor_Shape<StoreShape_PreSet = UT_StoreShape> {
     <Func extends AccessInnerFunc_Basic, StoreShape = StoreShape_PreSet>(accessor: Func): Func & FuncExtensions<Func>;
     <Func extends AccessInnerFunc_Basic, StoreShape = StoreShape_PreSet>(options: Options_Ctx0<StoreShape>, accessor: Func): Func & FuncExtensions<Func>;
     <Func extends AccessInnerFunc_Basic, StoreShape = StoreShape_PreSet>(name: string, accessor: Func): Func & FuncExtensions<Func>;

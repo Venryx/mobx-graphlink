@@ -8,8 +8,4 @@ export declare class AsyncToObservablePack<T> {
     startIfNotYet: () => void;
 }
 /** Warning: Do not reference any mobx-observable fields within the `accessorFunc`; instead, add a second accessor that retrieves that data, then passes them as arguments to the async-accessor. */
-export declare function CreateAsyncAccessor<Func extends (...args: any[]) => Promise<any>>(accessorFunc: Func): NonAsyncVersionOfFunc<Func> & {
-    Async: (..._: Parameters<Func>) => Promise<Awaited<ReturnType<Func>>>;
-    Wait: NonAsyncVersionOfFunc<Func>;
-    CatchBail: <T>(bailResultOrGetter: T, ..._: Parameters<Func>) => NonNullable<Awaited<ReturnType<Func>>> | (T extends () => any ? ReturnType<T> : T);
-};
+export declare function CreateAsyncAccessor<Func extends (...args: any[]) => Promise<any>>(accessorFunc: Func): NonAsyncVersionOfFunc<Func> & import("./CreateAccessor.js").FuncExtensions<NonAsyncVersionOfFunc<Func>>;

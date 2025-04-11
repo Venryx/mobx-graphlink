@@ -178,7 +178,7 @@ function EnsureImported_MobXReact() {
 
 export class ObserverMGL_Options {
 	bailHandler = true;
-	bailHandler_opts?: BailHandler_Options;
+	bailHandler_opts?: Partial<BailHandler_Options>;
 	observer = true;
 }
 /** Variant of mobx-react's `observer` function (for comp-classes), which also adds bail-handling behavior. */
@@ -232,11 +232,25 @@ export function observer_mgl(...args) {
 
 		// strategy 2: throw error, but make it look like a promise rejection (while also wrapping render func's return in a Suspense)
 		return props=>{
+			const thenListeners = [] as (()=>any)[];
+			const notifyOrigRenderTreeThatBailErrorIsSolved = ()=>thenListeners.forEach(a=>a());
+
 			const loadingUI_final = opts.bailHandler_opts?.loadingUI ?? BailHandler_loadingUI_default;
 			let stashedBailError: BailError|n;
-			const loadingUI_final_asFuncComp = ()=>{
-				return loadingUI_final({comp: {name: "unknown", props}, bailMessage: stashedBailError});
-			};
+			const loadingUI_final_asFuncComp = observer(()=>{
+				// call the regular comp-func here, *merely* so its mobx-accesses happen in this tree as well (so that when the watched data changes,)
+				let nowRenderingWithoutBailError = true;
+				try {
+					func(props);
+				} catch (ex) {
+					nowRenderingWithoutBailError = false;
+				}
+				if (nowRenderingWithoutBailError) {
+					notifyOrigRenderTreeThatBailErrorIsSolved();
+				}
+
+				return loadingUI_final({comp: {name: "unknown", regularCompFunc: func, props}, bailMessage: stashedBailError});
+			});
 
 			const func_withBailConvertedToThrownPromise = observer(props_inner=>{
 				try {
@@ -244,7 +258,12 @@ export function observer_mgl(...args) {
 				} catch (ex) {
 					if (ex instanceof BailError) {
 						stashedBailError = ex;
-						ex["then"] = ()=>{}; // make react think this is a react suspense-error
+
+						//ex["then"] = ()=>{}; // make react think this is a react suspense-error
+						ex["then"] = reactThenListener=>{
+							thenListeners.push(reactThenListener);
+						};
+
 						throw ex;
 					} else {
 						stashedBailError = null;
@@ -255,7 +274,7 @@ export function observer_mgl(...args) {
 
 			return React.createElement(
 				Suspense,
-				{fallback: React.createElement(loadingUI_final_asFuncComp)},
+				{fallback: React.createElement(loadingUI_final_asFuncComp, {regularCompFunc: func})}, // redundantly attached as prop here, just for easier discovery in react dev-tools 
 				React.createElement(func_withBailConvertedToThrownPromise, props),
 			);
 		};

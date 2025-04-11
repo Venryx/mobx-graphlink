@@ -205,11 +205,24 @@ export function observer_mgl(...args) {
         // strategy 2: throw error, but make it look like a promise rejection (while also wrapping render func's return in a Suspense)
         return props => {
             var _a, _b;
+            const thenListeners = [];
+            const notifyOrigRenderTreeThatBailErrorIsSolved = () => thenListeners.forEach(a => a());
             const loadingUI_final = (_b = (_a = opts.bailHandler_opts) === null || _a === void 0 ? void 0 : _a.loadingUI) !== null && _b !== void 0 ? _b : BailHandler_loadingUI_default;
             let stashedBailError;
-            const loadingUI_final_asFuncComp = () => {
-                return loadingUI_final({ comp: { name: "unknown", props }, bailMessage: stashedBailError });
-            };
+            const loadingUI_final_asFuncComp = observer(() => {
+                // call the regular comp-func here, *merely* so its mobx-accesses happen in this tree as well (so that when the watched data changes,)
+                let nowRenderingWithoutBailError = true;
+                try {
+                    func(props);
+                }
+                catch (ex) {
+                    nowRenderingWithoutBailError = false;
+                }
+                if (nowRenderingWithoutBailError) {
+                    notifyOrigRenderTreeThatBailErrorIsSolved();
+                }
+                return loadingUI_final({ comp: { name: "unknown", regularCompFunc: func, props }, bailMessage: stashedBailError });
+            });
             const func_withBailConvertedToThrownPromise = observer(props_inner => {
                 try {
                     return func(props_inner);
@@ -217,7 +230,10 @@ export function observer_mgl(...args) {
                 catch (ex) {
                     if (ex instanceof BailError) {
                         stashedBailError = ex;
-                        ex["then"] = () => { }; // make react think this is a react suspense-error
+                        //ex["then"] = ()=>{}; // make react think this is a react suspense-error
+                        ex["then"] = reactThenListener => {
+                            thenListeners.push(reactThenListener);
+                        };
                         throw ex;
                     }
                     else {
@@ -226,7 +242,8 @@ export function observer_mgl(...args) {
                     throw ex;
                 }
             });
-            return React.createElement(Suspense, { fallback: React.createElement(loadingUI_final_asFuncComp) }, React.createElement(func_withBailConvertedToThrownPromise, props));
+            return React.createElement(Suspense, { fallback: React.createElement(loadingUI_final_asFuncComp, { regularCompFunc: func }) }, // redundantly attached as prop here, just for easier discovery in react dev-tools 
+            React.createElement(func_withBailConvertedToThrownPromise, props));
         };
         // strategy 3: catch error and replace by throwing a promise instead (still stash the error so the loading-ui knows what the error was though)
         /*return observer(props=>{

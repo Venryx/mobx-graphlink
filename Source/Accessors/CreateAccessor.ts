@@ -20,8 +20,8 @@ export function WithStore<T>(graphRefs: Partial<GraphRefs>, store: any, accessor
 /*type Func_WithoutThis<Func> = Func extends ((this: any, ..._: infer Args)=>infer ReturnTypeX)
 	? (..._: Args)=>ReturnTypeX
 	: never;*/
-// these extensions are only present on functions returned by CreateAccessor (see bottom of file)
-type FuncExtensions<Func> = {
+// these extensions are only present on functions returned by CreateAccessor (see bottom of file) [we export them though, in case of client type-restructuring]
+export type FuncExtensions<Func> = {
 	/** Func.Async(...) is shortcut for GetAsync(()=>Func(...)) */
 	Async: Func extends ((..._: infer Args)=>infer ReturnTypeX)
 		? (..._: Args)=>Promise<ReturnTypeX>
@@ -48,7 +48,7 @@ type AccessInnerFunc_CtxUsed = (this: AccessorCallPlan, ...args: any[]) => any;
 type Options_Ctx0<StoreShape> = Partial<AccessorOptions<StoreShape>> & {ctx?: null|undefined|0};
 type Options_Ctx1<StoreShape> = Partial<AccessorOptions<StoreShape>> & {ctx: 1};
 /* eslint-disable no-multi-spaces, space-in-parens */
-interface CreateAccessor_Shape<StoreShape_PreSet = UT_StoreShape> {
+export interface CreateAccessor_Shape<StoreShape_PreSet = UT_StoreShape> {
 	<Func extends AccessInnerFunc_Basic,   StoreShape = StoreShape_PreSet>(                                                 accessor: Func): Func & FuncExtensions<Func>;
 	<Func extends AccessInnerFunc_Basic,   StoreShape = StoreShape_PreSet>(              options: Options_Ctx0<StoreShape>, accessor: Func): Func & FuncExtensions<Func>;
 	<Func extends AccessInnerFunc_Basic,   StoreShape = StoreShape_PreSet>(name: string,                                    accessor: Func): Func & FuncExtensions<Func>;

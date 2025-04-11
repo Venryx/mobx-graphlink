@@ -34,7 +34,7 @@ export declare class MGLCompMeta {
 }
 export declare class ObserverMGL_Options {
     bailHandler: boolean;
-    bailHandler_opts?: BailHandler_Options;
+    bailHandler_opts?: Partial<BailHandler_Options>;
     observer: boolean;
 }
 /** Variant of mobx-react's `observer` function (for comp-classes), which also adds bail-handling behavior. */
