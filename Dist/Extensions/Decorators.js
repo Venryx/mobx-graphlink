@@ -4,6 +4,7 @@ import { reaction } from "mobx";
 import { observer } from "mobx-react";
 import { AddSchema, collection_docSchemaName } from "./JSONSchemaHelpers.js";
 import { BailError } from "../Utils/General/BailManager.js";
+import { HookCallRecorder, hookCallRecorders, hookUpdatesBlocked, SetHookUpdatesBlocked } from "../index.js";
 // metadata-retrieval helpers
 // ==========
 export function TableNameToDocSchemaName(tableName, errorIfMissing = true) {
@@ -220,11 +221,12 @@ const NormalCompProxy = observer((props) => {
     }
 });
 const LoadingUIProxy = (props) => {
-    var _a;
+    console.log("Test1___0");
     const { normalComp, normalCompProps, loadingUI, kickBack } = props;
     const normalComp_innermostRenderFunc = GetInnermostRenderFunc(normalComp);
     const self = useMemo(() => ({
         reactionTrackerTriggers: 0,
+        firstRender_hookCallRecorder: new HookCallRecorder(),
         stashedBailError: null,
         reactionDisposer: null,
         kickBackDone: false,
@@ -236,37 +238,65 @@ const LoadingUIProxy = (props) => {
             kickBack();
         },
     }), []);
-    (_a = self.reactionDisposer) !== null && _a !== void 0 ? _a : (self.reactionDisposer = reaction(() => {
-        if (self.reactionTrackerTriggers > 0)
+    if (self.reactionDisposer == null) {
+        self.reactionDisposer = reaction(() => {
+            if (self.reactionTrackerTriggers > 0)
+                return {}; // return new object, so reaction-half triggers any time this tracker-half reruns
+            self.reactionTrackerTriggers++;
+            let hitError = false;
+            const hookUpdatesBlocked_old = hookUpdatesBlocked;
+            SetHookUpdatesBlocked(true); // needed, else normalComp_innermostRenderFunc may call the set-val func of a useState, which would cause the "hook order changed" warning when this LoadingUIProxy re-renders unnecessarily!
+            hookCallRecorders.add(self.firstRender_hookCallRecorder); // if we're here, we're in the first render (since the `return {}` above exits this reaction early for subsequent renders/triggers)
+            try {
+                normalComp_innermostRenderFunc(normalCompProps);
+                // if we didn't hit a bail-error, we can just immediately kick back to regular rendering!
+                if (!hitError) {
+                    setTimeout(() => self.kickBack_oneTime());
+                }
+            }
+            catch (ex) {
+                hitError = true;
+                if (ex instanceof BailError) {
+                    self.stashedBailError = ex; // ignore/simply-store bail-error during first render (we called `func` simply to subscribe to the same mobx accesses)
+                }
+                else {
+                    //self.stashedBailError = ex;
+                    throw ex;
+                }
+            }
+            finally {
+                SetHookUpdatesBlocked(hookUpdatesBlocked_old);
+                hookCallRecorders.delete(self.firstRender_hookCallRecorder);
+            }
             return {}; // return new object, so reaction-half triggers any time this tracker-half reruns
-        self.reactionTrackerTriggers++;
-        let hitError = false;
-        try {
-            normalComp_innermostRenderFunc(normalCompProps);
-            // if we didn't hit a bail-error, we can just immediately kick back to regular rendering!
-            if (!hitError) {
-                setTimeout(() => self.kickBack_oneTime());
-            }
+        }, 
+        // whenever the mobx data accessed by normal-comp render-func (called independently above) changes, kick-back to normal-comp for react-rendering
+        () => {
+            self.kickBack_oneTime();
+        });
+    }
+    else {
+        // if reaction is already running, this is an "extraneous render" (caused by an unwanted update from the innermost render-func), which we have no need for
+        // so just ensure kick-back has started, AND return a promise that never resolves (just to make sure we don't trigger the "hook order changed" warning)
+        // (note: this technically works, but gives warning)
+        /*self.kickBack_oneTime();
+        return new Promise(()=>{});
+        
+        // note: as an alternative to returning a never-resolving promise, we maybe could instead call `normalComp_innermostRenderFunc(normalCompProps)` again; but the above seems cleaner*/
+        /*const hookUpdatesBlocked_old = hookUpdatesBlocked;
+        SetHookUpdatesBlocked(true); // needed, else normalComp_innermostRenderFunc may call the set-val func of a useState, which would cause the "hook order changed" warning when this LoadingUIProxy re-renders unnecessarily!
+        normalComp_innermostRenderFunc(normalCompProps);
+        SetHookUpdatesBlocked(hookUpdatesBlocked_old);*/
+        for (const call of self.firstRender_hookCallRecorder.hookCalls) {
+            console.log("Adding:", call);
+            React[call.hookFunc].apply(null, call.args);
         }
-        catch (ex) {
-            hitError = true;
-            if (ex instanceof BailError) {
-                self.stashedBailError = ex; // ignore/simply-store bail-error during first render (we called `func` simply to subscribe to the same mobx accesses)
-            }
-            else {
-                //self.stashedBailError = ex;
-                throw ex;
-            }
-        }
-        return {}; // return new object, so reaction-half triggers any time this tracker-half reruns
-    }, 
-    // whenever the mobx data accessed by normal-comp render-func (called independently above) changes, kick-back to normal-comp for react-rendering
-    () => {
-        self.kickBack_oneTime();
-    }));
+    }
     useEffect(() => {
         return () => void (self.reactionDisposer());
     }, []);
+    //return new Promise(()=>{});
+    console.log("Test1_________________");
     return loadingUI({ comp: { name: "unknown", normalComp, normalCompProps }, bailMessage: self.stashedBailError });
 };
 /*function useIsFirstRender() {

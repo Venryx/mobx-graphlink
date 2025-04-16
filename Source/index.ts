@@ -7,6 +7,12 @@ if (vLibCounts["mobx-graphlink"] >= 2) {
 	console.warn("More than one instance of mobx-graphlink loaded. This can cause issues, eg. with WrapDBValue.");
 }
 
+// early imports
+// ==========
+
+// this import must happen very early, so its monkey-patch of eg. `React.useState` can happen before any module imports it
+export * from "./Utils/General/React.js";
+
 // root
 // ==========
 
@@ -50,6 +56,7 @@ export * from "./Utils/DB/DBUpdateSimplifier.js";
 export * from "./Utils/DB/StringSplitCache.js";
 export * from "./Utils/General/General.js";
 export * from "./Utils/General/MobX.js";
+//export * from "./Utils/General/React.js";
 export * from "./Utils/General/TypeHelpers.js";
 
 // dev-tools helpers

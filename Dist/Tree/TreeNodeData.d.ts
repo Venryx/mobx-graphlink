@@ -7,7 +7,7 @@ export declare enum DataStatus {
     Received_CachedByMGL = "Received_CachedByMGL",
     Received_Live = "Received_Live"
 }
-export declare function GetPreferenceLevelOfDataStatus(status: DataStatus): 0 | 1 | 2 | 3 | 4;
+export declare function GetPreferenceLevelOfDataStatus(status: DataStatus): 1 | 0 | 2 | 3 | 4;
 export declare class TreeNodeData<DataShape extends Doc_Base> {
     constructor();
     status: DataStatus;
