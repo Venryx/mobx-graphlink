@@ -53,7 +53,7 @@ export declare class TreeNode<DataShape extends Doc_Base> {
         observable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>> | null;
         subscription: ObservableSubscription | null;
     } | null;
-    UnsubscribeAll(allowKeepDataCached?: boolean, nodesThatHadActiveSubscription?: Set<TreeNode<any>>): Set<TreeNode<any>>;
+    UnsubscribeAll(allowKeepDataCached?: boolean, nodesThatHadActiveOrInitializingSub?: Set<TreeNode<any>>): Set<TreeNode<any>>;
     self_subscriptionStatus: SubscriptionStatus;
     self_apolloObservable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>> | null;
     self_subscription: ObservableSubscription | null;

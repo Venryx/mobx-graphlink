@@ -89,15 +89,15 @@ export class Graphlink {
         RunInAction("SetUserInfo", () => this.userInfo = userInfo);
         if (clearCaches && this.initialized) {
             console.log("Clearing memory-cache of mobx-graphlink and apollo, due to user-info change.");
-            const nodesThatHadActiveSubscription = await this.ClearCaches();
+            const nodesThatHadActiveOrInitializingSub = await this.ClearCaches();
             if (resubscribeAfter) {
                 RunInAction("SetUserInfo.resubscribeAfter", () => {
-                    for (const node of nodesThatHadActiveSubscription) {
+                    for (const node of nodesThatHadActiveOrInitializingSub) {
                         node.SubscribeIfNotAlready();
                     }
                 });
             }
-            return nodesThatHadActiveSubscription;
+            return nodesThatHadActiveOrInitializingSub;
         }
     }
     async ClearCaches() {
@@ -105,7 +105,7 @@ export class Graphlink {
             node.data
         }*/
         // first, unsubscribe everything; this lets the server release the old live-queries
-        const nodesThatHadActiveSubscription = this.tree.UnsubscribeAll(false);
+        const nodesThatHadActiveOrInitializingSub = this.tree.UnsubscribeAll(false);
         nodesByPath.clear(); // also clear this (debugging collection to track if multiple nodes are created for same path); tree is resetting, so reset this list too
         // then, delete/detach all the collection tree-nodes; this is equivalent to clearing the mobx-graphlink cache (well, cache should be cleared by `UnsubscribeAll(false)` above, but this makes certain)
         // commented; this causes issues in mobx-graphlink, where the old subtrees are still being observed (by the accessors), yet are disconnected from the new set created by new requests
@@ -116,7 +116,7 @@ export class Graphlink {
         // clear the apollo-cache as well (since mobx-graphlink uses subscriptions exclusively, this probably isn't necessary, but we'll clear it anyway to be sure)
         await this.subs.apollo.cache.reset();
         await this.subs.apollo.clearStore();
-        return nodesThatHadActiveSubscription;
+        return nodesThatHadActiveOrInitializingSub;
     }
     //pathSubscriptions: Map<string, PathSubscription>;
     UnsubscribeAll() {

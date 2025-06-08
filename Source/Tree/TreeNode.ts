@@ -201,12 +201,12 @@ export class TreeNode<DataShape extends Doc_Base> {
 				if (this.type == TreeNodeType.Document) {
 					newQuery.varsDefine = ["$id: String!", newQuery.varsDefine].filter(a=>a).join(", ");
 					//newQuery_linked.args_custom = {id: "$id"};
-					newQuery.args_rawPrefixStr = "id: $id";
+					newQuery.args_rawPrefixStr = ["id: $id", newQuery.args_rawPrefixStr].filter(a=>a).join(", ");
 					newQuery.vars = E({id: collectionNameOrDocID}, newQuery.vars);
 					newQuery.CalculateDerivatives();
 				} else if (this.type == TreeNodeType.Collection || this.type == TreeNodeType.CollectionQuery) {
 					newQuery.varsDefine = ["$cachedEntryHashes: JSONObject!", newQuery.varsDefine].filter(a=>a).join(", ");
-					newQuery.args_rawPrefixStr = "cachedEntryHashes: $cachedEntryHashes";
+					newQuery.args_rawPrefixStr = ["cachedEntryHashes: $cachedEntryHashes", newQuery.args_rawPrefixStr].filter(a=>a).join(", ");
 					const cachedEntryHashes = CE(Object.entries(cachedEntries)).ToMapObj(a=>a[0], a=>a[1].hash);
 					newQuery.vars = E({cachedEntryHashes}, newQuery.vars);
 					newQuery.CalculateDerivatives();
@@ -351,15 +351,15 @@ export class TreeNode<DataShape extends Doc_Base> {
 
 		return {observable: self_apolloObservable_old, subscription: self_subscription_old};
 	}
-	UnsubscribeAll(allowKeepDataCached = true, nodesThatHadActiveSubscription: Set<TreeNode<any>> = new Set()) {
-		if (this.self_subscription != null) {
-			nodesThatHadActiveSubscription.add(this);
+	UnsubscribeAll(allowKeepDataCached = true, nodesThatHadActiveOrInitializingSub: Set<TreeNode<any>> = new Set()) {
+		if (this.self_subscriptionStatus != SubscriptionStatus.Initial) {
+			nodesThatHadActiveOrInitializingSub.add(this);
 		}
 		this.Unsubscribe(allowKeepDataCached);
-		this.collectionNodes.forEach(a=>a.UnsubscribeAll(allowKeepDataCached, nodesThatHadActiveSubscription));
-		this.queryNodes.forEach(a=>a.UnsubscribeAll(allowKeepDataCached, nodesThatHadActiveSubscription));
-		this.docNodes.forEach(a=>a.UnsubscribeAll(allowKeepDataCached, nodesThatHadActiveSubscription));
-		return nodesThatHadActiveSubscription;
+		this.collectionNodes.forEach(a=>a.UnsubscribeAll(allowKeepDataCached, nodesThatHadActiveOrInitializingSub));
+		this.queryNodes.forEach(a=>a.UnsubscribeAll(allowKeepDataCached, nodesThatHadActiveOrInitializingSub));
+		this.docNodes.forEach(a=>a.UnsubscribeAll(allowKeepDataCached, nodesThatHadActiveOrInitializingSub));
+		return nodesThatHadActiveOrInitializingSub;
 	}
 
 	// data

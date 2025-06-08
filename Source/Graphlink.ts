@@ -111,15 +111,15 @@ export class Graphlink<StoreShape, DBShape> {
 		RunInAction("SetUserInfo", ()=>(this as any).userInfo = userInfo);
 		if (clearCaches && this.initialized) {
 			console.log("Clearing memory-cache of mobx-graphlink and apollo, due to user-info change.");
-			const nodesThatHadActiveSubscription = await this.ClearCaches();
+			const nodesThatHadActiveOrInitializingSub = await this.ClearCaches();
 			if (resubscribeAfter) {
 				RunInAction("SetUserInfo.resubscribeAfter", ()=>{
-					for (const node of nodesThatHadActiveSubscription) {
+					for (const node of nodesThatHadActiveOrInitializingSub) {
 						node.SubscribeIfNotAlready();
 					}
 				});
 			}
-			return nodesThatHadActiveSubscription;
+			return nodesThatHadActiveOrInitializingSub;
 		}
 	}
 	async ClearCaches() {
@@ -127,7 +127,7 @@ export class Graphlink<StoreShape, DBShape> {
 			node.data
 		}*/
 		// first, unsubscribe everything; this lets the server release the old live-queries
-		const nodesThatHadActiveSubscription = this.tree.UnsubscribeAll(false);
+		const nodesThatHadActiveOrInitializingSub = this.tree.UnsubscribeAll(false);
 		nodesByPath.clear(); // also clear this (debugging collection to track if multiple nodes are created for same path); tree is resetting, so reset this list too
 
 		// then, delete/detach all the collection tree-nodes; this is equivalent to clearing the mobx-graphlink cache (well, cache should be cleared by `UnsubscribeAll(false)` above, but this makes certain)
@@ -141,7 +141,7 @@ export class Graphlink<StoreShape, DBShape> {
 		await this.subs.apollo.cache.reset();
 		await this.subs.apollo.clearStore();
 
-		return nodesThatHadActiveSubscription;
+		return nodesThatHadActiveOrInitializingSub;
 	}
 	// todo (probably)
 	/*async LogIn() {
