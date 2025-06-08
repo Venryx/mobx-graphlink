@@ -9,6 +9,9 @@ import {RunInAction_WhenAble, makeObservable_safe, MobX_AllowStateChanges, MobX_
 import {ListChange, ListChangeType, QueryParams, QueryParams_Linked} from "./QueryParams.js";
 import {DataStatus, GetPreferenceLevelOfDataStatus, TreeNodeData} from "./TreeNodeData.js";
 import {NormalizeDocumentShape} from "./DocShapeNormalizer.js";
+import {CachedEntry_Core, entryCache} from "../Components/EntryCache.js";
+import {GenerateUUID} from "../Extensions/KeyGenerator.js";
+import {n} from "../Utils/@Internal/Types.js";
 
 export enum TreeNodeType {
 	Root = "Root",
@@ -19,7 +22,8 @@ export enum TreeNodeType {
 
 export enum SubscriptionStatus {
 	Initial = "Initial",
-	Waiting = "Waiting",
+	PrepForSubscribe = "PrepForSubscribe",
+	WaitingForSubscribeComplete = "WaitingForSubscribeComplete",
 	ReadyAndLive = "ReadyAndLive",
 }
 
@@ -75,20 +79,8 @@ export class TreeNode<DataShape extends Doc_Base> {
 		this.path_noQuery = this.pathSegments_noQuery.join("/");
 		Assert(PathSegmentsAreValid(this.pathSegments), `Path segments cannot be null/empty. @pathSegments(${this.pathSegments})`);
 		this.type = GetTreeNodeTypeForPath(this.pathSegments);
-		const query_raw = queryStr ? QueryParams.ParseString(queryStr) : new QueryParams();
-		this.query = new QueryParams_Linked({...query_raw, treeNode: this});
-
-		/*if (this.type != TreeNodeType.Root) {
-			this.query.treeNode = this;
-			this.query.CalculateDerivatives();
-		}*/
-		if (this.type == TreeNodeType.Document) {
-			this.query.varsDefine = ["$id: String!", this.query.varsDefine].filter(a=>a).join(", ");
-			//this.query.args_custom = {id: "$id"};
-			this.query.args_rawPrefixStr = "id: $id";
-			this.query.vars = E({id: this.pathSegments.slice(-1)[0]}, this.query.vars);
-			this.query.CalculateDerivatives();
-		}
+		this.query_raw = queryStr ? QueryParams.ParseString(queryStr) : new QueryParams();
+		// this.query gets set later, within the SubscribeIfNotAlready function (since the async entry-cache may need to be accessed for it)
 
 		// only do these checks in dev-mode, since causes memory usage to keep going up (due to the map never being cleared)
 		if (globalThis.DEV_DYN) {
@@ -129,7 +121,7 @@ export class TreeNode<DataShape extends Doc_Base> {
 				this.countSecondsWithoutObserver_timer.Stop();
 				if (this.self_subscription == null) {
 					RunInAction("TreeNode.OnDataFieldObservedStateChange.Resubscribe", ()=>{
-						this.Subscribe();
+						this.SubscribeIfNotAlready();
 					});
 				}
 			}
@@ -169,122 +161,191 @@ export class TreeNode<DataShape extends Doc_Base> {
 	}
 	Request(subscribeIfNotAlready = true) {
 		this.MarkRequested();
-		if (subscribeIfNotAlready && !this.self_subscription) {
-			this.Subscribe();
+		if (subscribeIfNotAlready) {
+			this.SubscribeIfNotAlready();
 		}
 	}
+	private currentSubscribe_id?: string|n; // Why is this needed? Because if TreeNode.Unsubscribe() is called while a subscribe is still "progressing", that initial in-progress subscription needs to know when to self-cancel.
 	/** Must be called from within a mobx action. (and not be run within a mobx computation) */
-	Subscribe() {
+	SubscribeIfNotAlready() {
+		Assert(MobX_AllowStateChanges(), "TreeNode.Subscribe cannot be run within a mobx computation.");
 		Assert(this.type != TreeNodeType.Root, "Cannot subscribe to the tree root!");
-		Assert(this.self_subscription == null, "Cannot subscribe more than once!");
+		/*Assert(this.self_subscription == null, "Cannot subscribe more than once!");
+		Assert(this.self_subscriptionStatus == SubscriptionStatus.Initial, `Cannot subscribe more than once! (subscription-status must be "Initial" at time of call to Subscribe)`);*/
+		if (this.self_subscriptionStatus != SubscriptionStatus.Initial) return; // we only start subscribing now, if we haven't already started subscribing
+		//if (this.self_subscription != null) return;
+		Assert(this.self_subscription == null, `Subscription state marked as "Initial", yet self_subscription is not null! @path(${this.path})`);
+		const thisSubscribe_id = GenerateUUID();
+		this.currentSubscribe_id = thisSubscribe_id;
+		const thisSubscribeActive = ()=>{
+			//if (this.currentSubscribe_id != thisSubscribe_id) console.log("Not still active!", this.currentSubscribe_id, thisSubscribe_id, CE(this.pathSegments_noQuery).Last());
+			return this.currentSubscribe_id == thisSubscribe_id;
+		};
 
-		// old: wait till call-stack completes, so we don't violate "can't change observables from within computation" rule
-		// we can't change observables from within computed values/funcs/store-accessors, so do it in a moment (out of computation call-stack)
-		/*WaitXThenRun(0, ()=> {
-			runInAction("TreeNode.Subscribe_prep", ()=>this.status = DataStatus.Waiting);
-		});*/
-		//Assert(MobX_GetGlobalState().computationDepth == 0, "Cannot call TreeNode.Subscribe from within a computation.");
-		Assert(MobX_AllowStateChanges(), "TreeNode.Subscribe must be called from within a mobx action. (and not be run within a mobx computation)");
-		RunInAction("TreeNode.Subscribe_prep", ()=>this.self_subscriptionStatus = SubscriptionStatus.Waiting);
+		RunInAction("TreeNode.Subscribe_prep", ()=>this.self_subscriptionStatus = SubscriptionStatus.PrepForSubscribe);
 
-		MaybeLog_Base(a=>a.subscriptions, l=>l(`Subscribing to: ${this.path}`));
-		if (this.type == TreeNodeType.Document) {
-			this.self_apolloObservable = this.graph.subs.apollo.subscribe({
-				query: this.query.GraphQLQuery(),
-				variables: this.query.vars,
-			});
-			this.self_subscription = this.self_apolloObservable.subscribe({
-				next: data=>{
-					const returnedData = data.data; // if requested from top-level-query "map", data.data will have shape: {map: {...}}
-					//const returnedDocument = returnedData[Object.keys(this.query.vars!)[0]]; // so unwrap it here
-					Assert(Object.values(returnedData).length == 1);
+		(async()=>{
+			if (!thisSubscribeActive()) return;
+			const isCollectionType = this.type == TreeNodeType.Collection || this.type == TreeNodeType.CollectionQuery;
+			const collectionNameOrDocID = CE(this.pathSegments_noQuery).Last();
+			const cachedEntries = isCollectionType ? await entryCache.GetCachedEntries(collectionNameOrDocID) : {};
+			if (!thisSubscribeActive()) return;
 
-					const returnedDocument_raw = Object.values(returnedData)[0] as Doc_Base|null; // so unwrap it here
-					NormalizeDocumentShape(returnedDocument_raw, this.query.DocSchemaName, this.graph.introspector);
-					const returnedDocument = returnedDocument_raw as DataShape|null;
+			// calculate the query_linked object, if it's not calculated yet, OR this tree-node is for a collection (these need to be recalculated each time, since the entry-cache may have changed)
+			if (this.query == null || isCollectionType) {
+				const newQuery = new QueryParams_Linked({...this.query_raw, treeNode: this});
+				/*if (this.type != TreeNodeType.Root) {
+					newQuery.treeNode = this;
+					newQuery.CalculateDerivatives();
+				}*/
+				if (this.type == TreeNodeType.Document) {
+					newQuery.varsDefine = ["$id: String!", newQuery.varsDefine].filter(a=>a).join(", ");
+					//newQuery_linked.args_custom = {id: "$id"};
+					newQuery.args_rawPrefixStr = "id: $id";
+					newQuery.vars = E({id: collectionNameOrDocID}, newQuery.vars);
+					newQuery.CalculateDerivatives();
+				} else if (this.type == TreeNodeType.Collection || this.type == TreeNodeType.CollectionQuery) {
+					newQuery.varsDefine = ["$cachedEntryHashes: JSONObject!", newQuery.varsDefine].filter(a=>a).join(", ");
+					newQuery.args_rawPrefixStr = "cachedEntryHashes: $cachedEntryHashes";
+					const cachedEntryHashes = CE(Object.entries(cachedEntries)).ToMapObj(a=>a[0], a=>a[1].hash);
+					newQuery.vars = E({cachedEntryHashes}, newQuery.vars);
+					newQuery.CalculateDerivatives();
+				}
+				this.query = newQuery;
+			}
 
-					MaybeLog_Base(a=>a.subscriptions, l=>l(`Got doc snapshot. @path(${this.path}) @snapshot:`, returnedDocument));
-					this.graph.commitScheduler.ScheduleDataUpdateCommit(()=>{
-						this.data_fromSelf.SetData(returnedDocument, false);
-						this.self_subscriptionStatus = SubscriptionStatus.ReadyAndLive;
-					});
-				},
-				error: err=>console.error("SubscriptionError:", err), // Does an error here mean the subscription is no longer valid? If so, we should probably unsubscribe->resubscribe.
-				//complete: ()=>console.error("SubscriptionComplete."), // handling presumably useful, but oddly, neither "error" nor "complete" doesn't seem to trigger when server goes down
-			});
-		} else {
-			this.self_apolloObservable = this.graph.subs.apollo.subscribe({
-				query: this.query.GraphQLQuery(),
-				variables: this.query.vars,
-			});
-			let lastSubscriptionResult_docIDs = [] as string[];
-			this.self_subscription = this.self_apolloObservable.subscribe({
-				next: data=>{
-					//const prevDocs = this.DocDatas;
-					//const nextDocs = prevDocs.slice();
-					let addedOrChangedDocs = [] as DataShape[];
-					let removedDocIDs = [] as string[];
+			RunInAction("TreeNode.Subscribe_prep", ()=>this.self_subscriptionStatus = SubscriptionStatus.WaitingForSubscribeComplete);
+			MaybeLog_Base(a=>a.subscriptions, l=>l(`Subscribing to: ${this.path}`));
+			if (this.type == TreeNodeType.Document) {
+				this.self_apolloObservable = this.graph.subs.apollo.subscribe({
+					query: this.query.GraphQLQuery(),
+					variables: this.query.vars,
+				});
+				this.self_subscription = this.self_apolloObservable.subscribe({
+					next: data=>{
+						if (!thisSubscribeActive()) return;
+						const returnedData = data.data; // if requested from top-level-query "map", data.data will have shape: {map: {...}}
+						//const returnedDocument = returnedData[Object.keys(this.query.vars!)[0]]; // so unwrap it here
+						Assert(Object.values(returnedData).length == 1);
 
-					const listChange = data.data[CE(this.pathSegments_noQuery).Last()] as ListChange;
-					Assert(listChange != null && listChange.data instanceof Array);
-					if (listChange.changeType == ListChangeType.FullList) {
-						// if full-list, just set the new docs
-						addedOrChangedDocs = listChange.data;
-						removedDocIDs = CE(lastSubscriptionResult_docIDs).Exclude(...listChange.data.map(a=>a.id));
-					} else if (listChange.changeType == ListChangeType.EntryAdded || listChange.changeType == ListChangeType.EntryChanged) {
-						for (const addedOrChangedDoc of listChange.data) {
-							addedOrChangedDocs.push(addedOrChangedDoc);
-						}
-					} else if (listChange.changeType == ListChangeType.EntryRemoved) {
-						removedDocIDs.push(listChange.idOfRemoved);
-					}
+						const returnedDocument_raw = Object.values(returnedData)[0] as Doc_Base|null; // so unwrap it here
+						NormalizeDocumentShape(returnedDocument_raw, this.query!.DocSchemaName, this.graph.introspector);
+						const returnedDocument = returnedDocument_raw as DataShape|null;
 
-					const fromCache = false;
+						MaybeLog_Base(a=>a.subscriptions, l=>l(`Got doc snapshot. @path(${this.path}) @snapshot:`, returnedDocument));
+						this.graph.commitScheduler.ScheduleDataUpdateCommit(()=>{
+							if (!thisSubscribeActive()) return;
+							this.data_fromSelf.SetData(returnedDocument, false);
+							this.self_subscriptionStatus = SubscriptionStatus.ReadyAndLive;
+						});
+					},
+					error: err=>console.error("SubscriptionError:", err), // Does an error here mean the subscription is no longer valid? If so, we should probably unsubscribe->resubscribe.
+					//complete: ()=>console.error("SubscriptionComplete."), // handling presumably useful, but oddly, neither "error" nor "complete" doesn't seem to trigger when server goes down
+				});
+			} else {
+				this.self_apolloObservable = this.graph.subs.apollo.subscribe({
+					query: this.query.GraphQLQuery(),
+					variables: this.query.vars,
+				});
+				let lastSubscriptionResult_docIDs = [] as string[];
+				this.self_subscription = this.self_apolloObservable.subscribe({
+					next: data=>{
+						if (!thisSubscribeActive()) return;
+						const listChange = data.data[collectionNameOrDocID] as ListChange;
+						Assert(listChange != null && listChange.data instanceof Array);
 
-					MaybeLog_Base(a=>a.subscriptions, l=>l(`Got collection snapshot. @path(${this.path}) @addedOrChanged:`, addedOrChangedDocs.length, "@removed:", removedDocIDs.length));
-					this.graph.commitScheduler.ScheduleDataUpdateCommit(()=>{
-						let dataChanged = false;
+						//const prevDocs = this.DocDatas;
+						//const nextDocs = prevDocs.slice();
+						let addedOrChangedDocs = [] as DataShape[];
+						let removedDocIDs = [] as string[];
 
-						// for each doc in the new result-set, ensure a node exists for it, and set/update its "from parent" data
-						for (const doc of addedOrChangedDocs) {
-							if (!this.docNodes.has(doc.id)) {
-								this.docNodes.set(doc.id, new TreeNode(this.graph, this.pathSegments.concat([doc.id])));
+						if (listChange.changeType == ListChangeType.FullList) {
+							const existentDocs_outsideOfCache = listChange.data as DataShape[]; // if listChange.data is not an array, then something is wrong
+							const existentDocs_withinCache = [] as DataShape[];
+
+							// for each entry that the server returns (ie. says is new/changed from the hashes we sent), store the new/changed value in the entry-cache
+							const newOrChangedDocs_cacheEntries = existentDocs_outsideOfCache.map(doc=>{
+								const hash = listChange.hashes[doc.id];
+								Assert(hash != null, `Expected to find hash for docID "${doc.id}", but didn't. @path(${this.path})`);
+								return {
+									docId: doc.id,
+									data: doc,
+									hash,
+								} as CachedEntry_Core;
+							});
+							// we don't need to await this; if a future subscribe gets an incomplete entry-cache (unlikely), it's still not an actual problem (since the entry-cache is just a performance optimization)
+							entryCache.UpdateTableEntries(collectionNameOrDocID, newOrChangedDocs_cacheEntries);
+
+							for (const [docID, hash] of Object.entries(listChange.hashes)) {
+								const doc_freshFromServer = existentDocs_outsideOfCache.find(a=>a.id == docID);
+								// if the server omitted the data for this given entry, then it must be one of the entries we told the server we already had (ie. within cachedEntryHashes), so find it
+								if (doc_freshFromServer == null) {
+									const cacheEntryForDocID = cachedEntries[docID];
+									Assert(cacheEntryForDocID != null, `Expected to find cache-entry for docID "${docID}", but didn't. @path(${this.path})`);
+									existentDocs_withinCache.push(cacheEntryForDocID.data as DataShape);
+								}
 							}
-							NormalizeDocumentShape(doc, this.query.DocSchemaName, this.graph.introspector);
-							//dataChanged = this.docNodes.get(doc.id)!.SetData(doc.data(), fromCache) || dataChanged;
-							dataChanged = this.docNodes.get(doc.id)!.data_fromParent.SetData(Clone(doc), fromCache) || dataChanged;
+
+							addedOrChangedDocs = [...existentDocs_withinCache, ...existentDocs_outsideOfCache];
+							removedDocIDs = CE(lastSubscriptionResult_docIDs).Exclude(...addedOrChangedDocs.map(a=>a.id));
+						} else if (listChange.changeType == ListChangeType.EntryAdded || listChange.changeType == ListChangeType.EntryChanged) {
+							for (const addedOrChangedDoc of listChange.data) {
+								addedOrChangedDocs.push(addedOrChangedDoc);
+							}
+						} else if (listChange.changeType == ListChangeType.EntryRemoved) {
+							removedDocIDs.push(listChange.idOfRemoved);
 						}
 
-						// if docs are leaving the result set, remove those nodes from the tree
-						for (const docID of removedDocIDs) {
-							const docNode = this.docNodes.get(docID);
-							dataChanged = docNode?.data_fromParent.SetData(null, fromCache) || dataChanged;
+						const fromMemoryCache = false;
 
-							// if this collection-subscription was the only reason the leaving-result-set doc's node was attached, remove that node from the tree (we don't want to detach nodes with active subscriptions)
-							//if (docNode?.self_subscription == null) {
+						MaybeLog_Base(a=>a.subscriptions, l=>l(`Got collection snapshot. @path(${this.path}) @addedOrChanged:`, addedOrChangedDocs.length, "@removed:", removedDocIDs.length));
+						this.graph.commitScheduler.ScheduleDataUpdateCommit(()=>{
+							if (!thisSubscribeActive()) return;
+							let dataChanged = false;
 
-							//docNode?.Unsubscribe(); // commented; unsubscribe not really needed (doc leaves collection -> list-ui updates -> old child-ui leaves -> doc-node unsubscribes organically after delay)
-							this.docNodes.delete(docID);
-						}
+							// for each doc in the new result-set, ensure a node exists for it, and set/update its "from parent" data
+							for (const doc of addedOrChangedDocs) {
+								if (!this.docNodes.has(doc.id)) {
+									this.docNodes.set(doc.id, new TreeNode(this.graph, this.pathSegments.concat([doc.id])));
+								}
+								NormalizeDocumentShape(doc, this.query!.DocSchemaName, this.graph.introspector);
+								//dataChanged = this.docNodes.get(doc.id)!.SetData(doc.data(), fromCache) || dataChanged;
+								dataChanged = this.docNodes.get(doc.id)!.data_fromParent.SetData(Clone(doc), fromMemoryCache) || dataChanged;
+							}
 
-						this.data_fromSelf.UpdateStatusAfterDataChange(dataChanged, fromCache);
-						this.self_subscriptionStatus = SubscriptionStatus.ReadyAndLive;
-						lastSubscriptionResult_docIDs = this.DocDatas.map(a=>a.id);
-					});
-				},
-				error: err=>console.error("SubscriptionError:", err), // Does an error here mean the subscription is no longer valid? If so, we should probably unsubscribe->resubscribe.
-				//complete: ()=>console.error("SubscriptionComplete."), // handling presumably useful, but oddly, neither "error" nor "complete" doesn't seem to trigger when server goes down
-			});
-		}
+							// if docs are leaving the result set, remove those nodes from the tree
+							for (const docID of removedDocIDs) {
+								const docNode = this.docNodes.get(docID);
+								dataChanged = docNode?.data_fromParent.SetData(null, fromMemoryCache) || dataChanged;
+
+								// if this collection-subscription was the only reason the leaving-result-set doc's node was attached, remove that node from the tree (we don't want to detach nodes with active subscriptions)
+								//if (docNode?.self_subscription == null) {
+
+								//docNode?.Unsubscribe(); // commented; unsubscribe not really needed (doc leaves collection -> list-ui updates -> old child-ui leaves -> doc-node unsubscribes organically after delay)
+								this.docNodes.delete(docID);
+							}
+
+							this.data_fromSelf.UpdateStatusAfterDataChange(dataChanged, fromMemoryCache);
+							this.self_subscriptionStatus = SubscriptionStatus.ReadyAndLive;
+							lastSubscriptionResult_docIDs = this.DocDatas.map(a=>a.id);
+						});
+					},
+					error: err=>console.error("SubscriptionError:", err), // Does an error here mean the subscription is no longer valid? If so, we should probably unsubscribe->resubscribe.
+					//complete: ()=>console.error("SubscriptionComplete."), // handling presumably useful, but oddly, neither "error" nor "complete" doesn't seem to trigger when server goes down
+				});
+			}
+		})();
 	}
 	Unsubscribe(allowKeepDataCached = true) {
-		if (this.self_apolloObservable == null || this.self_subscription == null) return null;
+		//if (this.self_apolloObservable == null || this.self_subscription == null) return null;
+		if (this.self_subscriptionStatus == SubscriptionStatus.Initial) return null;
 		const {self_apolloObservable: self_apolloObservable_old, self_subscription: self_subscription_old} = this;
 
 		this.self_apolloObservable = null;
 		MaybeLog_Base(a=>a.subscriptions, l=>l(`Unsubscribing from: ${this.path}`));
-		this.self_subscription.unsubscribe();
+		this.self_subscription?.unsubscribe();
 		this.self_subscription = null;
+		this.currentSubscribe_id = null; // reset currentSubscribe_id, so that if the subscribe we just "ended" still has events occur, it can self-cancel on seeing the id not match
 		RunInAction("TreeNode.Unsubscribe", ()=>this.self_subscriptionStatus = SubscriptionStatus.Initial);
 		this.data_fromSelf.NotifySubscriptionDropped(allowKeepDataCached);
 
@@ -354,7 +415,8 @@ export class TreeNode<DataShape extends Doc_Base> {
 	// for collection (and collection-query) nodes
 	queryNodes = observable.map<string, TreeNode<any>>(); // [@O] for collection nodes
 	//queryNodes = new Map<string, TreeNode<any>>(); // for collection nodes
-	query: QueryParams_Linked; // for collection-query nodes
+	query_raw: QueryParams; // for collection-query nodes; set in TreeNode constructor
+	query: QueryParams_Linked|n; // for collection-query nodes; set in SubscribeIfNotAlready function
 	docNodes = observable.map<string, TreeNode<any>>(); // [@O]
 	//docNodes = new Map<string, TreeNode<any>>();
 

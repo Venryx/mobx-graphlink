@@ -84,6 +84,10 @@ export class QueryParams {
 	/** Example: {someProp: {lessThan: $maxValue}}*/
 	filter?: Object;
 
+	// hashes (commented; we add to varsDefine, vars, and args_rawPrefixStr instead, in TreeNode.SubscribeIfNotAlready)
+	/*/** Example: {id1: "ak28dBKd..."} *#/
+	cachedEntryHashes?: {[docId: string]: string;}; // docId -> hash (blake3)*/
+
 	// pagination
 	first?: number;
 	after?: string;
@@ -145,7 +149,8 @@ export class QueryParams_Linked extends QueryParams {
 		const docSchema = GetSchemaJSON(this.DocSchemaName);
 		Assert(docSchema, `Cannot find schema with name "${this.DocSchemaName}".`);
 
-		const nonNullAutoArgs = ["first", "after", "last", "before", "filter"].filter(key=>{
+		const nonNullAutoArgs_possible = ["first", "after", "last", "before", "filter"] as Array<keyof QueryParams_Linked>;
+		const nonNullAutoArgs = nonNullAutoArgs_possible.filter(key=>{
 			if (this[key] == null) return false;
 
 			// commented; the Clean() function should already be avoiding these problems; if problems persist, we *want* the server to detect the problem and alert us of the flaw in QueryParams.Clean()
@@ -197,6 +202,7 @@ export class QueryParams_Linked extends QueryParams {
 					data {
 						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName, this.treeNode.graph.introspector)}
 					}
+					hashes
 				}
 			}
 		`;
@@ -212,6 +218,8 @@ export class ListChange {
 	changeType: ListChangeType;
 	idOfRemoved: string;
 	data: any;
+	/** docId -> hash (note: atm, this is only populated for list-changes of type `FullList`; caller must also supply a cachedEntryHashes arg, but it can be empty) */
+	hashes: {[docId: string]: string;}
 }
 export enum ListChangeType {
 	FullList = "FullList",

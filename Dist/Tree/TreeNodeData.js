@@ -1,4 +1,4 @@
-import { ObjectCE, ToJSON } from "js-vextensions";
+import { Assert, ObjectCE, ToJSON } from "js-vextensions";
 import { observable } from "mobx";
 import { CleanDBData } from "../Utils/DB/DBDataHelpers.js";
 import { makeObservable_safe, RunInAction } from "../Utils/General/MobX.js";
@@ -17,8 +17,11 @@ export function GetPreferenceLevelOfDataStatus(status) {
         case DataStatus.Received_CachedByApollo: return 2;
         case DataStatus.Received_CachedByMGL: return 3;
         case DataStatus.Received_Live: return 4;
+        default: {
+            Assert(false, `Unknown DataStatus: ${status}`);
+            return 0;
+        }
     }
-    return 0;
 }
 export class TreeNodeData {
     constructor() {
@@ -42,7 +45,7 @@ export class TreeNodeData {
     IsDataAcceptableToConsume() {
         return ObjectCE(this.status).IsOneOf(DataStatus.Received_Live, DataStatus.Received_CachedByMGL);
     }
-    SetData(data, fromCache) {
+    SetData(data, fromMemoryCache) {
         // this.data being "undefined" is used to signify that it's still loading; so if firebase-given value is "undefined", change it to "null"
         if (data === undefined) {
             data = null;
@@ -60,11 +63,11 @@ export class TreeNodeData {
             this.data = data;
             this.dataJSON = dataJSON;
         }
-        this.UpdateStatusAfterDataChange(dataChanged, fromCache);
+        this.UpdateStatusAfterDataChange(dataChanged, fromMemoryCache);
         return dataChanged;
     }
-    UpdateStatusAfterDataChange(dataChanged, fromCache) {
-        const newStatus = fromCache ? DataStatus.Received_CachedByApollo : DataStatus.Received_Live;
+    UpdateStatusAfterDataChange(dataChanged, fromMemoryCache) {
+        const newStatus = fromMemoryCache ? DataStatus.Received_CachedByApollo : DataStatus.Received_Live;
         const isIgnorableStatusChange = !dataChanged && newStatus == DataStatus.Received_CachedByApollo && this.status == DataStatus.Received_Live;
         if (newStatus != this.status && !isIgnorableStatusChange) {
             //if (data != null) {

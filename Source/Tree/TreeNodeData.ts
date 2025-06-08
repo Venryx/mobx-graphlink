@@ -1,4 +1,4 @@
-import {CE, ObjectCE, ToJSON} from "js-vextensions";
+import {Assert, CE, ObjectCE, ToJSON} from "js-vextensions";
 import {observable} from "mobx";
 import {CleanDBData} from "../Utils/DB/DBDataHelpers.js";
 import {makeObservable_safe, RunInAction} from "../Utils/General/MobX.js";
@@ -18,8 +18,11 @@ export function GetPreferenceLevelOfDataStatus(status: DataStatus) {
 		case DataStatus.Received_CachedByApollo: return 2;
 		case DataStatus.Received_CachedByMGL: return 3;
 		case DataStatus.Received_Live: return 4;
+		default: {
+			Assert(false, `Unknown DataStatus: ${status}`);
+			return 0;
+		}
 	}
-	return 0;
 }
 
 export class TreeNodeData<DataShape extends Doc_Base> {
@@ -50,7 +53,7 @@ export class TreeNodeData<DataShape extends Doc_Base> {
 		return ObjectCE(this.status).IsOneOf(DataStatus.Received_Live, DataStatus.Received_CachedByMGL);
 	}
 
-	SetData(data: DataShape|null, fromCache: boolean) {
+	SetData(data: DataShape|null, fromMemoryCache: boolean) {
 		// this.data being "undefined" is used to signify that it's still loading; so if firebase-given value is "undefined", change it to "null"
 		if (data === undefined) {
 			data = null as any;
@@ -71,13 +74,13 @@ export class TreeNodeData<DataShape extends Doc_Base> {
 			this.dataJSON = dataJSON;
 		}
 
-		this.UpdateStatusAfterDataChange(dataChanged, fromCache);
+		this.UpdateStatusAfterDataChange(dataChanged, fromMemoryCache);
 
 		return dataChanged;
 	}
 
-	UpdateStatusAfterDataChange(dataChanged: boolean, fromCache: boolean) {
-		const newStatus = fromCache ? DataStatus.Received_CachedByApollo : DataStatus.Received_Live;
+	UpdateStatusAfterDataChange(dataChanged: boolean, fromMemoryCache: boolean) {
+		const newStatus = fromMemoryCache ? DataStatus.Received_CachedByApollo : DataStatus.Received_Live;
 		const isIgnorableStatusChange = !dataChanged && newStatus == DataStatus.Received_CachedByApollo && this.status == DataStatus.Received_Live;
 		if (newStatus != this.status && !isIgnorableStatusChange) {
 			//if (data != null) {

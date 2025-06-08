@@ -101,7 +101,8 @@ export class QueryParams_Linked extends QueryParams {
         Assert(this.treeNode.type != TreeNodeType.Root, "Cannot create QueryParams for the root TreeNode.");
         const docSchema = GetSchemaJSON(this.DocSchemaName);
         Assert(docSchema, `Cannot find schema with name "${this.DocSchemaName}".`);
-        const nonNullAutoArgs = ["first", "after", "last", "before", "filter"].filter(key => {
+        const nonNullAutoArgs_possible = ["first", "after", "last", "before", "filter"];
+        const nonNullAutoArgs = nonNullAutoArgs_possible.filter(key => {
             if (this[key] == null)
                 return false;
             // commented; the Clean() function should already be avoiding these problems; if problems persist, we *want* the server to detect the problem and alert us of the flaw in QueryParams.Clean()
@@ -147,6 +148,7 @@ export class QueryParams_Linked extends QueryParams {
 					data {
 						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName, this.treeNode.graph.introspector)}
 					}
+					hashes
 				}
 			}
 		`;

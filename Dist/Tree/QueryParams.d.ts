@@ -49,6 +49,10 @@ export declare class ListChange {
     changeType: ListChangeType;
     idOfRemoved: string;
     data: any;
+    /** docId -> hash (note: atm, this is only populated for list-changes of type `FullList`; caller must also supply a cachedEntryHashes arg, but it can be empty) */
+    hashes: {
+        [docId: string]: string;
+    };
 }
 export declare enum ListChangeType {
     FullList = "FullList",

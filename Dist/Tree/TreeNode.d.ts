@@ -2,8 +2,9 @@ import { Timer } from "js-vextensions";
 import { ObservableMap } from "mobx";
 import { FetchResult, Observable, ObservableSubscription } from "@apollo/client";
 import { Graphlink } from "../Graphlink.js";
-import { QueryParams_Linked } from "./QueryParams.js";
+import { QueryParams, QueryParams_Linked } from "./QueryParams.js";
 import { TreeNodeData } from "./TreeNodeData.js";
+import { n } from "../Utils/@Internal/Types.js";
 export declare enum TreeNodeType {
     Root = "Root",
     Collection = "Collection",
@@ -12,7 +13,8 @@ export declare enum TreeNodeType {
 }
 export declare enum SubscriptionStatus {
     Initial = "Initial",
-    Waiting = "Waiting",
+    PrepForSubscribe = "PrepForSubscribe",
+    WaitingForSubscribeComplete = "WaitingForSubscribeComplete",
     ReadyAndLive = "ReadyAndLive"
 }
 export declare class PathSubscription {
@@ -44,11 +46,12 @@ export declare class TreeNode<DataShape extends Doc_Base> {
     get ParentNode(): TreeNode<any> | null;
     MarkRequested(): void;
     Request(subscribeIfNotAlready?: boolean): void;
+    private currentSubscribe_id?;
     /** Must be called from within a mobx action. (and not be run within a mobx computation) */
-    Subscribe(): void;
+    SubscribeIfNotAlready(): void;
     Unsubscribe(allowKeepDataCached?: boolean): {
-        observable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>>;
-        subscription: ObservableSubscription;
+        observable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>> | null;
+        subscription: ObservableSubscription | null;
     } | null;
     UnsubscribeAll(allowKeepDataCached?: boolean, nodesThatHadActiveSubscription?: Set<TreeNode<any>>): Set<TreeNode<any>>;
     self_subscriptionStatus: SubscriptionStatus;
@@ -61,7 +64,8 @@ export declare class TreeNode<DataShape extends Doc_Base> {
     get DocDatas(): any[];
     collectionNodes: ObservableMap<string, TreeNode<any>>;
     queryNodes: ObservableMap<string, TreeNode<any>>;
-    query: QueryParams_Linked;
+    query_raw: QueryParams;
+    query: QueryParams_Linked | n;
     docNodes: ObservableMap<string, TreeNode<any>>;
     get AllChildNodes(): TreeNode<any>[];
     get AllDescendantNodes(): TreeNode<any>[];

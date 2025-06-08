@@ -110,14 +110,12 @@ export class Graphlink<StoreShape, DBShape> {
 	async SetUserInfo(userInfo: UserInfo|null, clearCaches = true, resubscribeAfter = true) {
 		RunInAction("SetUserInfo", ()=>(this as any).userInfo = userInfo);
 		if (clearCaches && this.initialized) {
-			console.log("Clearing mobx-graphlink and apollo cache, due to user-info change.");
+			console.log("Clearing memory-cache of mobx-graphlink and apollo, due to user-info change.");
 			const nodesThatHadActiveSubscription = await this.ClearCaches();
 			if (resubscribeAfter) {
 				RunInAction("SetUserInfo.resubscribeAfter", ()=>{
 					for (const node of nodesThatHadActiveSubscription) {
-						if (node.self_subscription == null) { // check, in case node was already resubscribed by an external caller
-							node.Subscribe();
-						}
+						node.SubscribeIfNotAlready();
 					}
 				});
 			}
