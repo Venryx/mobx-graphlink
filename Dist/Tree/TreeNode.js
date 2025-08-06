@@ -253,25 +253,27 @@ export class TreeNode {
                         if (listChange.changeType == ListChangeType.FullList) {
                             const existentDocs_outsideOfCache = listChange.data; // if listChange.data is not an array, then something is wrong
                             const existentDocs_withinCache = [];
-                            // for each entry that the server returns (ie. says is new/changed from the hashes we sent), store the new/changed value in the entry-cache
-                            const newOrChangedDocs_cacheEntries = existentDocs_outsideOfCache.map(doc => {
-                                const hash = listChange.hashes[doc.id];
-                                Assert(hash != null, `Expected to find hash for docID "${doc.id}", but didn't. @path(${this.path})`);
-                                return {
-                                    docId: doc.id,
-                                    data: doc,
-                                    hash,
-                                };
-                            });
-                            // we don't need to await this; if a future subscribe gets an incomplete entry-cache (unlikely), it's still not an actual problem (since the entry-cache is just a performance optimization)
-                            entryCache.UpdateTableEntries(collectionNameOrDocID, newOrChangedDocs_cacheEntries);
-                            for (const [docID, hash] of Object.entries(listChange.hashes)) {
-                                const doc_freshFromServer = existentDocs_outsideOfCache.find(a => a.id == docID);
-                                // if the server omitted the data for this given entry, then it must be one of the entries we told the server we already had (ie. within cachedEntryHashes), so find it
-                                if (doc_freshFromServer == null) {
-                                    const cacheEntryForDocID = cachedEntries[docID];
-                                    Assert(cacheEntryForDocID != null, `Expected to find cache-entry for docID "${docID}", but didn't. @path(${this.path})`);
-                                    existentDocs_withinCache.push(cacheEntryForDocID.data);
+                            if (this.graph.options.useCollectionEntryCaching) {
+                                // for each entry that the server returns (ie. says is new/changed from the hashes we sent), store the new/changed value in the entry-cache
+                                const newOrChangedDocs_cacheEntries = existentDocs_outsideOfCache.map(doc => {
+                                    const hash = listChange.hashes[doc.id];
+                                    Assert(hash != null, `Expected to find hash for docID "${doc.id}", but didn't. @path(${this.path})`);
+                                    return {
+                                        docId: doc.id,
+                                        data: doc,
+                                        hash,
+                                    };
+                                });
+                                // we don't need to await this; if a future subscribe gets an incomplete entry-cache (unlikely), it's still not an actual problem (since the entry-cache is just a performance optimization)
+                                entryCache.UpdateTableEntries(collectionNameOrDocID, newOrChangedDocs_cacheEntries);
+                                for (const [docID, hash] of Object.entries(listChange.hashes)) {
+                                    const doc_freshFromServer = existentDocs_outsideOfCache.find(a => a.id == docID);
+                                    // if the server omitted the data for this given entry, then it must be one of the entries we told the server we already had (ie. within cachedEntryHashes), so find it
+                                    if (doc_freshFromServer == null) {
+                                        const cacheEntryForDocID = cachedEntries[docID];
+                                        Assert(cacheEntryForDocID != null, `Expected to find cache-entry for docID "${docID}", but didn't. @path(${this.path})`);
+                                        existentDocs_withinCache.push(cacheEntryForDocID.data);
+                                    }
                                 }
                             }
                             addedOrChangedDocs = [...existentDocs_withinCache, ...existentDocs_outsideOfCache];
