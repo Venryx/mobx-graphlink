@@ -135,7 +135,7 @@ export class QueryParams_Linked extends QueryParams {
             return `
 				subscription DocInCollection_${this.CollectionName}${WithBrackets(this.varsDefine)} {
 					${TableNameToGraphQLDocRetrieverKey(this.CollectionName)}${WithBrackets(argsStr)} {
-						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName, this.treeNode.graph.introspector)}
+						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName, this.treeNode.graph.introspector, this.treeNode.graph.options.alwaysRequestExtrasField)}
 					}
 				}
 			`;
@@ -146,7 +146,7 @@ export class QueryParams_Linked extends QueryParams {
 					changeType
 					idOfRemoved
 					data {
-						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName, this.treeNode.graph.introspector)}
+						${JSONSchemaToGQLFieldsStr(docSchema, this.DocSchemaName, this.treeNode.graph.introspector, this.treeNode.graph.options.alwaysRequestExtrasField)}
 					}
 					hashes
 				}
@@ -175,7 +175,7 @@ export const gqlScalarTypes = [
     // for postgresql
     "JSON",
 ];
-export function JSONSchemaToGQLFieldsStr(schema, schemaName, introspector) {
+export function JSONSchemaToGQLFieldsStr(schema, schemaName, introspector, alwaysRequestExtrasField) {
     //const fields = CE(schema.properties!).Pairs();
     const fields = Object.entries(schema.properties);
     Assert(fields.length > 0, `Cannot create GraphQL query-string for schema "${schemaName}", since it has 0 fields.`);
@@ -187,7 +187,7 @@ export function JSONSchemaToGQLFieldsStr(schema, schemaName, introspector) {
         return true;
     });
     // maybe temp/needs-rework: for now, just always make sure we request the "extras" field (even if project doesn't need data beyond the TS struct's defined fields, mobx-graphlink needs the "extras" field in-case server gql doesn't know-of/declare those fields)
-    if (!fields_final.some(([fieldKey]) => fieldKey == "extras")) {
+    if (!fields_final.some(([fieldKey]) => fieldKey == "extras") && alwaysRequestExtrasField) {
         fields_final.push(["extras", { type: "object" }]);
     }
     //return fields.map(field=>{
@@ -213,7 +213,7 @@ export function JSONSchemaToGQLFieldsStr(schema, schemaName, introspector) {
             const fieldTypeName = (_b = fieldValue["$ref"]) !== null && _b !== void 0 ? _b : (_c = fieldValue["items"]) === null || _c === void 0 ? void 0 : _c["$ref"];
             const fieldTypeSchema = GetSchemaJSON(fieldTypeName);
             return `${fieldKey} {
-				${JSONSchemaToGQLFieldsStr(fieldTypeSchema, fieldTypeName, introspector)}
+				${JSONSchemaToGQLFieldsStr(fieldTypeSchema, fieldTypeName, introspector, this.treeNode.graph.options.alwaysRequestExtrasField)}
 			}`;
         }
         return fieldKey;

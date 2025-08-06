@@ -24,12 +24,14 @@ export class GraphlinkInitOptions<StoreShape> {
 	pgPool?: any; //Pool;
 }
 
+export type GraphlinkOptionsInit = ConstructorParameters<typeof GraphlinkOptions>[0];
 export class GraphlinkOptions {
 	constructor(data?: Partial<GraphlinkOptions>) {
 		Object.assign(this, data);
 	}
 
 	useIntrospection = false;
+	alwaysRequestExtrasField = true;
 
 	unsubscribeTreeNodesAfter = 5000;
 	/** After each data-update, how long to wait for another data-update; if another occurs during this period, the timer is reset, and another wait occurs. (until max-wait is reached) */
@@ -57,7 +59,7 @@ export class Graphlink<StoreShape, DBShape> {
 	}
 
 	initialized = false; // [@O]
-	async Initialize(initOptions: GraphlinkInitOptions<StoreShape>, options?: GraphlinkOptions) {
+	async Initialize(initOptions: GraphlinkInitOptions<StoreShape>, options?: GraphlinkOptionsInit) {
 		const {rootStore, apollo, onServer, pgPool} = initOptions;
 
 		Graphlink.instances.push(this);
@@ -67,7 +69,7 @@ export class Graphlink<StoreShape, DBShape> {
 		this.onServer = onServer;
 		this.subs.apollo = apollo;
 		this.subs.pgPool = pgPool;
-		this.options = options ?? new GraphlinkOptions();
+		this.options = new GraphlinkOptions(options);
 
 		if (this.options.useIntrospection) {
 			await this.introspector.RetrieveTypeShapes(apollo);

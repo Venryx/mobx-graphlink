@@ -61,4 +61,4 @@ export declare enum ListChangeType {
     EntryRemoved = "EntryRemoved"
 }
 export declare const gqlScalarTypes: string[];
-export declare function JSONSchemaToGQLFieldsStr(schema: JSONSchema7, schemaName: string, introspector: GQLIntrospector): any;
+export declare function JSONSchemaToGQLFieldsStr(schema: JSONSchema7, schemaName: string, introspector: GQLIntrospector, alwaysRequestExtrasField: boolean): any;

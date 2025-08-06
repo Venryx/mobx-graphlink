@@ -8,6 +8,7 @@ export class GraphlinkInitOptions {
 export class GraphlinkOptions {
     constructor(data) {
         this.useIntrospection = false;
+        this.alwaysRequestExtrasField = true;
         this.unsubscribeTreeNodesAfter = 5000;
         /** After each data-update, how long to wait for another data-update; if another occurs during this period, the timer is reset, and another wait occurs. (until max-wait is reached) */
         this.dataUpdateBuffering_minWait = 10;
@@ -73,7 +74,7 @@ export class Graphlink {
         this.onServer = onServer;
         this.subs.apollo = apollo;
         this.subs.pgPool = pgPool;
-        this.options = options !== null && options !== void 0 ? options : new GraphlinkOptions();
+        this.options = new GraphlinkOptions(options);
         if (this.options.useIntrospection) {
             await this.introspector.RetrieveTypeShapes(apollo);
         }

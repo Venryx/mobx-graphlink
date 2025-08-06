@@ -307,32 +307,6 @@ export function AssertV(condition, messageOrMessageFunc?: string | Function | nu
 	return true as any;
 }
 
-/*export function AV(propNameOrGetter: string | ((..._)=>any)) {
-	return new AVWrapper(propNameOrGetter);
-} /*as ((propNameOrGetter: string | ((..._)=>any))=>AVWrapper) & {
-	NonNull_<T>(value: T): T,
-	NonNull: any,
-};*#/
-// this doesn't work; type isn't known to left of our entry
-/*export function AV<T>(propNameOrGetter: string | ((..._)=>T)) {
-	return new AVWrapper<T>(propNameOrGetter);
-}*#/
-Object.defineProperty(AV, "NonNull_", {value: (value)=>AVWrapper.generic.NonNull_(value)});
-Object.defineProperty(AV, "NonNull", {set: (value)=>AVWrapper.generic.NonNull = value});*/
-
-declare global {
-	interface Function {
-		/** Helper object for making in-line assertions. */
-		get AV(): AVWrapper;
-	}
-}
-Object.defineProperty(Function.prototype, "AV", {
-	value(this: Function) {
-		//this.propName = propNameOrGetter instanceof Function ? MobXPathGetterToPath(propNameOrGetter) : propNameOrGetter;
-		return new AVWrapper(this as ((..._)=>any));
-	},
-});
-
 /** Helper class for making in-line assertions. */
 class AVWrapper {
 	static generic = new AVWrapper("");

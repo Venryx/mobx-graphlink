@@ -43,12 +43,6 @@ export declare function WaitTillResolvedThenExecuteSideEffects({ resolveConditio
 export declare let AssertV_triggerDebugger: boolean;
 /** Variant of Assert, which does not trigger the debugger. (to be used in mobx-graphlink Command.Validate functions, since it's okay/expected for those to fail asserts) */
 export declare function AssertV(condition: any, messageOrMessageFunc?: string | Function | null): asserts condition;
-declare global {
-    interface Function {
-        /** Helper object for making in-line assertions. */
-        get AV(): AVWrapper;
-    }
-}
 /** Helper class for making in-line assertions. */
 declare class AVWrapper {
     static generic: AVWrapper;

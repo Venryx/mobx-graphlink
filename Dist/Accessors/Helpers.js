@@ -275,12 +275,6 @@ export function AssertV(condition, messageOrMessageFunc) {
     Assert(condition, messageOrMessageFunc /* temp */, AssertV_triggerDebugger);
     return true;
 }
-Object.defineProperty(Function.prototype, "AV", {
-    value() {
-        //this.propName = propNameOrGetter instanceof Function ? MobXPathGetterToPath(propNameOrGetter) : propNameOrGetter;
-        return new AVWrapper(this);
-    },
-});
 /** Helper class for making in-line assertions. */
 class AVWrapper {
     constructor(propNameOrGetter) {

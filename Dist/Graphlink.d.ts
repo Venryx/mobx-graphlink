@@ -15,9 +15,11 @@ export declare class GraphlinkInitOptions<StoreShape> {
     unsubscribeTreeNodesAfter?: number;
     pgPool?: any;
 }
+export type GraphlinkOptionsInit = ConstructorParameters<typeof GraphlinkOptions>[0];
 export declare class GraphlinkOptions {
     constructor(data?: Partial<GraphlinkOptions>);
     useIntrospection: boolean;
+    alwaysRequestExtrasField: boolean;
     unsubscribeTreeNodesAfter: number;
     /** After each data-update, how long to wait for another data-update; if another occurs during this period, the timer is reset, and another wait occurs. (until max-wait is reached) */
     dataUpdateBuffering_minWait: number;
@@ -31,7 +33,7 @@ export declare class Graphlink<StoreShape, DBShape> {
     /** You must call graphlink.Initialize(...) after constructing the Graphlink instance. */
     constructor();
     initialized: boolean;
-    Initialize(initOptions: GraphlinkInitOptions<StoreShape>, options?: GraphlinkOptions): Promise<void>;
+    Initialize(initOptions: GraphlinkInitOptions<StoreShape>, options?: GraphlinkOptionsInit): Promise<void>;
     rootStore: StoreShape;
     storeOverridesStack: StoreShape[];
     /** Set this to false if you need to make sure all relevant database-requests within an accessor tree are being activated. */
