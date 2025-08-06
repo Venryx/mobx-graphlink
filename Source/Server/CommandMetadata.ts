@@ -1,7 +1,7 @@
 import {Assert, CE, ModifyString, SleepAsync, string, WaitXThenRun} from "js-vextensions";
 import {JSONSchema7, JSONSchema7Definition, JSONSchema7Type} from "json-schema";
 import {Command, DBHelper} from "./Command.js";
-import {GetGQLSchemaInfoFromJSONSchema, GraphQLSchemaInfo, NormalizeGQLTypeName} from "../Extensions/GQLSchemaHelpers.js";
+import {NormalizeGQLTypeName} from "../Extensions/GQLSchemaHelpers.js";
 import {GetSchemaJSON, IsJSONSchemaOfTypeScalar, IsJSONSchemaScalar, JSONSchemaScalarTypeToGraphQLScalarType, schemaEntryJSONs} from "../Extensions/JSONSchemaHelpers.js";
 
 export function CommandMeta(opts: {

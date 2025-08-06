@@ -20,6 +20,7 @@ export declare class GraphlinkOptions {
     constructor(data?: Partial<GraphlinkOptions>);
     useIntrospection: boolean;
     alwaysRequestExtrasField: boolean;
+    useCollectionEntryCaching: boolean;
     unsubscribeTreeNodesAfter: number;
     /** After each data-update, how long to wait for another data-update; if another occurs during this period, the timer is reset, and another wait occurs. (until max-wait is reached) */
     dataUpdateBuffering_minWait: number;

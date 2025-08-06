@@ -30,8 +30,10 @@ export class GraphlinkOptions {
 		Object.assign(this, data);
 	}
 
+	// these fields let mobx-graphlink be compatible with both the old and new graphlink-rust API (so some of these may be removed, once all projects are using the new API)
 	useIntrospection = false;
 	alwaysRequestExtrasField = true;
+	useCollectionEntryCaching = true;
 
 	unsubscribeTreeNodesAfter = 5000;
 	/** After each data-update, how long to wait for another data-update; if another occurs during this period, the timer is reset, and another wait occurs. (until max-wait is reached) */

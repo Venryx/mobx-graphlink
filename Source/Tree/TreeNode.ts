@@ -205,10 +205,12 @@ export class TreeNode<DataShape extends Doc_Base> {
 					newQuery.vars = E({id: collectionNameOrDocID}, newQuery.vars);
 					newQuery.CalculateDerivatives();
 				} else if (this.type == TreeNodeType.Collection || this.type == TreeNodeType.CollectionQuery) {
-					newQuery.varsDefine = ["$cachedEntryHashes: JSONObject!", newQuery.varsDefine].filter(a=>a).join(", ");
-					newQuery.args_rawPrefixStr = ["cachedEntryHashes: $cachedEntryHashes", newQuery.args_rawPrefixStr].filter(a=>a).join(", ");
-					const cachedEntryHashes = CE(Object.entries(cachedEntries)).ToMapObj(a=>a[0], a=>a[1].hash);
-					newQuery.vars = E({cachedEntryHashes}, newQuery.vars);
+					if (this.graph.options.useCollectionEntryCaching) {
+						newQuery.varsDefine = ["$cachedEntryHashes: JSONObject!", newQuery.varsDefine].filter(a=>a).join(", ");
+						newQuery.args_rawPrefixStr = ["cachedEntryHashes: $cachedEntryHashes", newQuery.args_rawPrefixStr].filter(a=>a).join(", ");
+						const cachedEntryHashes = CE(Object.entries(cachedEntries)).ToMapObj(a=>a[0], a=>a[1].hash);
+						newQuery.vars = E({cachedEntryHashes}, newQuery.vars);
+					}
 					newQuery.CalculateDerivatives();
 				}
 				this.query = newQuery;
