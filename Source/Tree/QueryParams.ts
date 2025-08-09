@@ -276,7 +276,7 @@ export function JSONSchemaToGQLFieldsStr(schema: JSONSchema7, schemaName: string
 			const fieldTypeName = fieldValue["$ref"] ?? fieldValue["items"]?.["$ref"];
 			const fieldTypeSchema = GetSchemaJSON(fieldTypeName);
 			return `${fieldKey} {
-				${JSONSchemaToGQLFieldsStr(fieldTypeSchema, fieldTypeName, introspector, this.treeNode.graph.options.alwaysRequestExtrasField)}
+				${JSONSchemaToGQLFieldsStr(fieldTypeSchema, fieldTypeName, introspector, alwaysRequestExtrasField)}
 			}`;
 		}
 

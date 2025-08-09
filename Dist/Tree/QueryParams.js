@@ -213,7 +213,7 @@ export function JSONSchemaToGQLFieldsStr(schema, schemaName, introspector, alway
             const fieldTypeName = (_b = fieldValue["$ref"]) !== null && _b !== void 0 ? _b : (_c = fieldValue["items"]) === null || _c === void 0 ? void 0 : _c["$ref"];
             const fieldTypeSchema = GetSchemaJSON(fieldTypeName);
             return `${fieldKey} {
-				${JSONSchemaToGQLFieldsStr(fieldTypeSchema, fieldTypeName, introspector, this.treeNode.graph.options.alwaysRequestExtrasField)}
+				${JSONSchemaToGQLFieldsStr(fieldTypeSchema, fieldTypeName, introspector, alwaysRequestExtrasField)}
 			}`;
         }
         return fieldKey;
