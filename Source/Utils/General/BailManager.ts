@@ -89,7 +89,7 @@ export class BailContext {
 export function CatchBail<T, ReturnTypeX>(bailResultOrGetter: T, func: (...args: any[])=>ReturnTypeX, args?: any[], thisArg?: any): NonNullable<ReturnTypeX> | (T extends (()=>any) ? ReturnType<T> : T) {
 	let result;
 	try {
-		result = func.apply(thisArg, args);
+	result = func.apply(thisArg, args ?? []);
 	} catch (ex) {
 		if (ex instanceof BailError) {
 			const bailResult = bailResultOrGetter instanceof Function ? bailResultOrGetter() : bailResultOrGetter;

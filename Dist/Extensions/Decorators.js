@@ -177,7 +177,8 @@ export function observer_mgl(...args) {
     let wrapperFunc;
     if (opts.bailHandler) {
         wrapperFunc = props => {
-            var _a, _b;
+            var _a;
+            var _b;
             const self = useMemo(() => ({
                 normalComp_bailError: null,
                 suspenseComp_lastResult: null,
@@ -330,12 +331,13 @@ export function MGLClass(opts, schemaExtrasOrGetter) {
             constructor["_table"] = opts.table;
         }
         AddSchema(typeName, schemaDeps, () => {
-            var _a, _b, _c, _d;
+            var _a;
+            var _b, _c, _d;
             const schema = schemaExtrasOrGetter instanceof Function ? schemaExtrasOrGetter() : (schemaExtrasOrGetter !== null && schemaExtrasOrGetter !== void 0 ? schemaExtrasOrGetter : {});
-            schema.properties = (_a = schema.properties) !== null && _a !== void 0 ? _a : {};
-            for (const [key, fieldSchemaOrGetter] of Object.entries((_b = constructor["_fields"]) !== null && _b !== void 0 ? _b : [])) {
+            schema.properties = (_b = schema.properties) !== null && _b !== void 0 ? _b : {};
+            for (const [key, fieldSchemaOrGetter] of Object.entries((_c = constructor["_fields"]) !== null && _c !== void 0 ? _c : [])) {
                 let fieldSchema = fieldSchemaOrGetter instanceof Function ? fieldSchemaOrGetter() : fieldSchemaOrGetter;
-                const extras = (_c = constructor["_fieldExtras"]) === null || _c === void 0 ? void 0 : _c[key];
+                const extras = (_a = constructor["_fieldExtras"]) === null || _a === void 0 ? void 0 : _a[key];
                 if (extras === null || extras === void 0 ? void 0 : extras.opt) {
                     const fieldSchemaKeys = Object.keys(fieldSchema);
                     if (fieldSchemaKeys.length == 1 && fieldSchemaKeys[0] == "type") {

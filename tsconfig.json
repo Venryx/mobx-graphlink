@@ -33,7 +33,10 @@
 		//"strictBindCallApply": true,
 		"strictNullChecks": true,
 		//"strictFunctionTypes": true,
-		//"strictPropertyInitialization": true,
+		// TS 7 defaulted these to true; we set them back to false for now, to band-aid fix the new errors (may fix properly later)
+		"strictPropertyInitialization": false, // this project relies on fields being assigned outside the constructor
+		"useUnknownInCatchVariables": false, // this project relies on catch-variables being `any`
+		"noImplicitThis": false, // this project relies on loose `this` typing in some callbacks
 	},
 	"include": [
 		"Typings/**/*.d.ts",

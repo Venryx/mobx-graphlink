@@ -192,14 +192,15 @@ export function JSONSchemaToGQLFieldsStr(schema, schemaName, introspector, alway
     }
     //return fields.map(field=>{
     return fields_final.map(([fieldKey, fieldValue_raw]) => {
-        var _a, _b, _c;
+        var _a;
+        var _b, _c;
         let fieldValue = fieldValue_raw;
         // for fields with {opt: true}, mobx-graphlink (on client) sometimes has to use the `{anyOf: [{...}, {type: "null"}]` pattern to represent the nullability, so handle that case
         if (Object.keys(fieldValue_raw).length == 1 && fieldValue_raw["anyOf"] != null) {
             fieldValue = fieldValue_raw["anyOf"].find(a => a.type != "null");
         }
         // guess at whether the field is a scalar
-        let isScalar = (_a = fieldValue["$gqlTypeIsScalar"]) !== null && _a !== void 0 ? _a : true;
+        let isScalar = (_b = fieldValue["$gqlTypeIsScalar"]) !== null && _b !== void 0 ? _b : true;
         // (atm, field is assumed a scalar unless it has a $gqlType specified in its json-schema whose type-name doesn't match the hard-coded list of scalars)
         const declaredGQLType = fieldValue["$gqlType"];
         if (declaredGQLType) {
@@ -210,7 +211,7 @@ export function JSONSchemaToGQLFieldsStr(schema, schemaName, introspector, alway
         }
         // if field's gql-type is not a scalar, then expand that field to its set of subfields
         if (!isScalar) {
-            const fieldTypeName = (_b = fieldValue["$ref"]) !== null && _b !== void 0 ? _b : (_c = fieldValue["items"]) === null || _c === void 0 ? void 0 : _c["$ref"];
+            const fieldTypeName = (_c = fieldValue["$ref"]) !== null && _c !== void 0 ? _c : (_a = fieldValue["items"]) === null || _a === void 0 ? void 0 : _a["$ref"];
             const fieldTypeSchema = GetSchemaJSON(fieldTypeName);
             return `${fieldKey} {
 				${JSONSchemaToGQLFieldsStr(fieldTypeSchema, fieldTypeName, introspector, alwaysRequestExtrasField)}

@@ -47,7 +47,7 @@ export class BailContext {
 export function CatchBail(bailResultOrGetter, func, args, thisArg) {
     let result;
     try {
-        result = func.apply(thisArg, args);
+        result = func.apply(thisArg, args !== null && args !== void 0 ? args : []);
     }
     catch (ex) {
         if (ex instanceof BailError) {

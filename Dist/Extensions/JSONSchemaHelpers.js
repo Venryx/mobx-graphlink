@@ -278,10 +278,11 @@ export function AssertValidate_Full(schemaObject, schemaName, data, failureMessa
     assertFunc(errorsText == null, failureMessage);
 }
 export function Schema_WithOptionalPropsAllowedNull(schema) {
-    var _a, _b;
+    var _a;
+    var _b;
     const result = Clone(schema);
-    for (const [propName, propSchema] of Object.entries((_a = result.properties) !== null && _a !== void 0 ? _a : {})) {
-        const propOptional = !((_b = result.required) === null || _b === void 0 ? void 0 : _b.includes(propName));
+    for (const [propName, propSchema] of Object.entries((_b = result.properties) !== null && _b !== void 0 ? _b : {})) {
+        const propOptional = !((_a = result.required) === null || _a === void 0 ? void 0 : _a.includes(propName));
         const type = propSchema["type"];
         if (propOptional && type) {
             propSchema["type"] = CE(IsString(type) ? ["null", type] : ["null"].concat(type)).Distinct();

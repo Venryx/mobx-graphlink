@@ -40,7 +40,8 @@ export function PathSegmentsAreValid(pathSegments) {
 }
 export class TreeNode {
     constructor(graph, pathOrSegments) {
-        var _a, _b;
+        var _a;
+        var _b;
         this.observedDataFields = new Set();
         // data
         // ==========

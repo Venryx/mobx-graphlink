@@ -36,12 +36,14 @@ export const introspectionQuery = gql `
 */
 export class GQLTypeShape {
     static GetFields(typeShape) {
-        var _a, _b, _c;
-        return (_c = (_a = typeShape.fields) !== null && _a !== void 0 ? _a : (_b = typeShape.ofType) === null || _b === void 0 ? void 0 : _b.fields) !== null && _c !== void 0 ? _c : [];
+        var _a;
+        var _b, _c;
+        return (_c = (_b = typeShape.fields) !== null && _b !== void 0 ? _b : (_a = typeShape.ofType) === null || _a === void 0 ? void 0 : _a.fields) !== null && _c !== void 0 ? _c : [];
     }
     static GetInputFields(typeShape) {
-        var _a, _b, _c;
-        return (_c = (_a = typeShape.inputFields) !== null && _a !== void 0 ? _a : (_b = typeShape.ofType) === null || _b === void 0 ? void 0 : _b.inputFields) !== null && _c !== void 0 ? _c : [];
+        var _a;
+        var _b, _c;
+        return (_c = (_b = typeShape.inputFields) !== null && _b !== void 0 ? _b : (_a = typeShape.ofType) === null || _a === void 0 ? void 0 : _a.inputFields) !== null && _c !== void 0 ? _c : [];
     }
 }
 export class GQLFieldShape {
@@ -57,7 +59,8 @@ export class GQLIntrospector {
         return this.typeShapes[typeName.toLowerCase()];
     }
     async RetrieveTypeShapes(apollo) {
-        var _a, _b;
+        var _a;
+        var _b;
         const introspectionResponse = await apollo.query({ query: introspectionQuery });
         const types = (_b = (_a = introspectionResponse.data) === null || _a === void 0 ? void 0 : _a.__schema.types) !== null && _b !== void 0 ? _b : [];
         for (const type of types) {

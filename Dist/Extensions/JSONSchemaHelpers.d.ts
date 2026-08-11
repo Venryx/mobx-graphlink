@@ -57,7 +57,7 @@ export declare class AssertValidateOptions {
     allowOptionalPropsToBeNull: boolean;
     useAssertV: boolean;
 }
-export declare function AssertValidate(schemaNameOrJSON: string | JSONSchema7, data: any, failureMessageOrGetter: string | ((errorsText: string) => string), opt?: Partial<AssertValidateOptions>): void;
+export declare function AssertValidate(schemaNameOrJSON: string | JSONSchema7, data: any, failureMessageOrGetter: string | ((errorsText: string | undefined) => string), opt?: Partial<AssertValidateOptions>): void;
 export declare function AssertValidate_Full(schemaObject: JSONSchema7, schemaName: string | null, data: any, failureMessageOrGetter: string | ((errorsText: string | undefined) => string), opt?: Partial<AssertValidateOptions>): void;
 export declare function Schema_WithOptionalPropsAllowedNull(schema: JSONSchema7): JSONSchema7;
 export declare function GetInvalidPropPaths(data: Object, schemaObject: Object): {
@@ -66,5 +66,5 @@ export declare function GetInvalidPropPaths(data: Object, schemaObject: Object):
 }[];
 export declare function IsJSONSchemaScalar(typeStr: string | undefined): boolean;
 export declare function IsJSONSchemaOfTypeScalar(jsonSchema: JSONSchema7): boolean;
-export declare function JSONSchemaScalarTypeToGraphQLScalarType(jsonSchemaScalarType: string): "Int" | "Float" | "String" | "Boolean" | undefined;
+export declare function JSONSchemaScalarTypeToGraphQLScalarType(jsonSchemaScalarType: string): "Boolean" | "Float" | "Int" | "String" | undefined;
 export {};

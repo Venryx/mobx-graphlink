@@ -183,7 +183,8 @@ export class Command {
     }
     /** Creates a graphql request, and sends it, causing the commander to be executed on the server. */
     async RunOnServer() {
-        var _a, _b, _c;
+        var _a;
+        var _b, _c;
         const meta = GetCommandClassMetadata(this.constructor.name);
         const returnDataSchema = meta.responseSchema;
         //const returnData_propPairs = ObjectCE(returnDataSchema.properties).Pairs();
@@ -194,7 +195,7 @@ export class Command {
         // TEMP; hard-code special handling for an "entry" field atm
         if (input_final.entry) {
             const entry_final = input_final.entry;
-            (_a = entry_final.extras) !== null && _a !== void 0 ? _a : (entry_final.extras = {});
+            (_b = entry_final.extras) !== null && _b !== void 0 ? _b : (entry_final.extras = {});
             const extras_final = entry_final.extras;
             const inputType_server_entry = GQLTypeShape.GetInputFields(inputType_server).find(a => a.name == "entry").type;
             for (const [key, value] of Object.entries(entry_final)) {
@@ -208,7 +209,7 @@ export class Command {
         // TEMP; hard-code special handling for an "updates" field atm
         if (input_final.updates) {
             const updates_final = input_final.updates;
-            (_b = updates_final.extras) !== null && _b !== void 0 ? _b : (updates_final.extras = {});
+            (_c = updates_final.extras) !== null && _c !== void 0 ? _c : (updates_final.extras = {});
             const extras_final = updates_final.extras;
             const inputType_server_updates = GQLTypeShape.GetInputFields(inputType_server).find(a => a.name == "updates").type;
             for (const [key, value] of Object.entries(updates_final)) {
@@ -230,7 +231,7 @@ export class Command {
 			`,
             variables: { input: input_final },
         });
-        const returnData = CleanDBData((_c = fetchResult.data) === null || _c === void 0 ? void 0 : _c[commandName_gql]);
+        const returnData = CleanDBData((_a = fetchResult.data) === null || _a === void 0 ? void 0 : _a[commandName_gql]);
         AssertValidate(returnDataSchema, returnData, `Return-data for command did not match the expected shape. ReturnData: ${JSON.stringify(returnData, null, 2)}`);
         MaybeLog_Base(a => a.commands, l => l("Command completed (on server). @type:", this.constructor.name, " @command(", this, ") @fetchResult(", fetchResult, ")"));
         return returnData;

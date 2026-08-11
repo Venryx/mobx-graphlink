@@ -306,7 +306,7 @@ export class AssertValidateOptions {
 	allowOptionalPropsToBeNull = true;
 	useAssertV = true;
 }
-export function AssertValidate(schemaNameOrJSON: string | JSONSchema7, data, failureMessageOrGetter: string | ((errorsText: string)=>string), opt?: Partial<AssertValidateOptions>) {
+export function AssertValidate(schemaNameOrJSON: string | JSONSchema7, data, failureMessageOrGetter: string | ((errorsText: string|undefined)=>string), opt?: Partial<AssertValidateOptions>) {
 	const schemaName = IsString(schemaNameOrJSON) ? schemaNameOrJSON : null;
 	const schemaObject = IsString(schemaNameOrJSON) ? GetSchemaJSON(schemaName!) : schemaNameOrJSON;
 	return AssertValidate_Full(schemaObject, schemaName, data, failureMessageOrGetter, opt);

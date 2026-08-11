@@ -6,7 +6,8 @@ import { GetSchemaJSON } from "../Extensions/JSONSchemaHelpers.js";
  * 3) For each root-field declared client-side that is missing server-side, reshape this document (as returned from the server) so that those fields are on the root of the object instead. (to match the client-side expected shape)
  */
 export function NormalizeDocumentShape(doc, docTypeName, introspector) {
-    var _a, _b;
+    var _a;
+    var _b;
     if (!introspector.introspectionComplete)
         return;
     if (doc == null)

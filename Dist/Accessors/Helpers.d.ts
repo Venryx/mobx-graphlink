@@ -30,10 +30,10 @@ export type EffectFunc = () => any;
 export type AddEffect = (effectFunc: EffectFunc) => void;
 /** Similar to GetAsync, except includes helper for delaying effect-execution (ie. mobx changes) till end, and without certain data-centric behaviors (like disabling db-cache during resolution). */
 export declare function WaitTillResolvedThenExecuteSideEffects({ resolveCondition, effectExecution, timeout, onTimeout, timeoutMessage, }: {
-    resolveCondition?: "returns true" | "no bail-error" | "no error" | undefined;
     effectExecution?: "action" | "plain" | undefined;
+    onTimeout?: "do nothing" | "reject promise" | "resolve promise" | undefined;
+    resolveCondition?: "no bail-error" | "no error" | "returns true" | undefined;
     timeout?: number | n;
-    onTimeout?: "resolve promise" | "reject promise" | "do nothing" | undefined;
     timeoutMessage?: string | undefined;
 }, func: (addEffect: AddEffect) => any): Promise<{
     result: any;
