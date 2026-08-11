@@ -1,5 +1,5 @@
 import {CE} from "js-vextensions";
-import {IComputedValue, IComputedValueOptions, computed, onBecomeUnobserved, _isComputingDerivation, onBecomeObserved, comparer, IEqualsComparer} from "mobx";
+import {IComputedValue, IComputedValueOptions, computed, onBecomeUnobserved, _isComputingDerivation, onBecomeObserved, IEqualsComparer} from "mobx";
 import {Graphlink} from "../index.js";
 import {UT_StoreShape} from "../UserTypes.js";
 import {BailError} from "../Utils/General/BailManager.js";

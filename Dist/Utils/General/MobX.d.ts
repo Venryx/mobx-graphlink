@@ -3,7 +3,7 @@ import type { IAutorunOptions, IReactionDisposer, IReactionPublic, globalState }
 export declare let _reactModule: any;
 export declare function ProvideReactModule(reactModule: any): void;
 declare type NoInfer<T> = [T][T extends any ? 0 : never];
-export declare function makeObservable_safe<T extends object, AdditionalKeys extends PropertyKey = never>(target: T, annotations?: AnnotationsMap<T, NoInfer<AdditionalKeys>>, options?: CreateObservableOptions): T;
+export declare function makeObservable_safe<T extends object, AdditionalKeys extends PropertyKey = never>(target: T, annotations: AnnotationsMap<T, NoInfer<AdditionalKeys>>, options?: CreateObservableOptions): T;
 export declare function MobX_GetGlobalState(): typeof globalState;
 export declare function RunInAction(name: string, action: () => any, afterActionFunc?: (actionErrored: boolean) => any): any;
 export declare function MobX_AllowStateChanges(): boolean;

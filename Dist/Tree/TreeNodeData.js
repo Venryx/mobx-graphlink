@@ -1,5 +1,5 @@
 import { Assert, ObjectCE, ToJSON } from "js-vextensions";
-import { observable } from "mobx";
+import { observableRef } from "mobx";
 import { CleanDBData } from "../Utils/DB/DBDataHelpers.js";
 import { makeObservable_safe, RunInAction } from "../Utils/General/MobX.js";
 export var DataStatus;
@@ -27,8 +27,8 @@ export class TreeNodeData {
     constructor() {
         this.status = DataStatus.Initial; // [@O]
         makeObservable_safe(this, {
-            status: observable,
-            data: observable.ref,
+            status: observableRef,
+            data: observableRef,
         });
     }
     NotifySubscriptionDropped(allowKeepDataCached = true) {

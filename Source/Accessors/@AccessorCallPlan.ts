@@ -1,5 +1,5 @@
 import {IsPrimitive} from "js-vextensions";
-import {comparer, computed, IComputedValue, IComputedValueOptions, onBecomeUnobserved, _isComputingDerivation} from "mobx";
+import {computed, IComputedValue, IComputedValueOptions, onBecomeUnobserved, _isComputingDerivation} from "mobx";
 import {Graphlink, CatchBail} from "../index.js";
 import {UT_StoreShape} from "../UserTypes.js";
 import {AccessorMetadata, ProfilingInfo} from "./@AccessorMetadata.js";

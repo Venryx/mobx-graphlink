@@ -1,5 +1,5 @@
 import {Assert, CE, ObjectCE, ToJSON} from "js-vextensions";
-import {observable} from "mobx";
+import {observableRef} from "mobx";
 import {CleanDBData} from "../Utils/DB/DBDataHelpers.js";
 import {makeObservable_safe, RunInAction} from "../Utils/General/MobX.js";
 import {Doc_Base} from "./TreeNode.js";
@@ -28,8 +28,8 @@ export function GetPreferenceLevelOfDataStatus(status: DataStatus) {
 export class TreeNodeData<DataShape extends Doc_Base> {
 	constructor() {
 		makeObservable_safe(this, {
-			status: observable,
-			data: observable.ref,
+			status: observableRef,
+			data: observableRef,
 		});
 	}
 
