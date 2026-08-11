@@ -15,7 +15,7 @@ export declare class BailHandler_Options {
     loadingUI?: BailHandler;
     storeMetadata: boolean;
 }
-export declare function BailHandler(targetClass: Function): any;
+export declare function BailHandler(value: Function, context: ClassDecoratorContext): any;
 export declare function BailHandler(options?: Partial<BailHandler_Options>): any;
 export declare class RenderResultSpan {
     bailMessage: string | n;
@@ -40,7 +40,7 @@ export declare class ObserverMGL_Options {
     observer: boolean;
 }
 /** Variant of mobx-react's `observer` function (for comp-classes), which also adds bail-handling behavior. */
-export declare function ObserverMGL(targetClass: Function): any;
+export declare function ObserverMGL(value: Function, context: ClassDecoratorContext): any;
 export declare function ObserverMGL(options: Partial<ObserverMGL_Options> | n): any;
 /** Variant of mobx-react's `observer` function (for render-funcs), which also adds bail-handling behavior. */
 export declare function observer_mgl<T>(func: React.FC<T>): React.FC<T>;
@@ -52,7 +52,7 @@ export declare function MGLClass(opts?: {
     name?: string;
     table?: string;
     schemaDeps?: string[];
-}, schemaExtrasOrGetter?: Object | (() => Object)): (constructor: Function) => void;
+}, schemaExtrasOrGetter?: Object | (() => Object)): (value: Function, context: ClassDecoratorContext) => void;
 export type Field_Extras = {
     /** If true, two changes are made:
     1) Field is removed from the list of required properties. (fields are required by default)
@@ -64,4 +64,4 @@ Marks the given field to be part of the json-schema for the current class.
 Note that the "requiredness" of properties should be based on what's valid for an entry during submission to the database (ie. within the type's main AddXXX command);
     this is different than the TS "?" marker, which should match with the requiredness of the property when already in the db. (for new entries, the TS constructors already make all props optional)
 */
-export declare function Field(schemaOrGetter: Object | (() => Object), extras?: Field_Extras): (target: any, propertyKey: string) => void;
+export declare function Field(schemaOrGetter: Object | (() => Object), extras?: Field_Extras): (this: any, value: any, context: ClassFieldDecoratorContext | ClassAccessorDecoratorContext) => void;

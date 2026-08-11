@@ -31,7 +31,9 @@ export class BailHandler_Options {
 export function BailHandler(...args) {
     let opts = new BailHandler_Options();
     if (typeof args[0] == "function") {
+        // direct-decorator form: (value, context)
         ApplyToClass(args[0]);
+        return args[0];
     }
     else {
         opts = E(opts, args[0]);
@@ -151,7 +153,9 @@ export class ObserverMGL_Options {
 export function ObserverMGL(...args) {
     let opts = new ObserverMGL_Options();
     if (typeof args[0] == "function") {
+        // direct-decorator form: (value, context)
         ApplyToClass(args[0]);
+        return args[0];
     }
     else {
         opts = E(opts, args[0]);
@@ -320,11 +324,13 @@ export function GetMGLClass(name) {
     return mglClasses.find(a => a.name == name);
 }
 export function MGLClass(opts, schemaExtrasOrGetter) {
-    return (constructor) => {
-        var _a;
+    // Standard (Stage 3) decorator signature; `value` is the class itself, `context` holds metadata (including the class name).
+    return (value, context) => {
+        var _a, _b;
+        const constructor = value;
         Assert(!mglClasses.includes(constructor));
         mglClasses.push(constructor);
-        const typeName = (_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : constructor.name;
+        const typeName = (_b = (_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : context.name) !== null && _b !== void 0 ? _b : constructor.name;
         const schemaDeps = opts === null || opts === void 0 ? void 0 : opts.schemaDeps;
         if (opts === null || opts === void 0 ? void 0 : opts.table) {
             collection_docSchemaName.set(opts.table, typeName);
@@ -369,15 +375,15 @@ Note that the "requiredness" of properties should be based on what's valid for a
     this is different than the TS "?" marker, which should match with the requiredness of the property when already in the db. (for new entries, the TS constructors already make all props optional)
 */
 export function Field(schemaOrGetter, extras) {
-    //return function(target: Function, propertyKey: string, descriptor: PropertyDescriptor) {
-    return function (target, propertyKey) {
+    // Standard (Stage 3) decorator signature; `this` is the instance being constructed, and `context` holds metadata (including the property name).
+    return function (value, context) {
         var _a, _b;
-        const constructor = target.constructor;
+        const constructor = this.constructor;
         constructor["_fields"] = (_a = constructor["_fields"]) !== null && _a !== void 0 ? _a : {};
-        constructor["_fields"][propertyKey] = schemaOrGetter;
+        constructor["_fields"][context.name] = schemaOrGetter;
         if (extras) {
             constructor["_fieldExtras"] = (_b = constructor["_fieldExtras"]) !== null && _b !== void 0 ? _b : {};
-            constructor["_fieldExtras"][propertyKey] = extras;
+            constructor["_fieldExtras"][context.name] = extras;
         }
     };
 }

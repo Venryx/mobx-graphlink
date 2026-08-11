@@ -8,7 +8,6 @@
 		"target": "ES2018",
 		"jsx": "react",
 		"noImplicitAny": false,
-		"experimentalDecorators": true,
 		"allowSyntheticDefaultImports": true, // doesn't modify output, *or* own import code (it's just for type-checking)
 		//"esModuleInterop": true, // doesn't modify output, only code for the stuff we import
 		"outDir": "Dist",

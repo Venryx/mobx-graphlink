@@ -5,7 +5,7 @@ export declare function CommandMeta(opts: {
     responseSchema?: () => JSONSchema7;
     defaultInput?: any;
     exposeToGraphQL?: boolean;
-}): (constructor: typeof Command) => void;
+}): (value: typeof Command, context: ClassDecoratorContext) => void;
 export declare const commandClasses: (typeof Command)[];
 export declare function GetCommandClass(name: string): typeof Command | undefined;
 export declare const commandClassMetadata: Map<string, CommandClassMetadata>;

@@ -1,7 +1,7 @@
 {
   "name": "mobx-graphlink",
   "description": "Integrate data from a GraphQL backend into MobX and React with declarative path requests. (built on Apollo)",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "license": "MIT",
   "author": "Venryx (https://venryx.com)",
   "repository": {
@@ -34,14 +34,16 @@
   },
   "devDependencies": {
     "@apollo/client": "^4.2.11",
+    "@types/node": "^26.2.0",
     "@types/react": "^19.0.0",
+    "eslint": "^7.30.0",
+    "eslint-config-vbase": "1.0.13",
     "graphql": "^16.6.0",
     "mobx": "7.0.0",
     "mobx-react": "10.0.0",
     "react": "19.0.0",
-    "typescript": "7.0.2",
-		"eslint": "^7.30.0",
-		"eslint-config-vbase": "1.0.13"
+    "rxjs": "^7.8.2",
+    "typescript": "7.0.2"
   },
   "dependencies": {
     "@types/json-schema": "^7.0.8",

@@ -2,7 +2,9 @@ import { Assert, CE, ModifyString, WaitXThenRun } from "js-vextensions";
 import { NormalizeGQLTypeName } from "../Extensions/GQLSchemaHelpers.js";
 import { GetSchemaJSON, IsJSONSchemaOfTypeScalar, IsJSONSchemaScalar, JSONSchemaScalarTypeToGraphQLScalarType } from "../Extensions/JSONSchemaHelpers.js";
 export function CommandMeta(opts) {
-    return (constructor) => {
+    // Standard (Stage 3) decorator signature; `value` is the Command-class itself, `context` holds metadata (including the class name).
+    return (value, context) => {
+        const constructor = value;
         Assert(!commandClasses.includes(constructor), `This exact command-class was already registered. @name:${constructor.name}`);
         commandClasses.push(constructor);
         Assert(!commandClassMetadata.has(constructor.name), `A command-class was already registered with this name (${constructor.name}), but a different instance.`);

@@ -35,12 +35,14 @@ export class BailHandler_Options {
 	loadingUI?: BailHandler;
 	storeMetadata = true;
 }
-export function BailHandler(targetClass: Function);
+export function BailHandler(value: Function, context: ClassDecoratorContext);
 export function BailHandler(options?: Partial<BailHandler_Options>);
 export function BailHandler(...args) {
 	let opts = new BailHandler_Options();
 	if (typeof args[0] == "function") {
+		// direct-decorator form: (value, context)
 		ApplyToClass(args[0]);
+		return args[0];
 	} else {
 		opts = E(opts, args[0]);
 		return ApplyToClass;
@@ -164,12 +166,14 @@ export class ObserverMGL_Options {
 	observer = true;
 }
 /** Variant of mobx-react's `observer` function (for comp-classes), which also adds bail-handling behavior. */
-export function ObserverMGL(targetClass: Function);
+export function ObserverMGL(value: Function, context: ClassDecoratorContext);
 export function ObserverMGL(options: Partial<ObserverMGL_Options>|n);
 export function ObserverMGL(...args) {
 	let opts = new ObserverMGL_Options();
 	if (typeof args[0] == "function") {
+		// direct-decorator form: (value, context)
 		ApplyToClass(args[0]);
+		return args[0];
 	} else {
 		opts = E(opts, args[0]);
 		return ApplyToClass;
@@ -359,10 +363,12 @@ export function MGLClass(
 	opts?: {name?: string, table?: string, schemaDeps?: string[]},
 	schemaExtrasOrGetter?: Object | (()=>Object),
 ) {
-	return (constructor: Function)=>{
+	// Standard (Stage 3) decorator signature; `value` is the class itself, `context` holds metadata (including the class name).
+	return (value: Function, context: ClassDecoratorContext)=>{
+		const constructor = value;
 		Assert(!mglClasses.includes(constructor));
 		mglClasses.push(constructor);
-		const typeName = opts?.name ?? constructor.name;
+		const typeName = opts?.name ?? context.name ?? constructor.name;
 		const schemaDeps = opts?.schemaDeps;
 
 		if (opts?.table) {
@@ -414,15 +420,15 @@ Note that the "requiredness" of properties should be based on what's valid for a
 	this is different than the TS "?" marker, which should match with the requiredness of the property when already in the db. (for new entries, the TS constructors already make all props optional)
 */
 export function Field(schemaOrGetter: Object | (()=>Object), extras?: Field_Extras) {
-	//return function(target: Function, propertyKey: string, descriptor: PropertyDescriptor) {
-	return function(target: any, propertyKey: string) {
-		const constructor = target.constructor;
+	// Standard (Stage 3) decorator signature; `this` is the instance being constructed, and `context` holds metadata (including the property name).
+	return function(this: any, value: any, context: ClassFieldDecoratorContext | ClassAccessorDecoratorContext) {
+		const constructor = this.constructor;
 		constructor["_fields"] = constructor["_fields"] ?? {};
-		constructor["_fields"][propertyKey] = schemaOrGetter;
+		constructor["_fields"][context.name] = schemaOrGetter;
 
 		if (extras) {
 			constructor["_fieldExtras"] = constructor["_fieldExtras"] ?? {};
-			constructor["_fieldExtras"][propertyKey] = extras;
+			constructor["_fieldExtras"][context.name] = extras;
 		}
 	};
 }

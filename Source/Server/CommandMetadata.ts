@@ -11,7 +11,9 @@ export function CommandMeta(opts: {
 	//extraDBUpdates?: (helper: DBHelper)=>any,
 	exposeToGraphQL?: boolean,
 }) {
-	return (constructor: typeof Command)=>{
+	// Standard (Stage 3) decorator signature; `value` is the Command-class itself, `context` holds metadata (including the class name).
+	return (value: typeof Command, context: ClassDecoratorContext)=>{
+		const constructor = value;
 		Assert(!commandClasses.includes(constructor), `This exact command-class was already registered. @name:${constructor.name}`);
 		commandClasses.push(constructor);
 		Assert(!commandClassMetadata.has(constructor.name), `A command-class was already registered with this name (${constructor.name}), but a different instance.`);
