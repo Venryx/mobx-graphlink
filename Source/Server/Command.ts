@@ -240,7 +240,7 @@ export abstract class Command<Input, Response extends {[key: string]: any} = {}>
 		}
 
 		const commandName_gql = ModifyString(this.constructor.name, m=>[m.startUpper_to_lower]);
-		const fetchResult = await this.options.graph.subs.apollo.mutate({
+		const fetchResult = await this.options.graph.subs.apollo.mutate<Record<string, any>>({
 			mutation: gql`
 				mutation Command_${commandName_gql}${WithBrackets(meta.Args_GetVarDefsStr_New())} {
 					${commandName_gql}${WithBrackets(meta.Args_GetArgsUsageStr_New())} {
@@ -250,7 +250,7 @@ export abstract class Command<Input, Response extends {[key: string]: any} = {}>
 			`,
 			variables: {input: input_final},
 		});
-		const returnData = CleanDBData(fetchResult.data[commandName_gql]);
+		const returnData = CleanDBData(fetchResult.data?.[commandName_gql]);
 		AssertValidate(returnDataSchema, returnData, `Return-data for command did not match the expected shape. ReturnData: ${JSON.stringify(returnData, null, 2)}`);
 
 		MaybeLog_Base(a=>a.commands, l=>l("Command completed (on server). @type:", this.constructor.name, " @command(", this, ") @fetchResult(", fetchResult, ")"));

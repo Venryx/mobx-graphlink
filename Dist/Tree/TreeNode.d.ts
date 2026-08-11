@@ -1,6 +1,6 @@
 import { Timer } from "js-vextensions";
 import { ObservableMap } from "mobx";
-import { FetchResult, Observable, ObservableSubscription } from "@apollo/client";
+import { FetchResult, Observable } from "@apollo/client";
 import { Graphlink } from "../Graphlink.js";
 import { QueryParams, QueryParams_Linked } from "./QueryParams.js";
 import { TreeNodeData } from "./TreeNodeData.js";
@@ -50,13 +50,17 @@ export declare class TreeNode<DataShape extends Doc_Base> {
     /** Must be called from within a mobx action. (and not be run within a mobx computation) */
     SubscribeIfNotAlready(): void;
     Unsubscribe(allowKeepDataCached?: boolean): {
-        observable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>> | null;
-        subscription: ObservableSubscription | null;
+        observable: Observable<import("graphql").FormattedExecutionResult<any, Record<string, any>>> | null;
+        subscription: {
+            unsubscribe: () => void;
+        } | null;
     } | null;
     UnsubscribeAll(allowKeepDataCached?: boolean, nodesThatHadActiveOrInitializingSub?: Set<TreeNode<any>>): Set<TreeNode<any>>;
     self_subscriptionStatus: SubscriptionStatus;
-    self_apolloObservable: Observable<FetchResult<any, Record<string, any>, Record<string, any>>> | null;
-    self_subscription: ObservableSubscription | null;
+    self_apolloObservable: Observable<FetchResult<any, Record<string, any>>> | null;
+    self_subscription: {
+        unsubscribe: () => void;
+    } | null;
     data_fromParent: TreeNodeData<DataShape>;
     data_fromSelf: TreeNodeData<DataShape>;
     get PreferredDataContainer(): TreeNodeData<DataShape>;

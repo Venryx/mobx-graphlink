@@ -1,4 +1,4 @@
-import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
+import { ApolloClient } from "@apollo/client";
 import { AccessorCallPlan } from "./Accessors/@AccessorCallPlan.js";
 import { DataCommitScheduler } from "./Components/DataCommitScheduler.js";
 import { TreeNode } from "./Tree/TreeNode.js";
@@ -6,7 +6,7 @@ import { TreeRequestWatcher } from "./Tree/TreeRequestWatcher.js";
 import { GQLIntrospector } from "./DBShape/GQLIntrospector.js";
 export declare class GraphlinkInitOptions<StoreShape> {
     rootStore: StoreShape;
-    apollo: ApolloClient<NormalizedCacheObject>;
+    apollo: ApolloClient;
     onServer: boolean;
     /**
      * After X milliseconds of being unobserved, a TreeNode will unsubscribe its GraphQL subscription, by sending "stop" over the websocket.
@@ -43,7 +43,7 @@ export declare class Graphlink<StoreShape, DBShape> {
     GetDeepestCallPlanCurrentlyRunning(): AccessorCallPlan;
     onServer: boolean;
     subs: {
-        apollo: ApolloClient<NormalizedCacheObject>;
+        apollo: ApolloClient;
         pgPool?: any | null;
     };
     options: GraphlinkOptions;

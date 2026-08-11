@@ -1,5 +1,5 @@
-import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
-export declare const introspectionQuery: import("@apollo/client").DocumentNode;
+import { ApolloClient } from "@apollo/client";
+export declare const introspectionQuery: import("graphql").DocumentNode;
 /**
     TypeScript class reprsenting the data returned from an introspection query. (see `introspectionQuery`, exported from mobx-graphlink, with its code in `GQLIntrospector.ts`)
 */
@@ -21,5 +21,5 @@ export declare class GQLIntrospector {
     introspectionComplete: boolean;
     private typeShapes;
     TypeShape(typeName: string): GQLTypeShape;
-    RetrieveTypeShapes(apollo: ApolloClient<NormalizedCacheObject>): Promise<void>;
+    RetrieveTypeShapes(apollo: ApolloClient): Promise<void>;
 }

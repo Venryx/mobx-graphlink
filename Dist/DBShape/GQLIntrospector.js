@@ -57,8 +57,9 @@ export class GQLIntrospector {
         return this.typeShapes[typeName.toLowerCase()];
     }
     async RetrieveTypeShapes(apollo) {
+        var _a, _b;
         const introspectionResponse = await apollo.query({ query: introspectionQuery });
-        const types = introspectionResponse.data.__schema.types;
+        const types = (_b = (_a = introspectionResponse.data) === null || _a === void 0 ? void 0 : _a.__schema.types) !== null && _b !== void 0 ? _b : [];
         for (const type of types) {
             this.typeShapes[type.name.toLowerCase()] = type;
         }

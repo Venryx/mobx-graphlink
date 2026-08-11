@@ -98,6 +98,9 @@ export function BailHandler(...args) {
     }
 }
 export class RenderResultSpan {
+    constructor() {
+        this.startTime = 0;
+    }
 }
 export class MGLCompMeta {
     constructor() {

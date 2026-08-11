@@ -1,4 +1,4 @@
-import {ApolloClient, NormalizedCacheObject} from "@apollo/client";
+import {ApolloClient} from "@apollo/client";
 import {Assert} from "js-vextensions";
 import {observable} from "mobx";
 import {AccessorCallPlan} from "./Accessors/@AccessorCallPlan.js";
@@ -10,7 +10,7 @@ import {GQLIntrospector} from "./DBShape/GQLIntrospector.js";
 
 export class GraphlinkInitOptions<StoreShape> {
 	rootStore: StoreShape;
-	apollo: ApolloClient<NormalizedCacheObject>;
+	apollo: ApolloClient;
 	onServer: boolean;
 	//initSubs = true;
 
@@ -103,7 +103,7 @@ export class Graphlink<StoreShape, DBShape> {
 	}*/
 	onServer: boolean;
 	subs = {} as {
-		apollo: ApolloClient<NormalizedCacheObject>;
+		apollo: ApolloClient;
 		//pgPool?: Pool|null; // only used if on db-server
 		pgPool?: any|null; // only used if on db-server
 	};

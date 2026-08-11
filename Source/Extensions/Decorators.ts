@@ -112,7 +112,7 @@ export function BailHandler(...args) {
 export class RenderResultSpan {
 	bailMessage: string|n;
 	accessorInfo: string|n;
-	startTime: number;
+	startTime: number = 0;
 	endTime?: number;
 	duration?: number;
 }

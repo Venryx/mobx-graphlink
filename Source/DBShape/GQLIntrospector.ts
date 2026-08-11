@@ -1,4 +1,4 @@
-import {ApolloClient, NormalizedCacheObject, gql} from "@apollo/client";
+import {ApolloClient, gql} from "@apollo/client";
 
 const gqlToGetFields = (key: "fields" | "inputFields", depth_remaining: number)=>{
 	const recurseResult = depth_remaining > 0 ? gqlToGetFields(key, depth_remaining - 1) : "";
@@ -66,9 +66,9 @@ export class GQLIntrospector {
 		return this.typeShapes[typeName.toLowerCase()];
 	}
 
-	async RetrieveTypeShapes(apollo: ApolloClient<NormalizedCacheObject>) {
-		const introspectionResponse = await apollo.query({query: introspectionQuery});
-		const types = introspectionResponse.data.__schema.types;
+	async RetrieveTypeShapes(apollo: ApolloClient) {
+		const introspectionResponse = await apollo.query<{__schema: {types: GQLTypeShape[]}}>({query: introspectionQuery});
+		const types = introspectionResponse.data?.__schema.types ?? [];
 		for (const type of types) {
 			this.typeShapes[type.name.toLowerCase()] = type;
 		}

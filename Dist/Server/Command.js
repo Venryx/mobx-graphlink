@@ -183,7 +183,7 @@ export class Command {
     }
     /** Creates a graphql request, and sends it, causing the commander to be executed on the server. */
     async RunOnServer() {
-        var _a, _b;
+        var _a, _b, _c;
         const meta = GetCommandClassMetadata(this.constructor.name);
         const returnDataSchema = meta.responseSchema;
         //const returnData_propPairs = ObjectCE(returnDataSchema.properties).Pairs();
@@ -230,7 +230,7 @@ export class Command {
 			`,
             variables: { input: input_final },
         });
-        const returnData = CleanDBData(fetchResult.data[commandName_gql]);
+        const returnData = CleanDBData((_c = fetchResult.data) === null || _c === void 0 ? void 0 : _c[commandName_gql]);
         AssertValidate(returnDataSchema, returnData, `Return-data for command did not match the expected shape. ReturnData: ${JSON.stringify(returnData, null, 2)}`);
         MaybeLog_Base(a => a.commands, l => l("Command completed (on server). @type:", this.constructor.name, " @command(", this, ") @fetchResult(", fetchResult, ")"));
         return returnData;
