@@ -337,13 +337,15 @@ export function MGLClass(opts, schemaExtrasOrGetter) {
             constructor["_table"] = opts.table;
         }
         AddSchema(typeName, schemaDeps, () => {
-            var _a;
-            var _b, _c, _d;
+            var _a, _b, _c, _d, _e;
             const schema = schemaExtrasOrGetter instanceof Function ? schemaExtrasOrGetter() : (schemaExtrasOrGetter !== null && schemaExtrasOrGetter !== void 0 ? schemaExtrasOrGetter : {});
-            schema.properties = (_b = schema.properties) !== null && _b !== void 0 ? _b : {};
-            for (const [key, fieldSchemaOrGetter] of Object.entries((_c = constructor["_fields"]) !== null && _c !== void 0 ? _c : [])) {
+            schema.properties = (_a = schema.properties) !== null && _a !== void 0 ? _a : {};
+            const metadata = (_b = context.metadata) !== null && _b !== void 0 ? _b : {};
+            const fields = (_c = metadata["_fields"]) !== null && _c !== void 0 ? _c : {};
+            const fieldExtras = (_d = metadata["_fieldExtras"]) !== null && _d !== void 0 ? _d : {};
+            for (const [key, fieldSchemaOrGetter] of Object.entries(fields)) {
                 let fieldSchema = fieldSchemaOrGetter instanceof Function ? fieldSchemaOrGetter() : fieldSchemaOrGetter;
-                const extras = (_a = constructor["_fieldExtras"]) === null || _a === void 0 ? void 0 : _a[key];
+                const extras = fieldExtras === null || fieldExtras === void 0 ? void 0 : fieldExtras[key];
                 if (extras === null || extras === void 0 ? void 0 : extras.opt) {
                     const fieldSchemaKeys = Object.keys(fieldSchema);
                     if (fieldSchemaKeys.length == 1 && fieldSchemaKeys[0] == "type") {
@@ -360,7 +362,7 @@ export function MGLClass(opts, schemaExtrasOrGetter) {
                     }
                 }
                 else {
-                    schema.required = (_d = schema.required) !== null && _d !== void 0 ? _d : [];
+                    schema.required = (_e = schema.required) !== null && _e !== void 0 ? _e : [];
                     schema.required.push(key);
                 }
                 schema.properties[key] = fieldSchema;
@@ -375,15 +377,15 @@ Note that the "requiredness" of properties should be based on what's valid for a
     this is different than the TS "?" marker, which should match with the requiredness of the property when already in the db. (for new entries, the TS constructors already make all props optional)
 */
 export function Field(schemaOrGetter, extras) {
-    // Standard (Stage 3) decorator signature; `this` is the instance being constructed, and `context` holds metadata (including the property name).
+    // Standard (Stage 3) decorator signature; `context.metadata` is the shared object passed to both member decorators and the class decorator in one class's decorator-application pass, so we write class-level field metadata there (NOT `this.constructor`, since field decorators are invoked with `this === undefined` at class-definition time).
     return function (value, context) {
-        var _a, _b;
-        const constructor = this.constructor;
-        constructor["_fields"] = (_a = constructor["_fields"]) !== null && _a !== void 0 ? _a : {};
-        constructor["_fields"][context.name] = schemaOrGetter;
+        var _a, _b, _c;
+        const metadata = (_a = context.metadata) !== null && _a !== void 0 ? _a : {};
+        metadata["_fields"] = (_b = metadata["_fields"]) !== null && _b !== void 0 ? _b : {};
+        metadata["_fields"][context.name] = schemaOrGetter;
         if (extras) {
-            constructor["_fieldExtras"] = (_b = constructor["_fieldExtras"]) !== null && _b !== void 0 ? _b : {};
-            constructor["_fieldExtras"][context.name] = extras;
+            metadata["_fieldExtras"] = (_c = metadata["_fieldExtras"]) !== null && _c !== void 0 ? _c : {};
+            metadata["_fieldExtras"][context.name] = extras;
         }
     };
 }

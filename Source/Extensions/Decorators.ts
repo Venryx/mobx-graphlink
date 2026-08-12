@@ -379,9 +379,12 @@ export function MGLClass(
 		AddSchema(typeName, schemaDeps, ()=>{
 			const schema = schemaExtrasOrGetter instanceof Function ? schemaExtrasOrGetter() : (schemaExtrasOrGetter ?? {} as any);
 			schema.properties = schema.properties ?? {};
-			for (const [key, fieldSchemaOrGetter] of Object.entries(constructor["_fields"] ?? [])) {
+			const metadata = context.metadata ?? {} as any;
+			const fields = metadata["_fields"] ?? {};
+			const fieldExtras = metadata["_fieldExtras"] ?? {};
+			for (const [key, fieldSchemaOrGetter] of Object.entries(fields)) {
 				let fieldSchema = fieldSchemaOrGetter instanceof Function ? fieldSchemaOrGetter() : fieldSchemaOrGetter;
-				const extras = constructor["_fieldExtras"]?.[key] as Field_Extras;
+				const extras = fieldExtras?.[key] as Field_Extras;
 				if (extras?.opt) {
 					const fieldSchemaKeys = Object.keys(fieldSchema);
 					if (fieldSchemaKeys.length == 1 && fieldSchemaKeys[0] == "type") {
@@ -420,15 +423,15 @@ Note that the "requiredness" of properties should be based on what's valid for a
 	this is different than the TS "?" marker, which should match with the requiredness of the property when already in the db. (for new entries, the TS constructors already make all props optional)
 */
 export function Field(schemaOrGetter: Object | (()=>Object), extras?: Field_Extras) {
-	// Standard (Stage 3) decorator signature; `this` is the instance being constructed, and `context` holds metadata (including the property name).
-	return function(this: any, value: any, context: ClassFieldDecoratorContext | ClassAccessorDecoratorContext) {
-		const constructor = this.constructor;
-		constructor["_fields"] = constructor["_fields"] ?? {};
-		constructor["_fields"][context.name] = schemaOrGetter;
+	// Standard (Stage 3) decorator signature; `context.metadata` is the shared object passed to both member decorators and the class decorator in one class's decorator-application pass, so we write class-level field metadata there (NOT `this.constructor`, since field decorators are invoked with `this === undefined` at class-definition time).
+	return function(value: any, context: ClassFieldDecoratorContext | ClassAccessorDecoratorContext) {
+		const metadata = context.metadata ?? {} as any;
+		metadata["_fields"] = metadata["_fields"] ?? {};
+		metadata["_fields"][context.name] = schemaOrGetter;
 
 		if (extras) {
-			constructor["_fieldExtras"] = constructor["_fieldExtras"] ?? {};
-			constructor["_fieldExtras"][context.name] = extras;
+			metadata["_fieldExtras"] = metadata["_fieldExtras"] ?? {};
+			metadata["_fieldExtras"][context.name] = extras;
 		}
 	};
 }
