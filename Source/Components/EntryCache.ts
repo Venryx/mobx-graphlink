@@ -146,4 +146,7 @@ export class EntryCache {
 	}
 }
 export const entryCache = new EntryCache();
-entryCache.Init(); // this is async, but that's fine; if a method is called prior to class init, it will just wait for initialization to complete before proceeding
+// only initialize in a browser environment (matters in case, eg. a unit-test imports something from mobx-graphlink)
+if (typeof indexedDB !== "undefined") {
+	entryCache.Init(); // this is async, but that's fine; if a method is called prior to class init, it will just wait for initialization to complete before proceeding
+}
